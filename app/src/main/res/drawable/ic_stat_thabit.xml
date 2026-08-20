@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon (Fase 9 notifications): monochrome white, the system tints it.
+     Same subject as the launcher mark — the checkbox with the overshooting check —
+     reduced to strokes only, since status-bar icons are alpha masks. Ready ahead
+     of time like the siblings'. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:pathData="M7,5 L17,5 C18.66,5 20,6.34 20,8 L20,18 C20,19.66 18.66,21 17,21 L7,21 C5.34,21 4,19.66 4,18 L4,8 C4,6.34 5.34,5 7,5 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M8,13.5 L11,16.5 L20.5,3.5" />
+</vector>

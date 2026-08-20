@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- thabit has no INTERNET permission at all: habit data is intimate data,
+         and it never leaves the device (VISION §3.1). POST_NOTIFICATIONS will be
+         declared in Fase 9; there is nothing to declare until then. -->
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Thabit">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Thabit.Starting">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

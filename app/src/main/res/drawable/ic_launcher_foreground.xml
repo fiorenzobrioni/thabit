@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brand logo { ✓ }: the daily checkbox — the app's one gesture — between the same
+     curly braces as tweather's { ☁️ } and tsteps' { 👣 } marks, syntax-color accent
+     ticks on the brace stems. Braces and ticks are copied verbatim from the siblings
+     (they are the series' badge); only the subject changes per app, always in the
+     series' exact treatment (#2B4D73 fill, #79C0FF 2px stroke). The check overshoots
+     the box's top-right corner: a tick with the verve of a hand-drawn one, because
+     checking it off is the whole product. Everything sits inside the adaptive-icon
+     safe zone (66dp circle of the 108dp canvas). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- checkbox body: rounded square, series subject treatment -->
+    <path
+        android:fillColor="#2B4D73"
+        android:strokeColor="#79C0FF"
+        android:strokeWidth="2"
+        android:pathData="M46,43 L62,43 C64.76,43 67,45.24 67,48 L67,62 C67,64.76 64.76,67 62,67 L46,67 C43.24,67 41,64.76 41,62 L41,48 C41,45.24 43.24,43 46,43 Z" />
+
+    <!-- the check, overshooting the corner -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#79C0FF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M46.5,55.5 L53,62 L67.5,40.5" />
+
+    <!-- left brace { -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#79C0FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M34,34 C30,34 29,36 29,40 L29,48 C29,52 27,53 25,54 C27,55 29,56 29,60 L29,68 C29,72 30,74 34,74" />
+
+    <!-- right brace } -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#79C0FF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M74,34 C78,34 79,36 79,40 L79,48 C79,52 81,53 83,54 C81,55 79,56 79,60 L79,68 C79,72 78,74 74,74" />
+
+    <!-- syntax-color accent ticks on the brace stems (orange/purple/green) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFA657"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M29,41 L29,46" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#BC8CFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M29,62 L29,67" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#BC8CFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M79,41 L79,46" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#3FB950"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M79,62 L79,67" />
+</vector>
