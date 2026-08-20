@@ -7,7 +7,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.callbackdev.thabit.ui.skeleton.SkeletonScreen
+import com.callbackdev.thabit.ui.navigation.ThabitApp
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 
 class MainActivity : ComponentActivity() {
@@ -26,9 +26,9 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             ThabitTheme {
-                // Fase 0 placeholder: a static habits_test.yaml so the very first
-                // build already has thabit's face. Replaced by the real shell in Fase 1.
-                SkeletonScreen()
+                // Fase 1 shell: editor bottom bar + one placeholder per tab.
+                // Theme switching at runtime arrives with settings (Fase 4).
+                ThabitApp()
             }
         }
     }
