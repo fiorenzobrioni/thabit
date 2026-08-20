@@ -22,7 +22,7 @@ Regola del piano (di serie): ogni decisione e ogni deviazione dalla vision va re
 - [x] `MainActivity` minima: splash screen (brand mark), edge-to-edge con barre forzate scure, placeholder `SkeletonScreen` che disegna un `habits_test.yaml` statico con gutter e colori sintassi — il primo build ha già la faccia di thabit
 - [x] Primo unit test (`ThemeProfileTest`) per esercitare la toolchain JVM; `robolectric.properties` (sdk 35, graphics NATIVE) copiato per i test Compose futuri
 - [x] Verifica: `testDebugUnitTest` + `assembleDebug` + `lintDebug` + `assembleRelease -PsignReleaseWithDebugKey` verdi in locale
-- [ ] Primo commit e push; CI verde sul remote al primo run
+- [x] Primo commit e push (`796e8a4`); CI verde sul remote al **secondo** run (`fd2314d`): il primo è morto su `./gradlew: Permission denied` — la copia dei file da tsteps via `cp` su Windows non porta il bit eseguibile dentro git; fixato con `git update-index --chmod=+x gradlew`. Gotcha registrato per le prossime app della serie
 
 ## Fase 1 — Editor kit (import da tsteps)
 
