@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Italian chrome. Series l10n rule: "code" (YAML keys, filenames, terminal
+     output, comments) stays English; only chrome and data values localize. -->
+<resources>
+    <!-- Bottom navigation. "Editor" and "Log" are the same word in Italian;
+         "Stats" stays English — "Statistiche" does not fit label-sm without
+         truncating (tsteps' recorded decision, inherited). -->
+    <string name="nav_editor">Editor</string>
+    <string name="nav_log">Log</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_settings">Impostazioni</string>
+</resources>
