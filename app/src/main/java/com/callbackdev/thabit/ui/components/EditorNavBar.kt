@@ -114,7 +114,7 @@ fun EditorNavBar(
 
 /**
  * The app's four tabs. Glyph choices: the Editor gets the checklist glyph (it opens
- * habits_test.yaml, a list of checkboxes — the `{ }` of the siblings would promise
+ * habits.test, a list of checkboxes — the `{ }` of the siblings would promise
  * JSON), the Log keeps the commit glyph (the history IS a git log here), Stats keeps
  * insights for stats.md, Settings keeps the series' code glyph for settings.config.
  */

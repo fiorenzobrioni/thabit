@@ -11,4 +11,15 @@
     <string name="nav_log">Log</string>
     <string name="nav_stats">Stats</string>
     <string name="nav_settings">Settings</string>
+
+    <!-- Accessibility. VISION §3.3.7: the glyph is the look, the words are the
+         meaning — a screen reader must never read "left bracket dot right
+         bracket". These are the spoken half of every checkbox state; the row
+         composes them with its live detail ("passed, 07:12"). -->
+    <string name="cd_add_test">Add a test to the suite</string>
+    <string name="cd_state_passed">passed</string>
+    <string name="cd_state_pending">still to do</string>
+    <string name="cd_state_holding">holding, it fails only if you break it</string>
+    <string name="cd_state_skipped">skipped</string>
+    <string name="cd_state_failed">failed</string>
 </resources>

@@ -29,6 +29,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextIndent
@@ -53,6 +55,15 @@ data class CodeLine(
     val onClick: (() -> Unit)? = null,
     /** Screen-reader action label for [onClick] (e.g. "Change word_wrap"). */
     val onClickLabel: String? = null,
+    /**
+     * What a screen reader says instead of the rendered glyphs. Without it
+     * TalkBack reads `- [·] no sugar  # holds` literally, dash and brackets
+     * included, which is noise to a sighted user's ear and meaningless to
+     * everyone else: the glyph is the look, the words are the meaning
+     * (VISION §3.3.7). Localized chrome, so it comes from resources — and it is
+     * the only place a glyph like `[·]` gets explained at all.
+     */
+    val contentDescription: String? = null,
     /** Overrides the gutter number color (diff screens tint ± rows green/red). */
     val gutterColor: Color? = null
 ) : CanvasLine
@@ -184,17 +195,8 @@ fun CodeCanvas(
                         )
                         .lineDecoration(line.indent, startGap, guideColor, showIndentGuides)
                     when (line) {
-                        is CodeLine -> Text(
-                            text = line.text,
-                            style = if (options.wordWrap) {
-                                codeStyle.copy(
-                                    textIndent = TextIndent(restLine = WrapHangingIndent)
-                                )
-                            } else {
-                                codeStyle
-                            },
-                            softWrap = options.wordWrap,
-                            modifier = if (line.onClick != null) {
+                        is CodeLine -> {
+                            val tappable = if (line.onClick != null) {
                                 lineModifier.clickable(
                                     onClickLabel = line.onClickLabel,
                                     onClick = line.onClick
@@ -202,7 +204,27 @@ fun CodeCanvas(
                             } else {
                                 lineModifier
                             }
-                        )
+                            // Spoken words win over the rendered glyphs, and the
+                            // click action survives: semantics adds, it does not
+                            // clear (VISION §3.3.7).
+                            val spoken = line.contentDescription
+                            Text(
+                                text = line.text,
+                                style = if (options.wordWrap) {
+                                    codeStyle.copy(
+                                        textIndent = TextIndent(restLine = WrapHangingIndent)
+                                    )
+                                } else {
+                                    codeStyle
+                                },
+                                softWrap = options.wordWrap,
+                                modifier = if (spoken != null) {
+                                    tappable.semantics { contentDescription = spoken }
+                                } else {
+                                    tappable
+                                }
+                            )
+                        }
                         is WidgetLine -> Box(lineModifier) { line.content() }
                     }
                 }

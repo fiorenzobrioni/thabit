@@ -28,7 +28,7 @@ import com.callbackdev.thabit.ui.theme.ThabitTheme
  * WITHOUT Navigation Compose — the real NavHost with per-tab stacks is Fase 4
  * work (series pattern). It exists so the ported kit and the new YAML tokenizer
  * are exercised on device from day one: the editor tab renders a static
- * `habits_test.yaml` through CodeCanvas + YamlSyntax (it replaced Fase 0's
+ * `habits.test` through CodeCanvas + YamlSyntax (it replaced Fase 0's
  * hand-drawn SkeletonScreen), the other tabs state honestly that their file is
  * not yet written.
  */
@@ -64,14 +64,14 @@ fun ThabitApp() {
 
 /** Static sample suite: the Fase 3 screen's shape, drawn with the real tokenizer. */
 private fun sampleSuite(syntax: SyntaxColors) = listOf(
-    commentLine("# habits_test.yaml", syntax),
+    commentLine("# habits.test", syntax),
     commentLine("# suite — 3 passed · 2 pending · 1 skipped", syntax),
     commentLine("#", syntax),
     yamlTestLine(CheckboxState.Passed, "meditate 10 min", syntax, comment = "07:12"),
     yamlTestLine(CheckboxState.Passed, "read 20 pages 📖", syntax, comment = "23 pages"),
     yamlTestLine(CheckboxState.Pending, "pushups", syntax, comment = "12/30    [+1]"),
     yamlTestLine(CheckboxState.Skipped, "run 5k", syntax, comment = "skip: rest day"),
-    yamlTestLine(CheckboxState.Pending, "no sugar", syntax, comment = "holds — asserts at commit"),
+    yamlTestLine(CheckboxState.Holding, "no sugar", syntax, comment = "holds — asserts at commit"),
     yamlTestLine(CheckboxState.Passed, "journal", syntax, comment = "21:40"),
     commentLine("#", syntax),
     commentLine("# static sample — the live suite arrives with Fase 3", syntax)

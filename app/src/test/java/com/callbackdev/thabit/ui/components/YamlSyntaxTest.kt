@@ -44,12 +44,50 @@ class YamlSyntaxTest {
             syntax.diffDel,
             yamlTestLine(CheckboxState.Failed, "a", syntax).colorOf("[!]")
         )
+        assertEquals(
+            syntax.comment,
+            yamlTestLine(CheckboxState.Holding, "a", syntax).colorOf("[·]")
+        )
     }
 
     @Test
     fun `pending checkbox is neutral — no color span, inherits on-surface`() {
         val line = yamlTestLine(CheckboxState.Pending, "pushups", syntax)
         assertEquals(null, line.colorOf("[ ]"))
+    }
+
+    @Test
+    fun `a test line carries the words a screen reader will say`() {
+        // The builders are pure and hold no Context, so the caller composes the
+        // sentence; the row only has to carry it (VISION §3.3.7).
+        val line = yamlTestLine(
+            CheckboxState.Holding, "no sugar", syntax,
+            comment = "holds — asserts at commit",
+            contentDescription = "no sugar, sta reggendo"
+        )
+        assertEquals("no sugar, sta reggendo", line.contentDescription)
+        assertEquals(null, yamlTestLine(CheckboxState.Passed, "a", syntax).contentDescription)
+    }
+
+    @Test
+    fun `every checkbox state points at its own spoken string`() {
+        val ids = CheckboxState.entries.map { it.spokenRes }
+        ids.forEach { assertTrue("a state has no spoken string resource", it != 0) }
+        assertEquals(CheckboxState.entries.size, ids.distinct().size)
+    }
+
+    @Test
+    fun `holding is a glyph of its own — an avoid test is not a pending one`() {
+        // On the widget there is no comment channel to disambiguate, so the glyph
+        // has to (VISION §4.1): `[·] no sugar` holds, `[ ] pushups` is still to do.
+        assertEquals("[·]", CheckboxState.Holding.glyph)
+        assertEquals(
+            "- [·] no sugar  # holds — asserts at commit",
+            yamlTestLine(
+                CheckboxState.Holding, "no sugar", syntax,
+                comment = "holds — asserts at commit"
+            ).text.text
+        )
     }
 
     @Test

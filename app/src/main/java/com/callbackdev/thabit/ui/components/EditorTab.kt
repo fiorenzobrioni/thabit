@@ -137,7 +137,7 @@ private fun EditorTabSingleFilePreview() {
 private fun EditorTabsPreview() {
     ThabitTheme {
         EditorTabs(
-            fileNames = listOf("habits_test.yaml", "README.md"),
+            fileNames = listOf("habits.test", "README.md"),
             activeIndex = 0,
             onSelect = {}
         )

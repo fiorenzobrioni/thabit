@@ -2,6 +2,7 @@ package com.callbackdev.thabit.ui.components
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.AnnotatedString
@@ -34,6 +35,32 @@ class CodeCanvasTest {
         compose.onNodeWithText("1").assertExists()
         compose.onNodeWithText("2").assertExists()
         compose.onNodeWithText("3").assertExists()
+    }
+
+    /**
+     * VISION §3.3.7: a row's glyphs are its look, not its meaning — without this a
+     * screen reader reads `- [·] no sugar  # holds` bracket by bracket. The click
+     * has to survive the override, so the semantics are added, never cleared.
+     */
+    @Test
+    fun rowSpeaksItsWordsAndStaysTappable() {
+        var taps = 0
+        compose.setContent {
+            ThabitTheme {
+                CodeCanvas(
+                    lines = listOf(
+                        CodeLine(
+                            AnnotatedString("- [·] no sugar  # holds"),
+                            contentDescription = "no sugar, holding",
+                            onClick = { taps++ }
+                        )
+                    )
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("no sugar, holding").performClick()
+        assertEquals(1, taps)
     }
 
     @Test

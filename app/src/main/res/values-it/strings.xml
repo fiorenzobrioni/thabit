@@ -9,4 +9,15 @@
     <string name="nav_log">Log</string>
     <string name="nav_stats">Stats</string>
     <string name="nav_settings">Impostazioni</string>
+
+    <!-- Accessibilità (VISION §3.3.7): il glifo è il look, le parole sono il
+         significato. "test" resta (è italiano corrente per una verifica), il
+         resto è lingua piana: chi non riconosce la metafora deve capire la riga
+         solo ascoltandola. -->
+    <string name="cd_add_test">Aggiungi un test alla suite</string>
+    <string name="cd_state_passed">passato</string>
+    <string name="cd_state_pending">ancora da fare</string>
+    <string name="cd_state_holding">sta reggendo, fallisce solo se lo interrompi</string>
+    <string name="cd_state_skipped">saltato</string>
+    <string name="cd_state_failed">fallito</string>
 </resources>

@@ -18,9 +18,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import com.callbackdev.thabit.ui.theme.fabGlow
 
@@ -36,7 +38,11 @@ import com.callbackdev.thabit.ui.theme.fabGlow
 fun GlowFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    contentDescription: String? = "Add",
+    // Localized by default: accessibility text is chrome, so it never ships as an
+    // English literal (VISION §1.3), and it says what the button does in plain
+    // words rather than naming the glyph — "Add" would tell a screen-reader user
+    // nothing about the suite (§3.3.7).
+    contentDescription: String? = stringResource(R.string.cd_add_test),
     containerColor: Color = MaterialTheme.colorScheme.primaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onPrimaryContainer,
     glowColor: Color = ThabitTheme.syntax.glow,

@@ -91,7 +91,7 @@ fun CodeBlockContainer(
 private fun CodeBlockContainerPreview() {
     ThabitTheme {
         CodeBlockContainer(
-            fileName = "habits_test.yaml",
+            fileName = "habits.test",
             modifier = Modifier.padding(16.dp)
         ) {
             SyntaxText(
