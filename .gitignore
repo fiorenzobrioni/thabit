@@ -40,5 +40,3 @@ desktop.ini
 # Profiling
 *.hprof
 
-# Real signing keys must never enter the repo (the committed debug keystore is .keystore)
-*.jks

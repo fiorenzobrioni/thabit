@@ -137,7 +137,7 @@ Fase cuscinetto deliberata: la serie ha imparato che il device del committente r
 
 - [ ] Passata di coerenza design su tutte le schermate: vincoli, spazi, scala font di sistema, TalkBack
 - [ ] Edge case checklist su device: DST e cambio timezone, cambio `day_ends` a giornata in corso, riavvio (riarmo sveglie), giorno vuoto, suite vuota, amend al limite della finestra, archivio con storia lunga, battery saver
-- [ ] Keystore di release reale (alias `thabit`, stessa procedura di serie: chiave fuori repo in `C:\Fiorenzo\keys\`, 4 proprietà `THABIT_KEYSTORE*`, GitHub Secrets); `release.yml` su tag `v*`
+- [x] Keystore di release reale — **anticipato a prima della Fase 1** (ago 2026, in coda al giro che ha messo in riga tutte le app della serie): chiave RSA 4096 trentennale (alias `thabit`) generata dal committente con `keytool`, fuori repo in `C:\Fiorenzo\keys\` con backup nel password manager; 4 proprietà `THABIT_*` compilate in `~/.gradle/gradle.properties`, 4 GitHub Secrets caricati, `release.yml` su tag `v*` già nel repo dalla Fase 0. Verificato in locale: `assembleRelease` produce `app-release.apk` firmato, certificato controllato con apksigner (`CN=callbackdev`, fingerprint distinto dalle altre 4 app); il percorso `-PsignReleaseWithDebugKey` è quello già esercitato dalla CI verde. Il keystore di debug committato è nuovo e unico (alias `thabit-debug`, fingerprint diverso dai gemelli)
 - [ ] Versione 1.0.0, `CHANGELOG.md`, screenshot reali in `docs/screenshots/`, README definitivo, tag e prima GitHub Release verificata
 
 ---
