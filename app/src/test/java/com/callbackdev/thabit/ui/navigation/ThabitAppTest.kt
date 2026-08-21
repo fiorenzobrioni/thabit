@@ -158,7 +158,8 @@ class ThabitAppTest {
         compose.onNodeWithText("Stats").performClick()
         awaitText("stats.md")
         compose.onNodeWithText("stats.md").assertIsDisplayed()
-        compose.onNodeWithText("# not yet written").assertIsDisplayed()
+        // An empty suite still draws its grid: the shape of what is coming.
+        compose.onNodeWithText("## contributions (last 12 weeks)").assertIsDisplayed()
     }
 
     @Test
@@ -242,15 +243,4 @@ class ThabitAppTest {
         compose.onNodeWithText("meditate 10 min").assertIsDisplayed()
     }
 
-    @Test
-    fun `the placeholder file wears the comment marker of the file it will be`() {
-        show()
-        // A JSON-style file gets `//`, a YAML- or diff-style one gets `#`
-        // (VISION §1.1: the comment wears the host file's syntax). Only
-        // `stats.md` is still a placeholder: the log landed in Fase 6.
-        compose.onNodeWithText("Stats").performClick()
-        awaitText("stats.md")
-        compose.onNodeWithText("stats.md").assertIsDisplayed()
-        compose.onNodeWithText("# not yet written").assertIsDisplayed()
-    }
 }
