@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.BuildResult
+import com.callbackdev.thabit.domain.CommitHash
 import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.domain.TestState
 import com.callbackdev.thabit.domain.model.AssertSpec
@@ -82,7 +85,18 @@ fun LogScreen(
     // The amend window closes at `day_ends`, so a log left on screen through it
     // must not still be offering yesterday's rows when the reader comes back.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResumed() }
-    LogScreen(state = state, actions = LogActions(viewModel), modifier = modifier)
+
+    // A tag row in `stats.md` asked for a commit. The view model has already
+    // opened it; this is the half that can only happen once the file exists as
+    // lines — scrolling it into view.
+    val focus by LogFocus.request.collectAsStateWithLifecycle()
+    LogScreen(
+        state = state,
+        actions = LogActions(viewModel),
+        modifier = modifier,
+        focusDate = focus,
+        onFocusHandled = LogFocus::consume
+    )
 }
 
 /** The stateless half — what the previews and the UI tests drive. */
@@ -90,21 +104,38 @@ fun LogScreen(
 fun LogScreen(
     state: LogUiState,
     actions: LogActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
+    /** A commit `stats.md` asked for, or null. */
+    focusDate: LocalDate? = null,
+    onFocusHandled: () -> Unit = {}
 ) {
     val document = state.document
+    val lines = if (document == null) {
+        emptyList()
+    } else {
+        logLines(document = document, interaction = state.interaction, actions = actions)
+    }
+
+    // The line and not the entry: the canvas is a list of lines, and the commit
+    // the reader asked for has to land at the top of the screen rather than
+    // somewhere inside the day above it.
+    LaunchedEffect(focusDate, lines.size) {
+        val date = focusDate ?: return@LaunchedEffect
+        val hash = CommitHash.of(date)
+        val index = lines.indexOfFirst {
+            it is CodeLine && it.text.text.startsWith("commit $hash")
+        }
+        if (index >= 0) {
+            listState.animateScrollToItem(index)
+            onFocusHandled()
+        }
+    }
+
     Column(modifier.fillMaxSize()) {
         EditorTabs(fileNames = listOf(LogDocument.FILE_NAME), activeIndex = 0, onSelect = {})
         Box(Modifier.weight(1f)) {
-            CodeCanvas(
-                lines = if (document == null) emptyList() else logLines(
-                    document = document,
-                    interaction = state.interaction,
-                    actions = actions
-                ),
-                state = rememberLazyListState(),
-                modifier = Modifier.fillMaxSize()
-            )
+            CodeCanvas(lines = lines, state = listState, modifier = Modifier.fillMaxSize())
         }
         LogStatusBar(document)
     }

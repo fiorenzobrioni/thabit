@@ -67,6 +67,17 @@ class LogViewModel(
 
     fun onResumed() = redraw.update { it + 1 }
 
+    init {
+        // A tag row in `stats.md` asked for a commit: open it before the tab is
+        // even on screen, so the reader arrives at an expanded day rather than
+        // at a list they have to hunt through.
+        viewModelScope.launch {
+            LogFocus.request.collect { date ->
+                if (date != null) interaction.update { it.copy(expanded = it.expanded + date) }
+            }
+        }
+    }
+
     /** A commit collapses and expands; several can be open at once, like a diff. */
     fun onToggleCommit(date: LocalDate) = interaction.update { ui ->
         ui.copy(

@@ -201,4 +201,13 @@
         <item quantity="many">Calcolato su questo dispositivo · %1$d giorni registrati</item>
         <item quantity="other">Calcolato su questo dispositivo · %1$d giorni registrati</item>
     </plurals>
+    <!-- stats.md. Il file dichiara ogni tasso con la sua frazione, quindi la
+         metà parlata deve solo trasformare il disegno e le tabelle in frasi. -->
+    <string name="cd_stats_coverage">Giorni girati: %1$d su %2$d. Giorni in cui non c\'era nessuno: %3$d</string>
+    <plurals name="cd_stats_heatmap_row">
+        <item quantity="one">%1$s: %2$d giorno con qualcosa di fatto</item>
+        <item quantity="many">%1$s: %2$d giorni con qualcosa di fatto</item>
+        <item quantity="other">%1$s: %2$d giorni con qualcosa di fatto</item>
+    </plurals>
+    <string name="cd_stats_open_commit">Apri quel giorno nello storico</string>
 </resources>

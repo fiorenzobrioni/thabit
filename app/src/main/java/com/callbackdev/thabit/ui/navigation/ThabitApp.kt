@@ -10,9 +10,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.callbackdev.thabit.ui.theme.ThabitTheme
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -23,20 +23,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.EditorNavBar
 import com.callbackdev.thabit.ui.components.EditorNavItem
 import com.callbackdev.thabit.ui.components.EditorNavItems
 import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.components.LocalEditorOptions
 import com.callbackdev.thabit.ui.components.EditorTabs
-import com.callbackdev.thabit.ui.components.commentLine
 import com.callbackdev.thabit.ui.editor.EditorScreen
+import com.callbackdev.thabit.ui.log.LogFocus
 import com.callbackdev.thabit.ui.log.LogScreen
+import com.callbackdev.thabit.ui.stats.StatsScreen
 import com.callbackdev.thabit.ui.settings.SettingsScreen
 import com.callbackdev.thabit.ui.wizard.WizardScreen
-import com.callbackdev.thabit.ui.theme.SyntaxColors
-import com.callbackdev.thabit.ui.theme.ThabitTheme
 
 /**
  * The shell: four files behind the editor's bottom bar.
@@ -115,7 +113,17 @@ fun ThabitApp(
                             }
                         }
                         composable(EditorNavItems.Log.route) { LogScreen() }
-                        composable(EditorNavItems.Stats.route) { NotYetWritten("stats.md") }
+                        composable(EditorNavItems.Stats.route) {
+                            StatsScreen(
+                                onOpenCommit = { date ->
+                                    // The tag row names a day; the Log tab opens
+                                    // it (LogFocus), because a restored tab
+                                    // cannot be handed a navigation argument.
+                                    LogFocus.request(date)
+                                    navController.openTab(EditorNavItems.Log, destination)
+                                }
+                            )
+                        }
                         composable(EditorNavItems.Settings.route) { SettingsScreen() }
                     }
                 }
@@ -161,33 +169,6 @@ object EditorRoutes {
 
     fun wizardFor(habitId: Long): String = "editor/wizard/$habitId"
 }
-
-/**
- * The honest empty tab: the file exists in the plan, not yet in the app.
- *
- * It gets the tab strip like every other screen, so the name is where names
- * live and the line underneath only has to say what is missing.
- */
-@Composable
-private fun NotYetWritten(fileName: String) {
-    val syntax = ThabitTheme.syntax
-    val lines = remember(fileName, syntax) { notYetWritten(fileName, syntax) }
-    Column(Modifier.fillMaxSize()) {
-        EditorTabs(fileNames = listOf(fileName), activeIndex = 0, onSelect = {})
-        CodeCanvas(lines = lines, modifier = Modifier.fillMaxSize())
-    }
-}
-
-internal fun notYetWritten(fileName: String, syntax: SyntaxColors) = listOf(
-    commentLine(
-        // Placeholders are terminal output, so the comment marker follows the
-        // future host file's syntax (VISION §1.1): # for yaml/md/diff-header
-        // territory, // for the JSON-style settings.config.
-        if (fileName.endsWith(".config")) "// not yet written"
-        else "# not yet written",
-        syntax
-    )
-)
 
 @Preview(showBackground = true, backgroundColor = 0xFF10141A, heightDp = 480)
 @Composable
