@@ -7,8 +7,13 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.callbackdev.thabit.data.ThabitSettings
 import com.callbackdev.thabit.di.ServiceLocator
+import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.navigation.ThabitApp
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import com.callbackdev.thabit.work.RolloverScheduler
@@ -29,10 +34,18 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
         )
         setContent {
-            ThabitTheme {
-                // Fase 1 shell: editor bottom bar + one placeholder per tab.
-                // Theme switching at runtime arrives with settings (Fase 4).
-                ThabitApp()
+            // The theme profile and the editor options are read live from
+            // `settings.config`: tapping "dracula" in the file repaints the app
+            // on the next frame, with no restart and no separate theme state.
+            val settings by remember { ServiceLocator.settings(applicationContext).settings }
+                .collectAsStateWithLifecycle(initialValue = ThabitSettings())
+            ThabitTheme(profile = settings.theme) {
+                ThabitApp(
+                    editorOptions = EditorOptions(
+                        showLineNumbers = settings.showLineNumbers,
+                        wordWrap = settings.wordWrap
+                    )
+                )
             }
         }
     }

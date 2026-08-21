@@ -14,7 +14,6 @@ import com.callbackdev.thabit.data.WriteOutcome
 import com.callbackdev.thabit.di.ServiceLocator
 import com.callbackdev.thabit.domain.TestState
 import com.callbackdev.thabit.domain.model.HabitType
-import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.format.CodeFormat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -58,7 +57,6 @@ class SuiteViewModel(
                 wallDate = LocalDate.now(clock),
                 dayEnds = config.dayEnds
             ),
-            editor = EditorOptions(config.showLineNumbers, config.wordWrap),
             interaction = ui,
             loading = false
         )
@@ -249,7 +247,6 @@ class SuiteViewModel(
 /** Everything the screen draws, in one value. */
 data class SuiteUiState(
     val document: SuiteDocument? = null,
-    val editor: EditorOptions = EditorOptions(),
     val interaction: SuiteInteraction = SuiteInteraction(),
     val loading: Boolean = true
 )

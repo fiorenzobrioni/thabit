@@ -12,7 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,7 +32,6 @@ import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CheckboxState
 import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.GlowFab
-import com.callbackdev.thabit.ui.components.LocalEditorOptions
 import com.callbackdev.thabit.ui.components.StatusBarDivider
 import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
@@ -91,20 +89,21 @@ fun HabitsTestScreen(
 
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
-            CompositionLocalProvider(LocalEditorOptions provides state.editor) {
-                CodeCanvas(
-                    lines = if (document == null) loadingLines() else suiteLines(
-                        document = document,
-                        interaction = state.interaction,
-                        actions = actions
-                    ),
-                    state = listState,
-                    // Room at the foot of the file for the FAB: the last test of
-                    // the suite must never be the one hidden under it.
-                    contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            // Line numbers and word wrap arrive through LocalEditorOptions, which
+            // the shell provides from `settings.config` for every file at once:
+            // they are properties of the editor, not of this screen.
+            CodeCanvas(
+                lines = if (document == null) loadingLines() else suiteLines(
+                    document = document,
+                    interaction = state.interaction,
+                    actions = actions
+                ),
+                state = listState,
+                // Room at the foot of the file for the FAB: the last test of
+                // the suite must never be the one hidden under it.
+                contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                modifier = Modifier.fillMaxSize()
+            )
             // The one glowing verb of this app: growing the suite (VISION §4.1).
             GlowFab(
                 onClick = actions.onAddTest,

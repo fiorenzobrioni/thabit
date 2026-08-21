@@ -59,4 +59,23 @@
          spoken version states the plain fact instead of the glyph. -->
     <string name="cd_status_suite">%1$d tests in the suite</string>
     <string name="cd_status_passed">%1$d of %2$d passed</string>
+
+    <!-- settings.config. The file itself is source and stays English; these are
+         the sentences a screen reader gets instead of `"day_ends": "03:00"`. -->
+    <string name="cd_setting_day_ends">The day ends at %1$s</string>
+    <string name="cd_setting_week_starts">The week starts on %1$s</string>
+    <string name="cd_setting_line_numbers">Line numbers, %1$s</string>
+    <string name="cd_setting_word_wrap">Word wrap, %1$s</string>
+    <string name="cd_setting_theme">Theme %1$s</string>
+    <string name="cd_setting_theme_active">Theme %1$s, in use</string>
+    <string name="cd_setting_version">Version %1$s</string>
+    <string name="cd_value_on">on</string>
+    <string name="cd_value_off">off</string>
+    <string name="cd_action_change">Change</string>
+    <string name="cd_action_use_theme">Use this theme</string>
+    <string name="cd_action_restore">Restore the settings file</string>
+    <string name="cd_action_restore_confirm">Confirm: restore the settings file</string>
+    <string name="cd_action_export_json">Export your data as JSON</string>
+    <string name="cd_action_export_csv">Export your data as CSV</string>
+    <string name="cd_last_modified">Settings last changed on %1$s</string>
 </resources>

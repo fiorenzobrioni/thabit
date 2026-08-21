@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.callbackdev.thabit.domain.DayBoundary
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -38,7 +40,16 @@ data class ThabitSettings(
     val weekStartsOn: DayOfWeek = DayOfWeek.MONDAY,
     val theme: ThemeProfile = ThemeProfile.Obsidian,
     val showLineNumbers: Boolean = false,
-    val wordWrap: Boolean = false
+    val wordWrap: Boolean = false,
+    /**
+     * Epoch millis of the first change the user ever made, or null while the
+     * file is still exactly what shipped.
+     *
+     * It drives the `// Last modified:` line, which is absent rather than
+     * showing an install date nobody chose: an untouched config has not been
+     * modified, and saying otherwise would be the file inventing an edit.
+     */
+    val lastModified: Long? = null
 ) {
     val boundary: DayBoundary get() = DayBoundary(dayEnds)
 }
@@ -47,7 +58,10 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
     name = "settings"
 )
 
-class SettingsStore(private val store: DataStore<Preferences>) {
+class SettingsStore(
+    private val store: DataStore<Preferences>,
+    private val clock: Clock = Clock.systemDefaultZone()
+) {
 
     constructor(context: Context) : this(context.applicationContext.settingsDataStore)
 
@@ -66,7 +80,8 @@ class SettingsStore(private val store: DataStore<Preferences>) {
                 theme = prefs[Keys.Theme]?.let { ThemeProfile.fromName(it) }
                     ?: ThemeProfile.Obsidian,
                 showLineNumbers = prefs[Keys.LineNumbers] ?: false,
-                wordWrap = prefs[Keys.WordWrap] ?: false
+                wordWrap = prefs[Keys.WordWrap] ?: false,
+                lastModified = prefs[Keys.LastModified]
             )
         }
 
@@ -86,11 +101,27 @@ class SettingsStore(private val store: DataStore<Preferences>) {
      * It clears the config and **nothing else**: the suite and every check row
      * live in Room and are never touched here. Resetting a preference must never
      * cost the user a day of their history (VISION §4.4).
+     *
+     * It also does not go through [edit], so the `// Last modified:` line goes
+     * away with everything else: a restored file is not a modified file, and
+     * leaving the stamp behind would have it claim an edit that was undone.
      */
-    suspend fun restoreDefaults() = edit { it.clear() }
+    suspend fun restoreDefaults() {
+        store.edit { it.clear() }
+    }
 
+    /**
+     * Every write stamps the file as modified.
+     *
+     * It lives in the one place every setter goes through rather than in each of
+     * them: a setting added later cannot forget to declare that the file changed,
+     * which is the sort of omission that turns a stated fact into a stale one.
+     */
     private suspend fun edit(block: (MutablePreferences) -> Unit) {
-        store.edit(block)
+        store.edit { prefs ->
+            block(prefs)
+            prefs[Keys.LastModified] = clock.millis()
+        }
     }
 
     private object Keys {
@@ -99,6 +130,7 @@ class SettingsStore(private val store: DataStore<Preferences>) {
         val Theme = stringPreferencesKey("theme")
         val LineNumbers = booleanPreferencesKey("line_numbers")
         val WordWrap = booleanPreferencesKey("word_wrap")
+        val LastModified = longPreferencesKey("last_modified")
     }
 
     private companion object {

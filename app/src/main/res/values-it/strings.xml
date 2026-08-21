@@ -57,4 +57,23 @@
          la versione parlata dice il fatto in chiaro invece del glifo. -->
     <string name="cd_status_suite">%1$d test nella suite</string>
     <string name="cd_status_passed">%1$d su %2$d passati</string>
+
+    <!-- settings.config. Il file è sorgente e resta inglese; queste sono le
+         frasi che un lettore di schermo sente al posto di `"day_ends": "03:00"`. -->
+    <string name="cd_setting_day_ends">Il giorno finisce alle %1$s</string>
+    <string name="cd_setting_week_starts">La settimana comincia di %1$s</string>
+    <string name="cd_setting_line_numbers">Numeri di riga, %1$s</string>
+    <string name="cd_setting_word_wrap">A capo automatico, %1$s</string>
+    <string name="cd_setting_theme">Tema %1$s</string>
+    <string name="cd_setting_theme_active">Tema %1$s, in uso</string>
+    <string name="cd_setting_version">Versione %1$s</string>
+    <string name="cd_value_on">attivi</string>
+    <string name="cd_value_off">disattivati</string>
+    <string name="cd_action_change">Cambia</string>
+    <string name="cd_action_use_theme">Usa questo tema</string>
+    <string name="cd_action_restore">Ripristina il file delle impostazioni</string>
+    <string name="cd_action_restore_confirm">Conferma: ripristina il file delle impostazioni</string>
+    <string name="cd_action_export_json">Esporta i tuoi dati in JSON</string>
+    <string name="cd_action_export_csv">Esporta i tuoi dati in CSV</string>
+    <string name="cd_last_modified">Impostazioni cambiate l\'ultima volta il %1$s</string>
 </resources>

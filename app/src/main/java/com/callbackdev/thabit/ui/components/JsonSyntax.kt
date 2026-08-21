@@ -91,6 +91,7 @@ fun stringValueLine(
     syntax: SyntaxColors,
     indent: Int = 2,
     hint: String? = null,
+    contentDescription: String? = null,
     onClickLabel: String? = null,
     onClick: (() -> Unit)? = null
 ): CodeLine = CodeLine(
@@ -103,7 +104,66 @@ fun stringValueLine(
     },
     indent = indent,
     onClick = onClick,
-    onClickLabel = onClickLabel
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
+)
+
+/**
+ * `"line_numbers": true,  // hint` — a value that is **not** a string, so it
+ * carries no quotes and takes the number/boolean color.
+ *
+ * The twin of [stringValueLine], and the settings file needs both: quoting a
+ * boolean would make the config claim a type it does not have, which in a series
+ * whose first rule is that the file must not lie is not a detail (backport
+ * candidate for tweather/tsteps).
+ */
+fun rawValueLine(
+    key: String,
+    value: String,
+    comma: Boolean,
+    syntax: SyntaxColors,
+    indent: Int = 2,
+    hint: String? = null,
+    contentDescription: String? = null,
+    onClickLabel: String? = null,
+    onClick: (() -> Unit)? = null
+): CodeLine = CodeLine(
+    text = buildAnnotatedString {
+        withStyle(SpanStyle(color = syntax.key)) { append("\"$key\"") }
+        withStyle(SpanStyle(color = syntax.comment)) { append(": ") }
+        withStyle(SpanStyle(color = syntax.number)) { append(value) }
+        if (comma) withStyle(SpanStyle(color = syntax.comment)) { append(",") }
+        appendHint(hint, syntax)
+    },
+    indent = indent,
+    onClick = onClick,
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
+)
+
+/**
+ * `"obsidian",  // active` — an element of a string array, tappable when the
+ * array is a set of choices rather than a list of facts.
+ */
+fun stringItemLine(
+    value: String,
+    comma: Boolean,
+    syntax: SyntaxColors,
+    indent: Int = 3,
+    hint: String? = null,
+    contentDescription: String? = null,
+    onClickLabel: String? = null,
+    onClick: (() -> Unit)? = null
+): CodeLine = CodeLine(
+    text = buildAnnotatedString {
+        withStyle(SpanStyle(color = syntax.string)) { append("\"$value\"") }
+        if (comma) withStyle(SpanStyle(color = syntax.comment)) { append(",") }
+        appendHint(hint, syntax)
+    },
+    indent = indent,
+    onClick = onClick,
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
 )
 
 /** Trailing `  // hint`, dimmed like the mockups' inline annotations. */

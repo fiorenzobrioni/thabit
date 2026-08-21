@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import java.util.concurrent.Executor
 
 /**
  * `thabit.db` — three tables, no verdicts.
@@ -35,10 +36,24 @@ abstract class ThabitDatabase : RoomDatabase() {
                 // when asked, and an orphan check row would be a run with no test.
                 .build()
 
-        /** In-memory instance for tests — same schema, no file. */
-        fun inMemory(context: Context): ThabitDatabase =
+        /**
+         * In-memory instance for tests — same schema, no file.
+         *
+         * [executor], when given, runs both queries and the invalidation
+         * tracker, so a test that drives a coroutine scheduler drives Room's
+         * `Flow` emissions with it. Without that hook the only way to assert on
+         * an observed query is to wait real milliseconds and hope, which is how
+         * a suite acquires tests that fail one run in five.
+         */
+        fun inMemory(context: Context, executor: Executor? = null): ThabitDatabase =
             Room.inMemoryDatabaseBuilder(context, ThabitDatabase::class.java)
                 .allowMainThreadQueries()
+                .apply {
+                    if (executor != null) {
+                        setQueryExecutor(executor)
+                        setTransactionExecutor(executor)
+                    }
+                }
                 .build()
     }
 }

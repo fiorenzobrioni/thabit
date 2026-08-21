@@ -306,6 +306,26 @@ class HabitRepositoryTest {
     }
 
     @Test
+    fun `changing day_ends relabels today, never the days already written`() = runTest {
+        val id = habitCreatedEarlier("meditate 10 min")
+        travelTo("2026-08-21T23:30:00Z") // 01:30 Rome on the 22nd
+        assertEquals(LocalDate.of(2026, 8, 22), repository.today())
+        repository.pass(id, repository.today())
+
+        // The night owl moves the boundary at half past one in the morning.
+        settings.setDayEnds(LocalTime.of(3, 0))
+
+        // Today is now the 21st: the current day was relabelled, as it should be.
+        assertEquals(LocalDate.of(2026, 8, 21), repository.today())
+        // The row that was already written keeps its own date. The past is judged
+        // by the rules of its time, and a setting cannot move a day that is over.
+        assertEquals(
+            listOf("2026-08-22"),
+            db.checkDao().all().map { it.date }
+        )
+    }
+
+    @Test
     fun `the boundary follows the setting`() = runTest {
         assertEquals(Duration.ZERO, Duration.between(LocalTime.MIDNIGHT, repository.boundary().dayEnds))
         settings.setDayEnds(LocalTime.of(3, 0))
