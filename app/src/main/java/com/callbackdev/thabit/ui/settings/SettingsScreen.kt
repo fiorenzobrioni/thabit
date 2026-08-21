@@ -34,6 +34,7 @@ import com.callbackdev.thabit.ui.components.rawValueLine
 import com.callbackdev.thabit.ui.components.stringItemLine
 import com.callbackdev.thabit.ui.components.stringValueLine
 import com.callbackdev.thabit.ui.editor.TextControl
+import com.callbackdev.thabit.ui.editor.decorative
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import java.time.DayOfWeek
@@ -274,7 +275,10 @@ private fun settingsLines(
                 Text(
                     text = SettingsDocument.RESTORE_CONFIRM,
                     style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment
+                    color = syntax.comment,
+                    // The command above and the `[esc]` beside it already say
+                    // this, localized, as what they do.
+                    modifier = Modifier.decorative()
                 )
                 TextControl(
                     label = "[esc]",

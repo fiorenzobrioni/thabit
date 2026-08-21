@@ -28,10 +28,17 @@ data class Check(
     val at: LocalTime? = null,
     /**
      * Skips only: the last logical day this skip covers, so a week away is one
-     * interaction instead of one skip per test per day (VISION §4.1). The rows
-     * for the covered days are still materialised one per day — the window is
-     * how they were *entered*, not a second way of storing them — so the export
-     * and every denominator see plain skips.
+     * interaction instead of one skip per test per day (VISION §4.1).
+     *
+     * The covered days are **not** materialised: this row is the only one
+     * written, and the days between [date] and [until] are expanded on read by
+     * [com.callbackdev.thabit.domain.SuiteHistory]. A row per covered day would
+     * claim the user was present on days that have not happened yet, and those
+     * rows would make those days count as coverage — a week away would come back
+     * as a week of full attendance.
+     *
+     * Downstream nothing knows the difference: every denominator and the export
+     * see plain skips, because that is what the read model hands them.
      */
     val until: LocalDate? = null
 ) {

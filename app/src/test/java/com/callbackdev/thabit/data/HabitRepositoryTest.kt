@@ -242,6 +242,44 @@ class HabitRepositoryTest {
     }
 
     @Test
+    fun `unskip takes back the rest of a window and keeps the days it already covered`() = runTest {
+        val id = habitCreatedEarlier("meditate 10 min")
+        travelTo("2026-08-19T10:00:00Z")
+        val monday = repository.today()
+        repository.skip(id, monday, note = "away", until = monday.plusDays(6))
+
+        // Home two days early.
+        travelTo("2026-08-21T10:00:00Z")
+        val wednesday = repository.today()
+        assertEquals(WriteOutcome.WRITTEN, repository.resumeSkip(id, wednesday))
+
+        val history = repository.history(monday, monday.plusDays(6))
+        // The days already covered are closed history and stay skipped...
+        assertEquals(CheckState.SKIP, history.check(id, monday)?.state)
+        assertEquals(CheckState.SKIP, history.check(id, monday.plusDays(1))?.state)
+        // ...and from today on the test is due again.
+        assertNull(history.check(id, wednesday))
+        assertNull(history.check(id, wednesday.plusDays(1)))
+    }
+
+    @Test
+    fun `unskip on the day the skip was tapped removes the row entirely`() = runTest {
+        val id = repository.addHabit("meditate 10 min")
+        val today = repository.today()
+        repository.skip(id, today, note = "rest day", until = today.plusDays(6))
+
+        assertEquals(WriteOutcome.WRITTEN, repository.resumeSkip(id, today))
+        assertEquals(0, db.checkDao().all().size)
+    }
+
+    @Test
+    fun `unskip finds nothing to undo without complaining`() = runTest {
+        val id = repository.addHabit("meditate 10 min")
+        assertEquals(WriteOutcome.WRITTEN, repository.resumeSkip(id, repository.today()))
+        assertEquals(WriteOutcome.UNKNOWN_TEST, repository.resumeSkip(404L, repository.today()))
+    }
+
+    @Test
     fun `the days a skip window covers are not days the app saw`() = runTest {
         val id = repository.addHabit("meditate 10 min")
         val today = repository.today()

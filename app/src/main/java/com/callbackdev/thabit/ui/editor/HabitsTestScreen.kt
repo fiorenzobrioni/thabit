@@ -16,12 +16,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.callbackdev.thabit.R
@@ -76,6 +79,11 @@ fun HabitsTestScreen(
     viewModel: SuiteViewModel = viewModel(factory = SuiteViewModel.Factory)
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // A file left on screen at half past eleven and looked at again after
+    // midnight has to be the new day's before anything is tapped: coming back to
+    // the front is the moment to read the clock again (the view model does not
+    // poll one).
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResumed() }
     HabitsTestScreen(
         state = state,
         // Adding and editing are the same conversation, so they are navigation
@@ -83,7 +91,7 @@ fun HabitsTestScreen(
         // gets them back with a test in the suite.
         actions = SuiteActions(viewModel).copy(
             onAddTest = onAddTest,
-            onEdit = { row -> onEditTest(row.habitId) }
+            onEdit = onEditTest
         ),
         modifier = modifier
     )
@@ -128,15 +136,22 @@ fun HabitsTestScreen(
     }
 }
 
-/** The taps a suite line can produce, gathered so previews can pass no-ops. */
+/**
+ * The taps a suite line can produce, gathered so previews can pass no-ops.
+ *
+ * The gestures that need to know *what state the row is in* take a row; the
+ * ones that only need to know *which test* take an id, because those are the
+ * ones the commented-out rows share with the due ones.
+ */
 data class SuiteActions(
     val onCheckbox: (TestRow) -> Unit = {},
-    val onDetails: (TestRow) -> Unit = {},
     val onIncrement: (TestRow) -> Unit = {},
-    val onNote: (TestRow) -> Unit = {},
-    val onSkip: (TestRow) -> Unit = {},
-    val onEdit: (TestRow) -> Unit = {},
-    val onArchive: (TestRow) -> Unit = {},
+    val onDetails: (Long) -> Unit = {},
+    val onNote: (Long) -> Unit = {},
+    val onSkip: (Long) -> Unit = {},
+    val onUnskip: (Long) -> Unit = {},
+    val onEdit: (Long) -> Unit = {},
+    val onArchive: (Long) -> Unit = {},
     val onCancelArchive: () -> Unit = {},
     val onToggleNotDue: () -> Unit = {},
     val onPromptChange: (String) -> Unit = {},
@@ -147,10 +162,11 @@ data class SuiteActions(
 ) {
     constructor(viewModel: SuiteViewModel) : this(
         onCheckbox = viewModel::onCheckbox,
-        onDetails = viewModel::onDetails,
         onIncrement = viewModel::onIncrement,
+        onDetails = viewModel::onDetails,
         onNote = viewModel::onNote,
         onSkip = viewModel::onSkip,
+        onUnskip = viewModel::onUnskip,
         onArchive = viewModel::onArchive,
         onCancelArchive = viewModel::onCancelArchive,
         onToggleNotDue = viewModel::onToggleNotDue,
@@ -178,7 +194,7 @@ private fun SuiteStatusBar(document: SuiteDocument?) {
                 StatusBarText(
                     text = "${document.suiteSize} tests",
                     modifier = Modifier.spokenAs(
-                        stringResource(R.string.cd_status_suite, document.suiteSize)
+                        pluralStringResource(R.plurals.cd_status_suite, document.suiteSize, document.suiteSize)
                     )
                 )
             }
@@ -235,6 +251,11 @@ private fun suiteLines(
     val syntax = ThabitTheme.syntax
     val lines = mutableListOf<CanvasLine>()
 
+    // Terminal output goes under the row it answers, and only lands at the foot
+    // of the file when there is no such row left to print it against.
+    val message = interaction.transient
+    val inlineId = message?.habitId?.takeIf { id -> document.due.any { it.habitId == id } }
+
     lines += commentLine("# ${SuiteDocument.FILE_NAME}", syntax)
     if (document.isEmpty) {
         SuiteDocument.emptyHints().forEach { hint ->
@@ -247,6 +268,9 @@ private fun suiteLines(
 
         document.due.forEach { row ->
             lines += testLines(row, document, interaction, actions, syntax)
+            if (row.habitId == inlineId && message != null) {
+                lines += commentLine("# ${message.text}", syntax, indent = 1)
+            }
         }
 
         document.notDueComment(interaction.notDueExpanded)?.let { comment ->
@@ -262,20 +286,15 @@ private fun suiteLines(
             )
             if (interaction.notDueExpanded) {
                 document.notDue.forEach { row ->
-                    lines += commentLine(
-                        text = "# ${row.name}  — ${row.reason}",
-                        syntax = syntax,
-                        indent = 1,
-                        contentDescription = "${row.name}, ${stringResource(R.string.cd_not_due)}"
-                    )
+                    lines += notDueLines(row, interaction, actions, syntax)
                 }
             }
         }
     }
 
-    interaction.transient?.let { message ->
+    if (message != null && inlineId == null) {
         lines += commentLine("#", syntax)
-        lines += commentLine("# $message", syntax)
+        lines += commentLine("# ${message.text}", syntax)
     }
     return lines
 }
@@ -332,31 +351,79 @@ private fun testLines(
             detailsDescription = detailsDescription,
             detailsActionLabel = detailsLabel,
             onCheckbox = { actions.onCheckbox(row) },
-            onDetails = { actions.onDetails(row) },
+            onDetails = { actions.onDetails(row.habitId) },
             incrementLabel = increment,
             incrementDescription = incrementDescription,
             onIncrement = increment?.let { { actions.onIncrement(row) } },
             noteLabel = if (showNote) "[note]" else null,
             noteDescription = noteDescription,
-            onNote = if (showNote) ({ actions.onNote(row) }) else null
+            onNote = if (showNote) ({ actions.onNote(row.habitId) }) else null
         )
     }
 
     val prompt = interaction.prompt?.takeIf { it.habitId == row.habitId }
     if (prompt != null) lines += promptLines(prompt, actions, syntax)
-    if (expanded) lines += specLines(row, interaction, actions, syntax)
+    if (expanded) {
+        lines += specLines(row.habitId, row.name, row.spec, row.state, interaction, actions, syntax)
+    }
     return lines
 }
 
-/** The unfolded spec: what the file would say if you opened the line. */
+/**
+ * A test today does not ask for: the commented-out line, and the same expansion
+ * underneath it.
+ *
+ * The line stays a comment — today it asserts nothing, and that is the whole
+ * point of drawing it this way — but it answers to a tap like every other test
+ * in the file, because `[edit]` and `[rm]` cannot be things you have to wait
+ * until Monday for.
+ */
 @Composable
-private fun specLines(
-    row: TestRow,
+private fun notDueLines(
+    row: NotDueRow,
     interaction: SuiteInteraction,
     actions: SuiteActions,
     syntax: SyntaxColors
 ): List<CanvasLine> {
-    val spec = row.spec
+    val expanded = interaction.expandedId == row.habitId
+    val lines = mutableListOf<CanvasLine>(
+        commentLine(
+            text = "# ${row.name}  — ${row.reason}",
+            syntax = syntax,
+            indent = 1,
+            onClick = { actions.onDetails(row.habitId) },
+            onClickLabel = stringResource(
+                if (expanded) R.string.cd_action_details_hide else R.string.cd_action_details_show
+            ),
+            contentDescription = "${row.name}, ${stringResource(R.string.cd_not_due)}"
+        )
+    )
+    if (expanded) {
+        // No state: a test nobody is asking about today has nothing to skip and
+        // nothing to take back, and a `[~ skip]` here would write a row on a day
+        // the schedule never claimed.
+        lines += specLines(row.habitId, row.name, row.spec, null, interaction, actions, syntax)
+    }
+    return lines
+}
+
+/**
+ * The unfolded spec: what the file would say if you opened the line.
+ *
+ * [state] is the row's state today, or null when today does not ask for this
+ * test at all — which is exactly the difference between the two kinds of row,
+ * and the only thing the expansion needs to know about it.
+ */
+@Composable
+private fun specLines(
+    habitId: Long,
+    name: String,
+    spec: TestSpec,
+    state: TestState?,
+    interaction: SuiteInteraction,
+    actions: SuiteActions,
+    syntax: SyntaxColors
+): List<CanvasLine> {
     val lines = mutableListOf<CanvasLine>()
     lines += yamlStringLine("when", spec.schedule, syntax, indent = 1)
     spec.assertText?.let { lines += yamlStringLine("assert", it, syntax, indent = 1) }
@@ -376,7 +443,7 @@ private fun specLines(
         comment = if (spec.health == null) "not enough runs yet" else null
     )
 
-    if (interaction.archiveConfirmId == row.habitId) {
+    if (interaction.archiveConfirmId == habitId) {
         // The series' shape for anything destructive: a `$` command, spelled out,
         // that only runs on the second tap (VISION §1.1).
         //
@@ -384,12 +451,12 @@ private fun specLines(
         // naming the test, a single row pushed `[esc]` past the right edge on a
         // phone — the way out of a destructive confirm would have needed a
         // horizontal scroll to find. The way out always stays on screen.
-        lines += WidgetLine(indent = 1, measureText = "$ thabit archive \"${row.name}\"    ") {
+        lines += WidgetLine(indent = 1, measureText = "$ thabit archive \"$name\"    ") {
             TextControl(
-                label = "$ thabit archive \"${row.name}\"",
+                label = "$ thabit archive \"$name\"",
                 color = syntax.diffDel,
                 description = stringResource(R.string.cd_action_archive_confirm),
-                onClick = { actions.onArchive(row) }
+                onClick = { actions.onArchive(habitId) }
             )
         }
         lines += WidgetLine(indent = 1, measureText = "# tap the command to confirm  [esc]  ") {
@@ -397,7 +464,11 @@ private fun specLines(
                 Text(
                     text = "# tap the command to confirm",
                     style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment
+                    color = syntax.comment,
+                    // The command and the `[esc]` beside it already say this in
+                    // the reader's language; read aloud it would be a third
+                    // sentence about the same two controls.
+                    modifier = Modifier.decorative()
                 )
                 TextControl(
                     label = "[esc]",
@@ -408,25 +479,36 @@ private fun specLines(
             }
         }
     } else {
-        lines += WidgetLine(indent = 1, measureText = "[~ skip]  [edit]  [rm]      ") {
+        val skipped = state == TestState.SKIP
+        lines += WidgetLine(indent = 1, measureText = "[~ unskip]  [edit]  [rm]      ") {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextControl(
-                    label = "[~ skip]",
-                    color = syntax.comment,
-                    description = stringResource(R.string.cd_action_skip),
-                    onClick = { actions.onSkip(row) }
-                )
+                if (state != null) {
+                    // The same slot, both ways round: a skipped test offers the
+                    // way back, and it is the only way back once the skip has a
+                    // window — the days it covers are not reachable one tap at a
+                    // time (VISION §4.1).
+                    TextControl(
+                        label = if (skipped) "[~ unskip]" else "[~ skip]",
+                        color = syntax.comment,
+                        description = stringResource(
+                            if (skipped) R.string.cd_action_unskip else R.string.cd_action_skip
+                        ),
+                        onClick = {
+                            if (skipped) actions.onUnskip(habitId) else actions.onSkip(habitId)
+                        }
+                    )
+                }
                 TextControl(
                     label = "[edit]",
                     color = syntax.key,
                     description = stringResource(R.string.cd_action_edit),
-                    onClick = { actions.onEdit(row) }
+                    onClick = { actions.onEdit(habitId) }
                 )
                 TextControl(
                     label = "[rm]",
                     color = syntax.diffDel,
                     description = stringResource(R.string.cd_action_archive),
-                    onClick = { actions.onArchive(row) }
+                    onClick = { actions.onArchive(habitId) }
                 )
             }
         }
@@ -459,6 +541,9 @@ private fun promptLines(
                 value = text,
                 onValueChange = actions.onPromptChange,
                 prompt = "> $label:",
+                // The prompt exists because a tap asked for it, so it opens
+                // ready to be answered: the keyboard is part of the question.
+                autoFocus = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = if (numeric) KeyboardType.Decimal else KeyboardType.Text,
                     imeAction = ImeAction.Done

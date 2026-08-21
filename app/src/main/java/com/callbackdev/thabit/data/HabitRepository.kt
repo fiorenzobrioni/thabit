@@ -208,6 +208,43 @@ class HabitRepository(
         return WriteOutcome.WRITTEN
     }
 
+    /**
+     * `[~ unskip]` — the skip cancelled from [from] on.
+     *
+     * Two rows can be covering [from] at once and both have to go: the skip
+     * written *on* that day, and an older window still reaching into it. The
+     * first is deleted (it is today, the working tree). The second is
+     * **shortened, never deleted**: its days up to yesterday are closed history
+     * and stay skipped, so the row keeps them and stops at [from].
+     *
+     * That shortening is the one write in the app that touches a row on a day
+     * outside the amend window, and it is deliberate: `until` is not a result,
+     * it is a **declaration about days that have not happened yet**, and coming
+     * home early from a week away has to be sayable. No closed day changes its
+     * verdict — which is the actual promise of VISION §3.3.5, and the reason the
+     * guard is on [from] rather than on the window's own date.
+     */
+    suspend fun resumeSkip(habitId: Long, from: LocalDate): WriteOutcome {
+        if (!writable(from)) return WriteOutcome.READ_ONLY_DAY
+        habitDao.byId(habitId) ?: return WriteOutcome.UNKNOWN_TEST
+
+        val onTheDay = checkDao.find(habitId, from.toString())?.toDomain()
+        if (onTheDay?.state == CheckState.SKIP) checkDao.delete(habitId, from.toString())
+
+        val window = checkDao.openSkipWindows(from.toString())
+            .mapNotNull { it.toDomain() }
+            .firstOrNull { it.habitId == habitId }
+        if (window != null) {
+            val lastCovered = from.minusDays(1)
+            checkDao.upsert(
+                // Back to a plain one-day skip when the window has nothing left
+                // to cover: `until` on its own day would be a window of zero days.
+                window.copy(until = lastCovered.takeIf { it > window.date }).toEntity()
+            )
+        }
+        return WriteOutcome.WRITTEN
+    }
+
     private suspend fun writable(date: LocalDate): Boolean =
         AmendWindow(boundary()).isWritable(date, clock.instant(), clock.zone)
 

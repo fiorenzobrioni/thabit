@@ -36,6 +36,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
@@ -58,7 +59,17 @@ class SuiteViewModelTest {
     val folder = TemporaryFolder()
 
     private val rome: ZoneId = ZoneId.of("Europe/Rome")
-    private val clock: Clock = Clock.fixed(Instant.parse("2026-08-21T09:00:00Z"), rome)
+    /**
+     * Settable, because the day ending under an open file is one of the things
+     * worth asserting — `Clock.fixed` cannot express "and then it was tomorrow".
+     */
+    private var now: Instant = Instant.parse("2026-08-21T09:00:00Z")
+
+    private val clock: Clock = object : Clock() {
+        override fun getZone(): ZoneId = rome
+        override fun withZone(zone: ZoneId): Clock = this
+        override fun instant(): Instant = now
+    }
 
     private val dispatcher = StandardTestDispatcher()
     private val dataStoreScope = CoroutineScope(dispatcher + SupervisorJob())
@@ -243,7 +254,7 @@ class SuiteViewModelTest {
     fun `a skip carries its note and only today by default`() = runUi {
         val test = addHabit("run 5k")
 
-        viewModel.onSkip(test)
+        viewModel.onSkip(test.habitId)
         viewModel.onPromptChange("rest day")
         viewModel.onSubmitPrompt()
 
@@ -255,7 +266,7 @@ class SuiteViewModelTest {
     fun `a week away is one interaction, not one skip per day`() = runUi {
         val test = addHabit("run 5k")
 
-        viewModel.onSkip(test)
+        viewModel.onSkip(test.habitId)
         repeat(2) { viewModel.onCycleSkipWindow() } // today -> 3d -> 1w
         assertEquals(SkipWindow.OneWeek, (interaction().prompt as SuitePrompt.Skip).window)
 
@@ -273,15 +284,82 @@ class SuiteViewModelTest {
         assertNull(SkipWindow.Today.until(clock.instant().atZone(rome).toLocalDate()))
     }
 
+    @Test
+    fun `unskip gives back the days the window had not reached yet`() = runUi {
+        val test = addHabit("run 5k")
+
+        viewModel.onSkip(test.habitId)
+        repeat(2) { viewModel.onCycleSkipWindow() } // today -> 3d -> 1w
+        viewModel.onPromptChange("away")
+        viewModel.onSubmitPrompt()
+        assertEquals(TestState.SKIP, row().state)
+
+        viewModel.onUnskip(test.habitId)
+        assertEquals(TestState.PENDING, row().state)
+        // Tapped and taken back on the same day: nothing of it is left behind.
+        assertEquals(0, db.checkDao().all().size)
+    }
+
+    @Test
+    fun `a skipped counter still knows what it counts`() = runUi {
+        val test = addHabit("read 20 pages", HabitType.COUNTER, AssertSpec(20.0, "pages"))
+
+        viewModel.onSkip(test.habitId)
+        viewModel.onSubmitPrompt()
+        assertEquals(TestState.SKIP, row().state)
+
+        // The unit belongs to the test, not to the day: the prompt of a skipped
+        // counter used to open as the anonymous .
+        viewModel.onCheckbox(row())
+        assertEquals("pages", (interaction().prompt as SuitePrompt.Value).unit)
+    }
+
+    // ---- the day ending under an open file --------------------------------
+
+    @Test
+    fun `a tap after the day rolled over does not land on the day that ended`() = runUi {
+        val test = addHabit("meditate 10 min")
+        assertEquals(LocalDate.of(2026, 8, 21), file().logicalDate)
+
+        // The file stays on screen; in Rome it is now half past two at night.
+        now = Instant.parse("2026-08-22T00:30:00Z")
+        viewModel.onCheckbox(test)
+
+        // Nothing was written into the day that ended behind the reader's back,
+        // and the file caught up by itself instead of waiting for the database.
+        assertEquals(0, db.checkDao().all().size)
+        assertEquals(LocalDate.of(2026, 8, 22), file().logicalDate)
+        val message = interaction().transient!!
+        assertEquals(SuiteViewModel.rolledOver(LocalDate.of(2026, 8, 22)), message.text)
+        // Printed under the row that was tapped, where the thumb still is.
+        assertEquals(test.habitId, message.habitId)
+
+        // And the second tap is an ordinary one, on the day that is now open.
+        viewModel.onCheckbox(row())
+        assertEquals(TestState.PASS, row().state)
+        assertEquals("2026-08-22", db.checkDao().all().single().date)
+    }
+
+    @Test
+    fun `coming back to the front reads the clock again`() = runUi {
+        addHabit("meditate 10 min")
+        assertEquals(LocalDate.of(2026, 8, 21), file().logicalDate)
+
+        now = Instant.parse("2026-08-22T00:30:00Z")
+        viewModel.onResumed()
+
+        assertEquals(LocalDate.of(2026, 8, 22), file().logicalDate)
+    }
+
     // ---- the expansion ---------------------------------------------------
 
     @Test
     fun `the name unfolds the spec and folds it again`() = runUi {
         val test = addHabit("meditate 10 min")
 
-        viewModel.onDetails(test)
+        viewModel.onDetails(test.habitId)
         assertEquals(test.habitId, interaction().expandedId)
-        viewModel.onDetails(test)
+        viewModel.onDetails(test.habitId)
         assertNull(interaction().expandedId)
     }
 
@@ -289,11 +367,11 @@ class SuiteViewModelTest {
     fun `archiving takes two taps and keeps the history`() = runUi {
         val test = addHabit("meditate 10 min")
 
-        viewModel.onArchive(test)
+        viewModel.onArchive(test.habitId)
         assertEquals(test.habitId, interaction().archiveConfirmId)
         assertEquals(1, file().suiteSize)
 
-        viewModel.onArchive(test)
+        viewModel.onArchive(test.habitId)
         assertEquals(0, file().suiteSize)
         assertNull(interaction().archiveConfirmId)
         // Archived, never deleted: the days it already ran belong to the user.
@@ -304,7 +382,7 @@ class SuiteViewModelTest {
     fun `the first tap of an archive can be taken back`() = runUi {
         val test = addHabit("meditate 10 min")
 
-        viewModel.onArchive(test)
+        viewModel.onArchive(test.habitId)
         assertEquals(test.habitId, interaction().archiveConfirmId)
         viewModel.onCancelArchive()
         assertNull(interaction().archiveConfirmId)

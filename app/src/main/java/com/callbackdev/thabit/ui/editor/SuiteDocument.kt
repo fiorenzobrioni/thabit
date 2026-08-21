@@ -185,6 +185,9 @@ data class SuiteDocument(
                 state = outcome.state,
                 comment = comment(detail),
                 detail = detail,
+                // The test's own unit, not today's: a skipped counter still
+                // counts pages, and its prompt has to know that.
+                unit = habit.assert?.unit?.takeIf { it.isNotBlank() },
                 incrementStep = incrementStep(habit, outcome.state),
                 spec = spec(history, habit, date)
             )
@@ -227,7 +230,7 @@ data class SuiteDocument(
             } else {
                 "when: ${habit.schedule.format()}"
             }
-            return NotDueRow(habit.id, displayName(habit), reason)
+            return NotDueRow(habit.id, displayName(habit), reason, spec(history, habit, date))
         }
 
         private fun displayName(habit: Habit): String =
@@ -270,17 +273,34 @@ data class TestRow(
     val comment: String?,
     /** The same fact, structured, so a screen reader can be told it in its language. */
     val detail: RowDetail,
+    /**
+     * What a counter counts — `pages`, `reps` — or null for the other types.
+     *
+     * A property of the test and not of the day, which is the point: it used to
+     * be read out of [RowDetail.Counter], so a **skipped** counter lost it and
+     * its prompt opened as the anonymous `> value:` instead of `> pages:`.
+     */
+    val unit: String?,
     /** Step of the `[+N]` control, or null when the row does not offer one. */
     val incrementStep: Double?,
     val spec: TestSpec
 )
 
-/** A test still in the suite that today does not ask for. */
+/**
+ * A test still in the suite that today does not ask for.
+ *
+ * It carries its [spec] like any other row: a commented-out line is about
+ * *today's run*, not about the test's existence, so the same expansion has to
+ * open on it. Without it, a `mon,wed,fri` test could not be read, edited or
+ * archived on a Tuesday — a third of the suite would be out of reach on any
+ * given day, which is not what "commented out, not hidden" was supposed to mean.
+ */
 data class NotDueRow(
     val habitId: Long,
     val name: String,
     /** Why it is quiet today: `when: mon,wed,fri`, or the week's quota already met. */
-    val reason: String
+    val reason: String,
+    val spec: TestSpec
 )
 
 /** The expanded spec of a test: what the file would say if you unfolded the line. */

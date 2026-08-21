@@ -3,6 +3,7 @@ package com.callbackdev.thabit.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -65,7 +66,16 @@ fun ThabitApp(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(Modifier.statusBarsPadding()) {
+        // `imePadding` and not the window's own resize: the app is edge to edge
+        // (MainActivity), and from targetSdk 35 the system stops resizing the
+        // window for the keyboard — an app that does not say where the IME is
+        // gets its prompts covered by it. The whole shell lifts instead of the
+        // file alone, so the nav bar stays reachable while a prompt is open.
+        Column(
+            Modifier
+                .statusBarsPadding()
+                .imePadding()
+        ) {
             CompositionLocalProvider(LocalEditorOptions provides editorOptions) {
                 Box(Modifier.weight(1f)) {
                     NavHost(

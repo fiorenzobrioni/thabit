@@ -2,7 +2,10 @@ package com.callbackdev.thabit.ui.editor
 
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -15,6 +18,7 @@ import com.callbackdev.thabit.domain.model.CheckState
 import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -121,7 +125,7 @@ class HabitsTestScreenTest {
     @Test
     fun `the checkbox runs the test and the name unfolds it`() {
         var checked: TestRow? = null
-        var detailed: TestRow? = null
+        var detailed: Long? = null
         show(
             suite(),
             SuiteActions(
@@ -134,7 +138,7 @@ class HabitsTestScreenTest {
         assertEquals(1L, checked?.habitId)
 
         compose.onNodeWithContentDescription("Details of meditate 10 min").performClick()
-        assertEquals(1L, detailed?.habitId)
+        assertEquals(1L, detailed)
     }
 
     @Test
@@ -182,10 +186,92 @@ class HabitsTestScreenTest {
         val history = Fixture.history(listOf(meditate, mondays), emptyList(), setOf(d))
         show(history, interaction = SuiteInteraction(notDueExpanded = true))
         compose.onNodeWithText("# 1 test not due today — [hide]").assertIsDisplayed()
-        compose.onNodeWithText("# deep work  — when: mon").assertIsDisplayed()
+        compose.onNodeWithText("# deep work  — when: mon")
+            .assertIsDisplayed()
+            .assert(hasClickAction())
+    }
+
+    @Test
+    fun `a test not due today opens the same spec, and the actions that make sense`() {
+        val mondays = Fixture.habit(
+            4L, "deep work",
+            schedule = com.callbackdev.thabit.domain.model.Schedule.Weekdays(
+                setOf(java.time.DayOfWeek.MONDAY)
+            ),
+            createdAt = d
+        )
+        val history = Fixture.history(listOf(meditate, mondays), emptyList(), setOf(d))
+        show(
+            history,
+            interaction = SuiteInteraction(notDueExpanded = true, expandedId = 4L)
+        )
+
+        // `[edit]` and `[rm]` cannot be things you have to wait until Monday for.
+        compose.onNodeWithText("when: mon").assertIsDisplayed()
+        compose.onNodeWithText("[edit]").assertIsDisplayed().assert(hasClickAction())
+        compose.onNodeWithText("[rm]").assertIsDisplayed().assert(hasClickAction())
+        // Nothing is asked of this test today, so there is nothing to skip.
+        compose.onNodeWithText("[~ skip]").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a skipped test offers the way back, and it is the only way back`() {
+        val history = Fixture.history(
+            listOf(meditate),
+            listOf(Fixture.skip(1L, d, until = d.plusDays(6), note = "away")),
+            setOf(d)
+        )
+        show(history, interaction = SuiteInteraction(expandedId = 1L))
+
+        compose.onNodeWithText("[~ unskip]").assertIsDisplayed().assert(hasClickAction())
+        compose.onNodeWithText("[~ skip]").assertDoesNotExist()
+    }
+
+    // ---- terminal output --------------------------------------------------
+
+    @Test
+    fun `terminal output is printed under the row it answers`() {
+        show(
+            suite(),
+            interaction = SuiteInteraction(
+                transient = SuiteMessage(SuiteViewModel.UNKNOWN_TEST, habitId = 1L)
+            )
+        )
+        // A message is always the answer to a tap, and the thumb that tapped is
+        // still on that line — so it is printed there, not at the foot of a file
+        // that may be longer than the screen.
+        val message = compose.onNodeWithText("# " + SuiteViewModel.UNKNOWN_TEST)
+            .getUnclippedBoundsInRoot()
+        val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
+        assertTrue(message.top < lastRow.top)
+    }
+
+    @Test
+    fun `terminal output with no row of its own falls to the foot of the file`() {
+        show(
+            suite(),
+            interaction = SuiteInteraction(transient = SuiteMessage(SuiteViewModel.UNKNOWN_TEST))
+        )
+        val message = compose.onNodeWithText("# " + SuiteViewModel.UNKNOWN_TEST)
+            .getUnclippedBoundsInRoot()
+        val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
+        assertTrue(message.top > lastRow.top)
     }
 
     // ---- the spoken half -------------------------------------------------
+
+    @Test
+    fun `the comment channel is drawn, not spoken`() {
+        show(suite())
+        // `# 12/30 reps` is source: English, for the eye. The checkbox has just
+        // said the same thing in the listener's language, and hearing it twice —
+        // the second time in the wrong one — is the noise §3.3.7 forbids.
+        compose.onNodeWithText("  # 12/30 reps")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.HideFromAccessibility))
+        // The row's own sentence is untouched by that.
+        compose.onNodeWithContentDescription("pushups, still to do, 12 of 30 reps")
+            .assertIsDisplayed()
+    }
 
     @Test
     fun `a row speaks words, never brackets`() {
