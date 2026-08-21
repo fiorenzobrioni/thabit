@@ -227,7 +227,7 @@ data class SuiteDocument(
             } else {
                 "when: ${habit.schedule.format()}"
             }
-            return NotDueRow(habit.id, displayName(habit), reason)
+            return NotDueRow(habit.id, displayName(habit), reason, spec(history, habit, date))
         }
 
         private fun displayName(habit: Habit): String =
@@ -275,12 +275,21 @@ data class TestRow(
     val spec: TestSpec
 )
 
-/** A test still in the suite that today does not ask for. */
+/**
+ * A test still in the suite that today does not ask for.
+ *
+ * It carries its [spec] like any other row: a commented-out line is about
+ * *today's run*, not about the test's existence, so the same expansion has to
+ * open on it. Without it, a `mon,wed,fri` test could not be read, edited or
+ * archived on a Tuesday — a third of the suite would be out of reach on any
+ * given day, which is not what "commented out, not hidden" was supposed to mean.
+ */
 data class NotDueRow(
     val habitId: Long,
     val name: String,
     /** Why it is quiet today: `when: mon,wed,fri`, or the week's quota already met. */
-    val reason: String
+    val reason: String,
+    val spec: TestSpec
 )
 
 /** The expanded spec of a test: what the file would say if you unfolded the line. */

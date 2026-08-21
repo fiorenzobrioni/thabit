@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -91,7 +92,8 @@ fun TestLine(
             Text(
                 text = "  # $comment",
                 style = style,
-                color = syntax.comment.copy(alpha = 0.6f)
+                color = syntax.comment.copy(alpha = 0.6f),
+                modifier = Modifier.decorative()
             )
         }
         if (incrementLabel != null && onIncrement != null) {
@@ -112,6 +114,30 @@ fun TestLine(
         }
     }
 }
+
+/**
+ * Marks a piece of the file as **look, not meaning** — invisible to a screen
+ * reader, untouched on screen.
+ *
+ * The comment channel is source (VISION §1.3): `# 12/30 reps` is English by
+ * design and is written for the eye. Every fact it carries is already spoken,
+ * localized, by the control it sits next to — the checkbox says *12 di 30
+ * pagine*, the `[3]` token says *3 volte a settimana*. Left in the accessibility
+ * tree those comments are read a second time, in a language the listener did not
+ * choose, with the punctuation spelled out: the exact "left bracket dot right
+ * bracket" noise VISION §3.3.7 forbids, arriving through the other door.
+ *
+ * The rule this encodes: **a screen reader hears each fact once**, from whatever
+ * the reader can actually tap.
+ *
+ * `hideFromAccessibility` and not `clearAndSetSemantics`: the first hides the
+ * line from accessibility services and leaves the node where it is, so the words
+ * of the file stay selectable on screen and stay **assertable in the tests** —
+ * and the tests asserting the file character by character is the habit this
+ * project is built on. Clearing the semantics would have hidden the comments
+ * from the suite that guards them too.
+ */
+fun Modifier.decorative(): Modifier = semantics { hideFromAccessibility() }
 
 /**
  * Vertical breathing room on the two tap targets of a row.

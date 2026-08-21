@@ -2,7 +2,10 @@ package com.callbackdev.thabit.ui.wizard
 
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -46,6 +49,21 @@ class WizardScreenTest {
         compose.onNodeWithText("$ thabit add").assertIsDisplayed()
         compose.onNodeWithText("> name:").assertIsDisplayed()
         compose.onNodeWithText("# what do you want to call it?").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the name prompt opens with the caret already in it`() {
+        show()
+        // The question has been asked: the answer must not need a second tap
+        // before the keyboard shows up (the siblings' prompts do the same).
+        compose.onNode(hasSetTextAction()).assertIsFocused()
+    }
+
+    @Test
+    fun `the line left behind by a done does not steal the keyboard back`() {
+        show(WizardUiState(added = listOf("meditate"), focus = null))
+        compose.onNodeWithText("[+ another]").assertIsDisplayed()
+        compose.onNode(hasSetTextAction()).assertIsNotFocused()
     }
 
     @Test
@@ -152,6 +170,20 @@ class WizardScreenTest {
         )
         compose.onNodeWithText("[3]").assertIsDisplayed().assert(hasClickAction())
         compose.onNodeWithText("times a week").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a quota of one is spoken in the singular`() {
+        show(
+            WizardUiState(
+                draft = WizardDraft(name = "x", scheme = ScheduleScheme.Quota, quota = 1, expanded = true),
+                focus = null
+            )
+        )
+        // The file writes `1/week` because that is the canonical form; the
+        // sentence a screen reader gets has to be a sentence.
+        compose.onNodeWithText("[1/week]").assertIsDisplayed()
+        compose.onNodeWithContentDescription("once a week").assertIsDisplayed()
     }
 
     @Test

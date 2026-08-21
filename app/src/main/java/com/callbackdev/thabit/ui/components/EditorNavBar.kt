@@ -10,8 +10,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
@@ -66,7 +70,13 @@ fun EditorNavBar(
                     strokeWidth = 1.dp.toPx()
                 )
             }
-            .navigationBarsPadding()
+            // The gesture bar's room, *unless* the keyboard has taken that room
+            // already: with the shell lifted by `imePadding`, a plain
+            // `navigationBarsPadding()` would leave a strip of dead background
+            // between the tabs and the top of the keyboard. `exclude` reads as
+            // what it is — the two insets are the same pixels, and only one of
+            // them can be true at a time. **Candidate for backport.**
+            .windowInsetsPadding(WindowInsets.navigationBars.exclude(WindowInsets.ime))
             // 56dp on the default density; grows with the system font scale
             .heightIn(min = 56.dp)
             .height(IntrinsicSize.Min)

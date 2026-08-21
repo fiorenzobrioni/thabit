@@ -36,6 +36,7 @@
     <string name="cd_action_increment">Add %1$s</string>
     <string name="cd_action_note">Add a note</string>
     <string name="cd_action_skip">Skip this test</string>
+    <string name="cd_action_unskip">Take back the skip, from today on</string>
     <string name="cd_action_edit">Edit this test</string>
     <string name="cd_action_archive">Archive this test</string>
     <string name="cd_action_archive_confirm">Confirm: archive this test</string>
@@ -57,7 +58,10 @@
 
     <!-- Status bar. The git decorations are signature, not information, so the
          spoken version states the plain fact instead of the glyph. -->
-    <string name="cd_status_suite">%1$d tests in the suite</string>
+    <plurals name="cd_status_suite">
+        <item quantity="one">%1$d test in the suite</item>
+        <item quantity="other">%1$d tests in the suite</item>
+    </plurals>
     <string name="cd_status_passed">%1$d of %2$d passed</string>
 
     <!-- settings.config. The file itself is source and stays English; these are
@@ -88,8 +92,14 @@
     <string name="cd_type_avoid">something to stay away from</string>
     <string name="cd_when_daily">every day</string>
     <string name="cd_when_weekdays">on chosen days of the week</string>
-    <string name="cd_when_quota">%1$d times a week</string>
-    <string name="cd_when_interval">every %1$d days</string>
+    <plurals name="cd_when_quota">
+        <item quantity="one">once a week</item>
+        <item quantity="other">%1$d times a week</item>
+    </plurals>
+    <plurals name="cd_when_interval">
+        <item quantity="one">every day</item>
+        <item quantity="other">every %1$d days</item>
+    </plurals>
     <string name="cd_wizard_chosen">%1$s, chosen</string>
     <string name="cd_wizard_choose">Choose: %1$s</string>
     <string name="cd_wizard_weekday_on">%1$s, included</string>

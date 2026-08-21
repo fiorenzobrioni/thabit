@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -35,6 +38,15 @@ import com.callbackdev.thabit.ui.theme.ThabitTheme
  * typed text as a syntax string. The blinking underscore plays the idle cursor while
  * the field is empty; once there is text, the native caret (accent-colored) shows
  * the real edit position — an underscore pinned at the end would lie about it.
+ *
+ * [autoFocus] opens the prompt with the caret already in it and the keyboard up.
+ * A prompt the app opened on the user's behalf — the counter's value, a skip note,
+ * `> name:` on the wizard's first screen — is a question that has just been asked:
+ * a blinking cursor that needs a second tap before it accepts a letter is the app
+ * miming a terminal instead of behaving like one. The siblings do this at every
+ * call site with a [FocusRequester] of their own; keeping it inside the component
+ * means a new prompt cannot forget it. **Candidate for backport** to
+ * tweather/tsteps.
  */
 @Composable
 fun TerminalInput(
@@ -43,11 +55,21 @@ fun TerminalInput(
     modifier: Modifier = Modifier,
     prompt: String = ">",
     placeholder: String = "",
+    autoFocus: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     val syntax = ThabitTheme.syntax
     val textStyle = MaterialTheme.typography.bodySmall
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(autoFocus) {
+        // Guarded: the request throws if the field left the composition between
+        // the effect being launched and it running — a prompt closed by a fast
+        // `[esc]`, or a row scrolled out of a lazy list. Losing the keyboard is
+        // the correct outcome there; crashing is not.
+        if (autoFocus) runCatching { focusRequester.requestFocus() }
+    }
 
     // Created only while the idle cursor is actually drawn (empty field): an
     // InfiniteTransition keeps the frame clock ticking every vsync for as long as
@@ -75,11 +97,13 @@ fun TerminalInput(
     BasicTextField(
         value = value,
         onValueChange = { onValueChange(it.replace("\n", "")) },
-        modifier = modifier.semantics {
-            // The placeholder Text below is a sibling drawn behind the field, so it
-            // names the field here for screen readers (like Material text fields do).
-            if (placeholder.isNotEmpty()) contentDescription = placeholder
-        },
+        modifier = modifier
+            .focusRequester(focusRequester)
+            .semantics {
+                // The placeholder Text below is a sibling drawn behind the field, so it
+                // names the field here for screen readers (like Material text fields do).
+                if (placeholder.isNotEmpty()) contentDescription = placeholder
+            },
         textStyle = textStyle.copy(color = syntax.string),
         singleLine = true,
         keyboardOptions = keyboardOptions,

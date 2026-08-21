@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -37,6 +38,7 @@ import com.callbackdev.thabit.ui.components.TerminalStatusBar
 import com.callbackdev.thabit.ui.components.WidgetLine
 import com.callbackdev.thabit.ui.components.commentLine
 import com.callbackdev.thabit.ui.editor.TextControl
+import com.callbackdev.thabit.ui.editor.decorative
 import com.callbackdev.thabit.ui.format.CodeFormat
 import com.callbackdev.thabit.ui.theme.SyntaxColors
 import com.callbackdev.thabit.ui.theme.ThabitTheme
@@ -194,12 +196,18 @@ private fun nameLine(
     syntax: SyntaxColors
 ): CanvasLine {
     if (state.focus == WizardField.Name || state.draft.name.isEmpty()) {
+        // Focused only when the name is the open question — which is true the
+        // moment the transcript opens, and again after `[+ another]`. It is
+        // deliberately *not* true on the line left behind by a `[done]`, where
+        // the reader is looking at the receipt and not at a new answer.
+        val focused = state.focus == WizardField.Name
         return WidgetLine(measureText = "> name: ${"_".repeat(24)}    ") {
             TerminalInput(
                 value = state.draft.name,
                 onValueChange = actions.onName,
                 prompt = "> name:",
                 placeholder = stringResource(R.string.cd_wizard_name),
+                autoFocus = focused,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { actions.onPromptSubmit() })
             )
@@ -254,8 +262,8 @@ private fun whenLines(
     val spoken = mapOf(
         ScheduleScheme.Daily to stringResource(R.string.cd_when_daily),
         ScheduleScheme.Weekdays to stringResource(R.string.cd_when_weekdays),
-        ScheduleScheme.Quota to stringResource(R.string.cd_when_quota, draft.quota),
-        ScheduleScheme.Interval to stringResource(R.string.cd_when_interval, draft.intervalDays)
+        ScheduleScheme.Quota to pluralStringResource(R.plurals.cd_when_quota, draft.quota, draft.quota),
+        ScheduleScheme.Interval to pluralStringResource(R.plurals.cd_when_interval, draft.intervalDays, draft.intervalDays)
     )
     val hints = mapOf(
         ScheduleScheme.Daily to "every day",
@@ -320,14 +328,17 @@ private fun schemeDetailLines(
                 TextControl(
                     label = "[${draft.quota}]",
                     color = syntax.number,
-                    description = stringResource(R.string.cd_when_quota, draft.quota),
+                    description = pluralStringResource(R.plurals.cd_when_quota, draft.quota, draft.quota),
                     actionLabel = stringResource(R.string.cd_action_change),
                     onClick = actions.onCycleQuota
                 )
                 Text(
                     text = "times a week",
                     style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment
+                    color = syntax.comment,
+                    // The `[3]` beside it already says *three times a week* in
+                    // the listener's own language.
+                    modifier = Modifier.decorative()
                 )
             }
         }
@@ -339,19 +350,21 @@ private fun schemeDetailLines(
                 Text(
                     text = "every",
                     style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment
+                    color = syntax.comment,
+                    modifier = Modifier.decorative()
                 )
                 TextControl(
                     label = "[${draft.intervalDays}]",
                     color = syntax.number,
-                    description = stringResource(R.string.cd_when_interval, draft.intervalDays),
+                    description = pluralStringResource(R.plurals.cd_when_interval, draft.intervalDays, draft.intervalDays),
                     actionLabel = stringResource(R.string.cd_action_change),
                     onClick = actions.onCycleInterval
                 )
                 Text(
                     text = "days",
                     style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment
+                    color = syntax.comment,
+                    modifier = Modifier.decorative()
                 )
             }
         }
@@ -401,6 +414,7 @@ private fun assertLine(
                 value = state.pending,
                 onValueChange = actions.onPromptChange,
                 prompt = if (unitPrompt) "> counting:" else "> how much:",
+                autoFocus = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = if (unitPrompt) KeyboardType.Text else KeyboardType.Decimal,
                     imeAction = ImeAction.Done
@@ -413,14 +427,24 @@ private fun assertLine(
     // both halves are their own control.
     return WidgetLine(indent = 1, measureText = "> assert: [pages] >= [20]  # how much counts as done   ") {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("> assert:", style = MaterialTheme.typography.bodySmall, color = syntax.comment)
+            Text(
+                text = "> assert:",
+                style = MaterialTheme.typography.bodySmall,
+                color = syntax.comment,
+                modifier = Modifier.decorative()
+            )
             TextControl(
                 label = "[${draft.unit}]",
                 color = syntax.string,
                 description = stringResource(R.string.cd_wizard_unit, draft.unit),
                 onClick = { actions.onOpenPrompt(WizardField.Unit) }
             )
-            Text(">=", style = MaterialTheme.typography.bodySmall, color = syntax.comment)
+            Text(
+                text = ">=",
+                style = MaterialTheme.typography.bodySmall,
+                color = syntax.comment,
+                modifier = Modifier.decorative()
+            )
             TextControl(
                 label = "[${CodeFormat.number(draft.target)}]",
                 color = syntax.number,
@@ -433,7 +457,8 @@ private fun assertLine(
             Text(
                 text = "  # how much counts as done",
                 style = MaterialTheme.typography.bodySmall,
-                color = syntax.comment.copy(alpha = 0.6f)
+                color = syntax.comment.copy(alpha = 0.6f),
+                modifier = Modifier.decorative()
             )
         }
     }
@@ -451,6 +476,7 @@ private fun emojiLine(
                 value = state.pending,
                 onValueChange = actions.onPromptChange,
                 prompt = "> emoji:",
+                autoFocus = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { actions.onPromptSubmit() })
             )
@@ -459,7 +485,12 @@ private fun emojiLine(
     val emoji = state.draft.emoji
     return WidgetLine(indent = 1, measureText = "> emoji: [none]  # optional  [skip]   ") {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("> emoji:", style = MaterialTheme.typography.bodySmall, color = syntax.comment)
+            Text(
+                text = "> emoji:",
+                style = MaterialTheme.typography.bodySmall,
+                color = syntax.comment,
+                modifier = Modifier.decorative()
+            )
             TextControl(
                 label = emoji ?: "[none]",
                 color = if (emoji != null) syntax.string else syntax.comment,
@@ -480,7 +511,8 @@ private fun emojiLine(
             Text(
                 text = "  # optional",
                 style = MaterialTheme.typography.bodySmall,
-                color = syntax.comment.copy(alpha = 0.6f)
+                color = syntax.comment.copy(alpha = 0.6f),
+                modifier = Modifier.decorative()
             )
         }
     }
@@ -595,7 +627,10 @@ private fun choiceLines(
                 Text(
                     text = "  # ${option.hint}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment.copy(alpha = 0.6f)
+                    color = syntax.comment.copy(alpha = 0.6f),
+                    // The token carries the same hint, translated, in its own
+                    // spoken name: *Scegli: conta fino a un numero*.
+                    modifier = Modifier.decorative()
                 )
             }
         }

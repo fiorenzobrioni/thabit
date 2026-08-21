@@ -34,6 +34,7 @@
     <string name="cd_action_increment">Aggiungi %1$s</string>
     <string name="cd_action_note">Aggiungi una nota</string>
     <string name="cd_action_skip">Salta questo test</string>
+    <string name="cd_action_unskip">Togli il salto, da oggi in poi</string>
     <string name="cd_action_edit">Modifica questo test</string>
     <string name="cd_action_archive">Archivia questo test</string>
     <string name="cd_action_archive_confirm">Conferma: archivia questo test</string>
@@ -55,7 +56,11 @@
 
     <!-- Barra di stato: le decorazioni git sono firma, non informazione, quindi
          la versione parlata dice il fatto in chiaro invece del glifo. -->
-    <string name="cd_status_suite">%1$d test nella suite</string>
+    <plurals name="cd_status_suite">
+        <item quantity="one">%1$d test nella suite</item>
+        <item quantity="many">%1$d test nella suite</item>
+        <item quantity="other">%1$d test nella suite</item>
+    </plurals>
     <string name="cd_status_passed">%1$d su %2$d passati</string>
 
     <!-- settings.config. Il file è sorgente e resta inglese; queste sono le
@@ -87,8 +92,16 @@
     <string name="cd_type_avoid">qualcosa da cui stare alla larga</string>
     <string name="cd_when_daily">ogni giorno</string>
     <string name="cd_when_weekdays">in certi giorni della settimana</string>
-    <string name="cd_when_quota">%1$d volte a settimana</string>
-    <string name="cd_when_interval">ogni %1$d giorni</string>
+    <plurals name="cd_when_quota">
+        <item quantity="one">una volta a settimana</item>
+        <item quantity="many">%1$d volte a settimana</item>
+        <item quantity="other">%1$d volte a settimana</item>
+    </plurals>
+    <plurals name="cd_when_interval">
+        <item quantity="one">ogni giorno</item>
+        <item quantity="many">ogni %1$d giorni</item>
+        <item quantity="other">ogni %1$d giorni</item>
+    </plurals>
     <string name="cd_wizard_chosen">%1$s, scelto</string>
     <string name="cd_wizard_choose">Scegli: %1$s</string>
     <string name="cd_wizard_weekday_on">%1$s, incluso</string>
