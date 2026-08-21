@@ -311,14 +311,6 @@ class SuiteViewModelTest {
         assertEquals(1, file().suiteSize)
     }
 
-    // ---- what is not built yet -------------------------------------------
-
-    @Test
-    fun `the FAB says where the wizard is instead of doing nothing`() = runUi {
-        viewModel.onAddTest()
-        assertEquals(SuiteViewModel.COMING_SOON_ADD, interaction().transient)
-    }
-
     @Test
     fun `the not-due block opens and closes`() = runUi {
         viewModel.onToggleNotDue()

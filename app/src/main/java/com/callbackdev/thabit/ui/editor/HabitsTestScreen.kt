@@ -70,11 +70,23 @@ import java.time.format.FormatStyle
  */
 @Composable
 fun HabitsTestScreen(
+    onAddTest: () -> Unit,
+    onEditTest: (Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SuiteViewModel = viewModel(factory = SuiteViewModel.Factory)
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    HabitsTestScreen(state = state, actions = SuiteActions(viewModel), modifier = modifier)
+    HabitsTestScreen(
+        state = state,
+        // Adding and editing are the same conversation, so they are navigation
+        // rather than state: the file hands the reader to `$ thabit add` and
+        // gets them back with a test in the suite.
+        actions = SuiteActions(viewModel).copy(
+            onAddTest = onAddTest,
+            onEdit = { row -> onEditTest(row.habitId) }
+        ),
+        modifier = modifier
+    )
 }
 
 /** The stateless half — what the previews and the UI tests drive. */
@@ -117,7 +129,7 @@ fun HabitsTestScreen(
 }
 
 /** The taps a suite line can produce, gathered so previews can pass no-ops. */
-class SuiteActions(
+data class SuiteActions(
     val onCheckbox: (TestRow) -> Unit = {},
     val onDetails: (TestRow) -> Unit = {},
     val onIncrement: (TestRow) -> Unit = {},
@@ -139,15 +151,13 @@ class SuiteActions(
         onIncrement = viewModel::onIncrement,
         onNote = viewModel::onNote,
         onSkip = viewModel::onSkip,
-        onEdit = viewModel::onEdit,
         onArchive = viewModel::onArchive,
         onCancelArchive = viewModel::onCancelArchive,
         onToggleNotDue = viewModel::onToggleNotDue,
         onPromptChange = viewModel::onPromptChange,
         onCycleSkipWindow = viewModel::onCycleSkipWindow,
         onSubmitPrompt = viewModel::onSubmitPrompt,
-        onCancelPrompt = viewModel::onCancelPrompt,
-        onAddTest = viewModel::onAddTest
+        onCancelPrompt = viewModel::onCancelPrompt
     )
 }
 

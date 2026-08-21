@@ -22,7 +22,7 @@ The extension is `.test` and not `.yaml` on purpose: `- [x] meditate 10 min` is 
 
 ## Status
 
-Under construction. The spec is complete (see `VISION.md`) and the plan is phased and public (see `PLANNING.md`). The domain engine is in (schedules, the configurable day boundary, build verdicts, streaks, health, coverage, regressions, records: all computed on read). Two of the four files are live: `habits.test` renders your suite and runs it a tap at a time, and `settings.config` is a JSON file whose values are the controls, theme included. Every row speaks its state out loud to a screen reader, in English or Italian. 310+ JVM tests. The log and the stats land phase by phase.
+Under construction. The spec is complete (see `VISION.md`) and the plan is phased and public (see `PLANNING.md`). The app is usable end to end: `$ thabit add` builds your suite as a terminal conversation (one answer is enough, the rest have defaults), `habits.test` runs it a tap at a time, and `settings.config` is a JSON file whose values are the controls, theme included. The domain underneath computes every verdict on read: schedules, the configurable day boundary, streaks, health, coverage, regressions, records. Every row speaks its state out loud to a screen reader, in English or Italian. 360+ JVM tests. The log and the stats land phase by phase.
 
 ## What it will do
 

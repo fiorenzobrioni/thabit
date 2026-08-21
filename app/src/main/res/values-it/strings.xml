@@ -76,4 +76,31 @@
     <string name="cd_action_export_json">Esporta i tuoi dati in JSON</string>
     <string name="cd_action_export_csv">Esporta i tuoi dati in CSV</string>
     <string name="cd_last_modified">Impostazioni cambiate l\'ultima volta il %1$s</string>
+
+    <!-- Il wizard: sono i primi sessanta secondi dell'app, quindi §3.3.7 vale qui
+         più che altrove. Ogni token che il transcript propone ha accanto il suo
+         significato in lingua piana: nessuno deve aver bisogno della parola
+         "boolean". -->
+    <string name="cd_wizard_name">Nome del test</string>
+    <string name="cd_type_boolean">sì o no</string>
+    <string name="cd_type_counter">un numero da raggiungere</string>
+    <string name="cd_type_avoid">qualcosa da cui stare alla larga</string>
+    <string name="cd_when_daily">ogni giorno</string>
+    <string name="cd_when_weekdays">in certi giorni della settimana</string>
+    <string name="cd_when_quota">%1$d volte a settimana</string>
+    <string name="cd_when_interval">ogni %1$d giorni</string>
+    <string name="cd_wizard_chosen">%1$s, scelto</string>
+    <string name="cd_wizard_choose">Scegli: %1$s</string>
+    <string name="cd_wizard_weekday_on">%1$s, incluso</string>
+    <string name="cd_wizard_weekday_off">%1$s, non incluso</string>
+    <string name="cd_wizard_unit">Che cosa stai contando: %1$s</string>
+    <string name="cd_wizard_target">Quanto conta come fatto: %1$s</string>
+    <string name="cd_wizard_emoji">Emoji: %1$s</string>
+    <string name="cd_wizard_emoji_none">nessuna emoji</string>
+    <string name="cd_action_more">Mostra le domande rimaste</string>
+    <string name="cd_action_add_test">Aggiungi il test alla suite</string>
+    <string name="cd_action_save_test">Salva le modifiche</string>
+    <string name="cd_action_add_another">Aggiungi un altro test</string>
+    <string name="cd_action_close">Chiudi</string>
+    <string name="cd_wizard_added">%1$s aggiunto alla suite</string>
 </resources>

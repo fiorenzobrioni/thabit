@@ -2,8 +2,13 @@ package com.callbackdev.thabit.ui.navigation
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import com.callbackdev.thabit.data.HabitRepository
@@ -19,6 +24,10 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import java.time.Clock
 
 /**
@@ -34,6 +43,7 @@ class ThabitAppTest {
     val folder = TemporaryFolder()
 
     private lateinit var db: ThabitDatabase
+    private val writeScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Before
     fun setUp() {
@@ -53,20 +63,43 @@ class ThabitAppTest {
             override val settings = settings
             override val repository = repository
             override val clock: Clock = Clock.systemDefaultZone()
+            override val appScope = writeScope
         })
     }
 
     @After
     fun tearDown() {
         ServiceLocator.overrideForTests(null)
+        writeScope.cancel()
         db.close()
     }
 
     private fun show() = compose.setContent { ThabitTheme { ThabitApp() } }
 
+    /**
+     * Waits for the file to catch up with a write.
+     *
+     * The suite arrives through a Room flow on its own dispatcher, so a line
+     * added in the wizard is on screen a moment after the transcript closes —
+     * asserting straight away is a race, and a race in a test is a lie waiting
+     * to happen.
+     */
+    private fun awaitText(text: String) = compose.waitUntil(TIMEOUT) {
+        compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    private fun awaitDescription(description: String) = compose.waitUntil(TIMEOUT) {
+        compose.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    private companion object {
+        const val TIMEOUT = 5_000L
+    }
+
     @Test
     fun `the app opens on the suite`() {
         show()
+        awaitText("# habits.test")
         compose.onNodeWithText("# habits.test").assertIsDisplayed()
     }
 
@@ -75,12 +108,15 @@ class ThabitAppTest {
         show()
 
         compose.onNodeWithText("Settings").performClick()
+        awaitText("// settings.config")
         compose.onNodeWithText("// settings.config").assertIsDisplayed()
 
         compose.onNodeWithText("Log").performClick()
+        awaitText("# habits_history.diff — not yet written")
         compose.onNodeWithText("# habits_history.diff — not yet written").assertIsDisplayed()
 
         compose.onNodeWithText("Stats").performClick()
+        awaitText("# stats.md — not yet written")
         compose.onNodeWithText("# stats.md — not yet written").assertIsDisplayed()
     }
 
@@ -88,9 +124,11 @@ class ThabitAppTest {
     fun `coming back to a tab finds the file that was there`() {
         show()
         compose.onNodeWithText("Settings").performClick()
+        awaitText("// settings.config")
         compose.onNodeWithText("// settings.config").assertIsDisplayed()
 
         compose.onNodeWithText("Editor").performClick()
+        awaitText("# habits.test")
         compose.onNodeWithText("# habits.test").assertIsDisplayed()
         compose.onNodeWithText("// settings.config").assertDoesNotExist()
     }
@@ -100,7 +138,67 @@ class ThabitAppTest {
         show()
         compose.onNodeWithText("Editor").performClick()
         compose.onNodeWithText("Editor").performClick()
+        awaitText("# habits.test")
         compose.onNodeWithText("# habits.test").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the FAB opens the wizard inside the editor tab`() {
+        show()
+        compose.onNodeWithContentDescription("Add a test to the suite").performClick()
+        awaitText("$ thabit add")
+        compose.onNodeWithText("$ thabit add").assertIsDisplayed()
+        // The wizard is a destination *of* the editor tab, so that tab stays lit.
+        compose.onNodeWithText("Editor").assertIsDisplayed()
+    }
+
+    @Test
+    fun `escaping the wizard comes back to the file`() {
+        show()
+        compose.onNodeWithContentDescription("Add a test to the suite").performClick()
+        awaitText("$ thabit add")
+        compose.onNodeWithText("$ thabit add").assertIsDisplayed()
+
+        compose.onNodeWithText("[esc]").performClick()
+        awaitText("# habits.test")
+        compose.onNodeWithText("# habits.test").assertIsDisplayed()
+        compose.onNodeWithText("$ thabit add").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a test added in the wizard is in the file when the session is left`() {
+        show()
+        compose.onNodeWithContentDescription("Add a test to the suite").performClick()
+        compose.onNodeWithContentDescription("Name of the test").performTextInput("meditate 10 min")
+        compose.onNodeWithText("[done]").performClick()
+        awaitText("✓ \"meditate 10 min\" added to the suite")
+
+        compose.onNodeWithText("[esc]").performClick()
+        awaitText("meditate 10 min")
+        compose.onNodeWithText("meditate 10 min").assertIsDisplayed()
+    }
+
+    @Test
+    fun `edit reopens the same transcript, prefilled, and saves in place`() {
+        show()
+        compose.onNodeWithContentDescription("Add a test to the suite").performClick()
+        compose.onNodeWithContentDescription("Name of the test").performTextInput("meditate")
+        compose.onNodeWithText("[done]").performClick()
+        compose.onNodeWithText("[esc]").performClick()
+        awaitDescription("Details of meditate")
+
+        compose.onNodeWithContentDescription("Details of meditate").performClick()
+        compose.onNodeWithText("[edit]").performClick()
+
+        compose.onNodeWithText("$ thabit edit \"meditate\"").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Name of the test: meditate").performClick()
+        compose.onNodeWithContentDescription("Name of the test").performTextClearance()
+        compose.onNodeWithContentDescription("Name of the test").performTextInput("meditate 10 min")
+        compose.onNodeWithText("[save]").performClick()
+
+        // An edit closes the session and hands the reader back to the file.
+        awaitText("meditate 10 min")
+        compose.onNodeWithText("meditate 10 min").assertIsDisplayed()
     }
 
     @Test
@@ -109,6 +207,7 @@ class ThabitAppTest {
         // A JSON-style file gets `//`, a YAML- or diff-style one gets `#`
         // (VISION §1.1: the comment wears the host file's syntax).
         compose.onNodeWithText("Log").performClick()
+        awaitText("# habits_history.diff — not yet written")
         compose.onNodeWithText("# habits_history.diff — not yet written").assertIsDisplayed()
     }
 }

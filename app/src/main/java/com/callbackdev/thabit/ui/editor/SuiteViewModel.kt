@@ -109,11 +109,6 @@ class SuiteViewModel(
         it.copy(prompt = SuitePrompt.Note(row.habitId, ""), archiveConfirmId = null)
     }
 
-    /** The wizard is Fase 5; until then the file says so instead of doing nothing. */
-    fun onEdit(@Suppress("UNUSED_PARAMETER") row: TestRow) = say(COMING_SOON_EDIT)
-
-    fun onAddTest() = say(COMING_SOON_ADD)
-
     /**
      * `[rm]` is two taps, and the second one is a `$` command spelled out in the
      * file — the series' shape for anything destructive. It archives; nothing in
@@ -218,8 +213,6 @@ class SuiteViewModel(
         private const val TRANSIENT_MILLIS = 4_000L
 
         // Terminal output: English, like every other comment in the file.
-        const val COMING_SOON_ADD = "$ thabit add — the wizard lands in the next phase"
-        const val COMING_SOON_EDIT = "$ thabit edit — the wizard lands in the next phase"
         const val READ_ONLY = "ERROR: that day is history — only today and yesterday are writable"
         const val UNKNOWN_TEST = "ERROR: that test is not in today's suite"
 

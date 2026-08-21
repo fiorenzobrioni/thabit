@@ -122,6 +122,19 @@ class HabitRepository(
      */
     suspend fun updateHabit(habit: Habit) = habitDao.update(habit.toEntity())
 
+    /** One test, for the wizard to reopen prefilled. */
+    suspend fun habit(id: Long): Habit? = habitDao.byId(id)?.toDomain()
+
+    /** Where the next test goes: the end of the file, always (VISION §4.5). */
+    suspend fun nextPosition(): Int = habitDao.nextPosition()
+
+    /**
+     * Inserts a test built elsewhere — the wizard composes the whole [Habit], so
+     * the repository does not need a parameter per field and cannot silently
+     * drop one the day the wizard learns to ask for something new.
+     */
+    suspend fun insertHabit(habit: Habit): Long = habitDao.insert(habit.toEntity())
+
     /** `[rm]`: archive, never delete. Past runs stay in every committed day. */
     suspend fun archiveHabit(habitId: Long) = habitDao.archive(habitId, today().toString())
 

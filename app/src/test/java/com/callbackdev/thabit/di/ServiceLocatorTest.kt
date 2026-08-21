@@ -13,6 +13,9 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import java.time.Clock
 
 /**
@@ -50,6 +53,7 @@ class ServiceLocatorTest {
 
     private class FakeGraph(folder: TemporaryFolder) : AppGraph {
         override val clock: Clock = Clock.systemUTC()
+        override val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         override val database: ThabitDatabase =
             ThabitDatabase.inMemory(ApplicationProvider.getApplicationContext())
         override val settings: SettingsStore = SettingsStore(
