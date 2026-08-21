@@ -580,15 +580,6 @@ private fun promptLines(
     return lines
 }
 
-/** The domain's state, in the glyph the file draws for it. */
-private fun TestState.checkbox(): CheckboxState = when (this) {
-    TestState.PASS -> CheckboxState.Passed
-    TestState.FAIL -> CheckboxState.Failed
-    TestState.SKIP -> CheckboxState.Skipped
-    TestState.HOLDING -> CheckboxState.Holding
-    TestState.PENDING -> CheckboxState.Pending
-}
-
 /**
  * What a screen reader hears instead of the glyphs: *meditate 10 min, passed, at
  * 07:12* — the name, the state in words, and the same live detail the comment

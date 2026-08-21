@@ -118,4 +118,15 @@ interface DayDao {
      */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun markPresent(day: DayEntity)
+
+    /**
+     * Stamps a closed day as amended — `UPDATE`, deliberately never an insert.
+     *
+     * A `day` row means somebody was deliberately there **that** day; creating
+     * one now would claim a presence that never happened and quietly turn a
+     * `no run` day into a day that ran (VISION §7). A day with no row has no
+     * commit in the log either, so there is nothing there to mark.
+     */
+    @Query("UPDATE day SET amended = 1 WHERE date = :date")
+    suspend fun markAmended(date: String)
 }

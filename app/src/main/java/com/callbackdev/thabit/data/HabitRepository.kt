@@ -205,7 +205,21 @@ class HabitRepository(
     suspend fun clear(habitId: Long, date: LocalDate): WriteOutcome {
         if (!writable(date)) return WriteOutcome.READ_ONLY_DAY
         checkDao.delete(habitId, date.toString())
+        stampAmendment(date)
         return WriteOutcome.WRITTEN
+    }
+
+    /**
+     * A write that landed on a day already closed is an `--amend`, and the day
+     * says so from then on (VISION §4.2).
+     *
+     * Taking the amendment back does not take the marker back: the history was
+     * edited, and a commit that quietly stopped admitting it would be the file
+     * lying about itself. That permanence is why the flag lives on the `day` row
+     * and not on the check rows it came with.
+     */
+    private suspend fun stampAmendment(date: LocalDate) {
+        if (date < today()) dayDao.markAmended(date.toString())
     }
 
     /**
@@ -257,6 +271,7 @@ class HabitRepository(
         val habit = habitDao.byId(habitId)?.toDomain() ?: return WriteOutcome.UNKNOWN_TEST
         if (!habit.isActiveOn(date)) return WriteOutcome.UNKNOWN_TEST
         checkDao.upsert(build(habit).toEntity())
+        stampAmendment(date)
         return WriteOutcome.WRITTEN
     }
 
@@ -309,17 +324,23 @@ class HabitRepository(
         checkDao.observeAll(),
         dayDao.observeAll()
     ) { habits, checks, days ->
+        val present = days.mapNotNull { it.toDomain() }
         SuiteHistory(
             habits = habits.mapNotNull { it.toDomain() },
             checks = checks.mapNotNull { it.toDomain() },
-            presentDays = days.mapNotNull { it.toDomain()?.date }.toSet()
+            presentDays = present.map { it.date }.toSet(),
+            amendedDays = present.filter { it.amended }.map { it.date }.toSet()
         )
     }
 
     /** Everything, for the stats screens and the export. It is a small database. */
-    suspend fun fullHistory(): SuiteHistory = SuiteHistory(
-        habits = habitDao.all().mapNotNull { it.toDomain() },
-        checks = checkDao.all().mapNotNull { it.toDomain() },
-        presentDays = dayDao.all().mapNotNull { it.toDomain()?.date }.toSet()
-    )
+    suspend fun fullHistory(): SuiteHistory {
+        val present = dayDao.all().mapNotNull { it.toDomain() }
+        return SuiteHistory(
+            habits = habitDao.all().mapNotNull { it.toDomain() },
+            checks = checkDao.all().mapNotNull { it.toDomain() },
+            presentDays = present.map { it.date }.toSet(),
+            amendedDays = present.filter { it.amended }.map { it.date }.toSet()
+        )
+    }
 }

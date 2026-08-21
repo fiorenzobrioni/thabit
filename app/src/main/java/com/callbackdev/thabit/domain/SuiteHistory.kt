@@ -22,7 +22,12 @@ import java.time.LocalDate
 class SuiteHistory(
     val habits: List<Habit>,
     checks: List<Check>,
-    val presentDays: Set<LocalDate>
+    val presentDays: Set<LocalDate>,
+    /**
+     * Days whose run was edited after they closed — the log's `# amended`
+     * marker (VISION §4.2). Evidence like [presentDays], never a verdict.
+     */
+    val amendedDays: Set<LocalDate> = emptySet()
 ) {
     private val byHabitAndDate: Map<Pair<Long, LocalDate>, Check> =
         checks.associateBy { it.habitId to it.date }
@@ -89,6 +94,9 @@ class SuiteHistory(
     /** The tests in the suite on [date], in file order. */
     fun activeOn(date: LocalDate): List<Habit> =
         habits.filter { it.isActiveOn(date) }.sortedBy { it.position }
+
+    /** Was this day's run edited after it closed? */
+    fun amended(date: LocalDate): Boolean = date in amendedDays
 
     /** The earliest day the suite existed, or null on an empty suite. */
     fun suiteStart(): LocalDate? = habits.minOfOrNull { it.createdAt }

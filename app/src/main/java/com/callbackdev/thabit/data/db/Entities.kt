@@ -84,5 +84,14 @@ data class CheckEntity(
 data class DayEntity(
     @PrimaryKey val date: String,
     /** Epoch millis of that first interaction. */
-    @ColumnInfo(name = "first_seen") val firstSeen: Long
+    @ColumnInfo(name = "first_seen") val firstSeen: Long,
+    /**
+     * Was this day's run edited after it closed (VISION §4.2)?
+     *
+     * On the day and not on the check rows, and that is the whole reason it is a
+     * column at all: the marker is **permanent**, so amending yesterday and then
+     * taking the amendment back must still leave the commit saying `# amended`.
+     * A flag on the rows would disappear with the last row that carried it.
+     */
+    @ColumnInfo(name = "amended", defaultValue = "0") val amended: Boolean = false
 )

@@ -112,8 +112,8 @@ class ThabitAppTest {
         compose.onNodeWithText("// settings.config").assertIsDisplayed()
 
         compose.onNodeWithText("Log").performClick()
-        awaitText("# habits_history.diff — not yet written")
-        compose.onNodeWithText("# habits_history.diff — not yet written").assertIsDisplayed()
+        awaitText("# habits_history.diff")
+        compose.onNodeWithText("# habits_history.diff").assertIsDisplayed()
 
         compose.onNodeWithText("Stats").performClick()
         awaitText("# stats.md — not yet written")
@@ -202,12 +202,13 @@ class ThabitAppTest {
     }
 
     @Test
-    fun `the placeholder files wear the comment marker of the file they will be`() {
+    fun `the placeholder file wears the comment marker of the file it will be`() {
         show()
         // A JSON-style file gets `//`, a YAML- or diff-style one gets `#`
-        // (VISION §1.1: the comment wears the host file's syntax).
-        compose.onNodeWithText("Log").performClick()
-        awaitText("# habits_history.diff — not yet written")
-        compose.onNodeWithText("# habits_history.diff — not yet written").assertIsDisplayed()
+        // (VISION §1.1: the comment wears the host file's syntax). Only
+        // `stats.md` is still a placeholder: the log landed in Fase 6.
+        compose.onNodeWithText("Stats").performClick()
+        awaitText("# stats.md — not yet written")
+        compose.onNodeWithText("# stats.md — not yet written").assertIsDisplayed()
     }
 }

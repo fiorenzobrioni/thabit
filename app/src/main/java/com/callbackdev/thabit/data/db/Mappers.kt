@@ -87,5 +87,5 @@ fun Check.toEntity(): CheckEntity = CheckEntity(
 
 fun DayEntity.toDomain(): DayPresence? {
     val parsedDate = runCatching { LocalDate.parse(date) }.getOrNull() ?: return null
-    return DayPresence(parsedDate, firstSeen)
+    return DayPresence(parsedDate, firstSeen, amended)
 }

@@ -1,0 +1,206 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "ad1ca1b45984c94fc7b4c8b96fd3be2f",
+    "entities": [
+      {
+        "tableName": "habit",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `type` TEXT NOT NULL, `assert_target` REAL, `assert_unit` TEXT, `assert_step` REAL, `schedule` TEXT NOT NULL, `remind_at` TEXT, `emoji` TEXT, `position` INTEGER NOT NULL, `created_at` TEXT NOT NULL, `archived_at` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assertTarget",
+            "columnName": "assert_target",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "assertUnit",
+            "columnName": "assert_unit",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "assertStep",
+            "columnName": "assert_step",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "schedule",
+            "columnName": "schedule",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remindAt",
+            "columnName": "remind_at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "emoji",
+            "columnName": "emoji",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "created_at",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archivedAt",
+            "columnName": "archived_at",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "check",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`habit_id` INTEGER NOT NULL, `date` TEXT NOT NULL, `state` TEXT NOT NULL, `value` REAL, `note` TEXT, `at` TEXT, `skip_until` TEXT, PRIMARY KEY(`habit_id`, `date`), FOREIGN KEY(`habit_id`) REFERENCES `habit`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "habitId",
+            "columnName": "habit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "at",
+            "columnName": "at",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "until",
+            "columnName": "skip_until",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "habit_id",
+            "date"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_check_date",
+            "unique": false,
+            "columnNames": [
+              "date"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_check_date` ON `${TABLE_NAME}` (`date`)"
+          },
+          {
+            "name": "index_check_habit_id",
+            "unique": false,
+            "columnNames": [
+              "habit_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_check_habit_id` ON `${TABLE_NAME}` (`habit_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "habit",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "habit_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "day",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`date` TEXT NOT NULL, `first_seen` INTEGER NOT NULL, `amended` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`date`))",
+        "fields": [
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstSeen",
+            "columnName": "first_seen",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amended",
+            "columnName": "amended",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "date"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ad1ca1b45984c94fc7b4c8b96fd3be2f')"
+    ]
+  }
+}

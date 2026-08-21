@@ -54,8 +54,9 @@ internal object Fixture {
     fun history(
         habits: List<Habit>,
         checks: List<Check> = emptyList(),
-        present: Set<LocalDate> = emptySet()
-    ) = SuiteHistory(habits, checks, present)
+        present: Set<LocalDate> = emptySet(),
+        amended: Set<LocalDate> = emptySet()
+    ) = SuiteHistory(habits, checks, present, amended)
 
     /** A daily test passed every day of the range, with the presence to match. */
     fun greenRun(habit: Habit, from: LocalDate, to: LocalDate): SuiteHistory {
