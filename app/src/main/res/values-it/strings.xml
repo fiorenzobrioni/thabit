@@ -139,4 +139,66 @@
     <string name="cd_build_passed">è passato tutto (%1$s)</string>
     <string name="cd_build_unstable">qualcosa è passato, qualcosa no (%1$s)</string>
     <string name="cd_build_failed">non è passato niente (%1$s)</string>
+    <!-- README.md. Un README e' prosa, non sorgente, quindi e' l'unico file che
+         si localizza per intero, titoli compresi (VISION 1.3). Ed e' lo strato
+         di linguaggio piano dell'app: ogni frase qui e' la glossa di un termine
+         che gli altri file stanno mostrando adesso (3.3.7). Nessuna sezione
+         glossario: la spiegazione vive dentro la prosa che c'e' gia'. -->
+    <string name="readme_h_today">Oggi</string>
+    <string name="readme_h_status">Come sta andando</string>
+    <string name="readme_h_week">Questa settimana</string>
+    <string name="readme_clause_separator">, </string>
+    <string name="readme_empty_suite">Non c\'è ancora nessun test. Aggiungi il primo dalla scheda habits.test.</string>
+    <string name="readme_nothing_due">Oggi non c\'è niente da fare.</string>
+    <plurals name="readme_today_passed">
+        <item quantity="one">%1$d fatto su %2$d</item>
+        <item quantity="many">%1$d fatti su %2$d</item>
+        <item quantity="other">%1$d fatti su %2$d</item>
+    </plurals>
+    <plurals name="readme_today_pending">
+        <item quantity="one">ne resta %1$d da fare</item>
+        <item quantity="many">ne restano %1$d da fare</item>
+        <item quantity="other">ne restano %1$d da fare</item>
+    </plurals>
+    <plurals name="readme_today_failed">
+        <item quantity="one">%1$d non fatto</item>
+        <item quantity="many">%1$d non fatti</item>
+        <item quantity="other">%1$d non fatti</item>
+    </plurals>
+    <plurals name="readme_today_skipped">
+        <item quantity="one">%1$d saltato</item>
+        <item quantity="many">%1$d saltati</item>
+        <item quantity="other">%1$d saltati</item>
+    </plurals>
+    <string name="readme_holds">“%1$s” non ti chiede niente: conta come fatto, a meno che tu non dica di averlo interrotto.</string>
+    <string name="readme_status_all">Finora è fatto tutto quello che serviva: %1$d.</string>
+    <string name="readme_status_some">Finora ne hai fatti %1$d sui %2$d a cui hai risposto.</string>
+    <string name="readme_status_none">Dei %1$d a cui hai risposto non ne risulta fatto ancora nessuno.</string>
+    <string name="readme_yesterday">Ieri: %1$d fatti su %2$d.</string>
+    <string name="readme_amended">Hai cambiato ieri dopo che era chiuso, quindi nello storico quel giorno dichiara di essere stato modificato.</string>
+    <plurals name="readme_streak_days">
+        <item quantity="one">“%1$s” va avanti da %2$d giorno.</item>
+        <item quantity="many">“%1$s” va avanti da %2$d giorni.</item>
+        <item quantity="other">“%1$s” va avanti da %2$d giorni.</item>
+    </plurals>
+    <plurals name="readme_streak_weeks">
+        <item quantity="one">“%1$s” centra il suo obiettivo settimanale da %2$d settimana.</item>
+        <item quantity="many">“%1$s” centra il suo obiettivo settimanale da %2$d settimane.</item>
+        <item quantity="other">“%1$s” centra il suo obiettivo settimanale da %2$d settimane.</item>
+    </plurals>
+    <string name="readme_health_low">“%1$s” ultimamente regge circa il %2$s delle volte.</string>
+    <string name="readme_no_run">%1$s non hai aperto l\'app: quel giorno non conta come fallito, semplicemente non c\'è.</string>
+    <string name="readme_col_day">Giorno</string>
+    <string name="readme_col_passed">Fatti</string>
+    <string name="readme_col_result">Com\'è andata</string>
+    <string name="readme_result_all">tutti</string>
+    <string name="readme_result_some">in parte</string>
+    <string name="readme_result_none">nessuno</string>
+    <string name="readme_result_open">ancora aperto</string>
+    <string name="readme_result_not_opened">app non aperta</string>
+    <plurals name="readme_footer">
+        <item quantity="one">Calcolato su questo dispositivo · %1$d giorno registrato</item>
+        <item quantity="many">Calcolato su questo dispositivo · %1$d giorni registrati</item>
+        <item quantity="other">Calcolato su questo dispositivo · %1$d giorni registrati</item>
+    </plurals>
 </resources>

@@ -29,8 +29,9 @@ import com.callbackdev.thabit.ui.components.EditorNavItem
 import com.callbackdev.thabit.ui.components.EditorNavItems
 import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.components.LocalEditorOptions
+import com.callbackdev.thabit.ui.components.EditorTabs
 import com.callbackdev.thabit.ui.components.commentLine
-import com.callbackdev.thabit.ui.editor.HabitsTestScreen
+import com.callbackdev.thabit.ui.editor.EditorScreen
 import com.callbackdev.thabit.ui.log.LogScreen
 import com.callbackdev.thabit.ui.settings.SettingsScreen
 import com.callbackdev.thabit.ui.wizard.WizardScreen
@@ -88,7 +89,7 @@ fun ThabitApp(
                             startDestination = EditorRoutes.SUITE
                         ) {
                             composable(EditorRoutes.SUITE) {
-                                HabitsTestScreen(
+                                EditorScreen(
                                     onAddTest = { navController.navigate(EditorRoutes.WIZARD) },
                                     onEditTest = { habitId ->
                                         navController.navigate(EditorRoutes.wizardFor(habitId))
@@ -161,12 +162,20 @@ object EditorRoutes {
     fun wizardFor(habitId: Long): String = "editor/wizard/$habitId"
 }
 
-/** The honest empty tab: the file exists in the plan, not yet in the app. */
+/**
+ * The honest empty tab: the file exists in the plan, not yet in the app.
+ *
+ * It gets the tab strip like every other screen, so the name is where names
+ * live and the line underneath only has to say what is missing.
+ */
 @Composable
 private fun NotYetWritten(fileName: String) {
     val syntax = ThabitTheme.syntax
     val lines = remember(fileName, syntax) { notYetWritten(fileName, syntax) }
-    CodeCanvas(lines = lines, modifier = Modifier.fillMaxSize())
+    Column(Modifier.fillMaxSize()) {
+        EditorTabs(fileNames = listOf(fileName), activeIndex = 0, onSelect = {})
+        CodeCanvas(lines = lines, modifier = Modifier.fillMaxSize())
+    }
 }
 
 internal fun notYetWritten(fileName: String, syntax: SyntaxColors) = listOf(
@@ -174,8 +183,8 @@ internal fun notYetWritten(fileName: String, syntax: SyntaxColors) = listOf(
         // Placeholders are terminal output, so the comment marker follows the
         // future host file's syntax (VISION §1.1): # for yaml/md/diff-header
         // territory, // for the JSON-style settings.config.
-        if (fileName.endsWith(".config")) "// $fileName — not yet written"
-        else "# $fileName — not yet written",
+        if (fileName.endsWith(".config")) "// not yet written"
+        else "# not yet written",
         syntax
     )
 )

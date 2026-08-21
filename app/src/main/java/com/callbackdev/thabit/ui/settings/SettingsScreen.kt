@@ -23,6 +23,7 @@ import com.callbackdev.thabit.R
 import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.CodeLine
+import com.callbackdev.thabit.ui.components.EditorTabs
 import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
 import com.callbackdev.thabit.ui.components.TerminalStatusBar
@@ -72,6 +73,11 @@ fun SettingsScreen(
 ) {
     val document = state.document
     Column(modifier.fillMaxSize()) {
+        // A one-element strip and not a plainer bar of its own: this was the
+        // sibling's pre-v1 lesson — the single-file screens were the only places
+        // where the open file had no indicator under it, and that read as a
+        // different kind of chrome on every switch into them.
+        EditorTabs(fileNames = listOf(SettingsDocument.FILE_NAME), activeIndex = 0, onSelect = {})
         Box(Modifier.weight(1f)) {
             CodeCanvas(
                 lines = if (document == null) emptyList() else settingsLines(
@@ -85,8 +91,10 @@ fun SettingsScreen(
         }
         TerminalStatusBar {
             StatusBarStart { StatusBarText("⎇ main") }
-            // `ro` would be a lie here: this is the one file the user can edit.
-            StatusBarText(SettingsDocument.FILE_NAME)
+            // The name is in the strip above now, so the bar says what an
+            // editor's bar says instead of repeating it: this is the one file
+            // the reader can actually write to, and `ro` would be a lie.
+            StatusBarText("rw")
         }
     }
 }
@@ -124,7 +132,6 @@ private fun settingsLines(
     val change = stringResource(R.string.cd_action_change)
     val lines = mutableListOf<CanvasLine>()
 
-    lines += commentLine("// ${SettingsDocument.FILE_NAME}", syntax)
     document.lastModified?.let { millis ->
         val stamp = millis.spoken()
         lines += commentLine(

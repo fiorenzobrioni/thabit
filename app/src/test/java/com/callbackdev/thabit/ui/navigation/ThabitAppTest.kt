@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.SettingsStore
+import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.db.ThabitDatabase
 import com.callbackdev.thabit.di.AppGraph
 import com.callbackdev.thabit.di.ServiceLocator
@@ -58,9 +59,13 @@ class ThabitAppTest {
             PreferenceDataStoreFactory.create { folder.newFile("settings.preferences_pb") }
         )
         val repository = HabitRepository(db.habitDao(), db.checkDao(), db.dayDao(), settings)
+        val workspace = WorkspaceStore(
+            PreferenceDataStoreFactory.create { folder.newFile("workspace.preferences_pb") }
+        )
         ServiceLocator.overrideForTests(object : AppGraph {
             override val database = db
             override val settings = settings
+            override val workspace = workspace
             override val repository = repository
             override val clock: Clock = Clock.systemDefaultZone()
             override val appScope = writeScope
@@ -99,8 +104,43 @@ class ThabitAppTest {
     @Test
     fun `the app opens on the suite`() {
         show()
-        awaitText("# habits.test")
-        compose.onNodeWithText("# habits.test").assertIsDisplayed()
+        awaitText("habits.test")
+        compose.onNodeWithText("habits.test").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the editor tab has two files, and the strip switches between them`() {
+        show()
+        awaitText("habits.test")
+        // Both names are in the strip; only one file is open under it.
+        compose.onNodeWithText("README.md").assertIsDisplayed()
+
+        compose.onNodeWithText("README.md").performClick()
+        awaitText("## Today")
+        compose.onNodeWithText("## Today").assertIsDisplayed()
+        // The suite is not on screen any more, but its name still is.
+        compose.onNodeWithText("# no tests in the suite yet").assertDoesNotExist()
+
+        compose.onNodeWithText("habits.test").performClick()
+        awaitText("# no tests in the suite yet")
+        compose.onNodeWithText("# no tests in the suite yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the open file survives a trip to another tab`() {
+        show()
+        awaitText("README.md")
+        compose.onNodeWithText("README.md").performClick()
+        awaitText("## Today")
+
+        compose.onNodeWithText("Settings").performClick()
+        awaitText("settings.config")
+        compose.onNodeWithText("Editor").performClick()
+
+        // An editor reopens the tab you left open — it is session state, not a
+        // setting, and it is why the workspace has a store of its own.
+        awaitText("## Today")
+        compose.onNodeWithText("## Today").assertIsDisplayed()
     }
 
     @Test
@@ -108,29 +148,30 @@ class ThabitAppTest {
         show()
 
         compose.onNodeWithText("Settings").performClick()
-        awaitText("// settings.config")
-        compose.onNodeWithText("// settings.config").assertIsDisplayed()
+        awaitText("settings.config")
+        compose.onNodeWithText("settings.config").assertIsDisplayed()
 
         compose.onNodeWithText("Log").performClick()
-        awaitText("# habits_history.diff")
-        compose.onNodeWithText("# habits_history.diff").assertIsDisplayed()
+        awaitText("habits_history.diff")
+        compose.onNodeWithText("habits_history.diff").assertIsDisplayed()
 
         compose.onNodeWithText("Stats").performClick()
-        awaitText("# stats.md — not yet written")
-        compose.onNodeWithText("# stats.md — not yet written").assertIsDisplayed()
+        awaitText("stats.md")
+        compose.onNodeWithText("stats.md").assertIsDisplayed()
+        compose.onNodeWithText("# not yet written").assertIsDisplayed()
     }
 
     @Test
     fun `coming back to a tab finds the file that was there`() {
         show()
         compose.onNodeWithText("Settings").performClick()
-        awaitText("// settings.config")
-        compose.onNodeWithText("// settings.config").assertIsDisplayed()
+        awaitText("settings.config")
+        compose.onNodeWithText("settings.config").assertIsDisplayed()
 
         compose.onNodeWithText("Editor").performClick()
-        awaitText("# habits.test")
-        compose.onNodeWithText("# habits.test").assertIsDisplayed()
-        compose.onNodeWithText("// settings.config").assertDoesNotExist()
+        awaitText("habits.test")
+        compose.onNodeWithText("habits.test").assertIsDisplayed()
+        compose.onNodeWithText("settings.config").assertDoesNotExist()
     }
 
     @Test
@@ -138,8 +179,8 @@ class ThabitAppTest {
         show()
         compose.onNodeWithText("Editor").performClick()
         compose.onNodeWithText("Editor").performClick()
-        awaitText("# habits.test")
-        compose.onNodeWithText("# habits.test").assertIsDisplayed()
+        awaitText("habits.test")
+        compose.onNodeWithText("habits.test").assertIsDisplayed()
     }
 
     @Test
@@ -160,8 +201,8 @@ class ThabitAppTest {
         compose.onNodeWithText("$ thabit add").assertIsDisplayed()
 
         compose.onNodeWithText("[esc]").performClick()
-        awaitText("# habits.test")
-        compose.onNodeWithText("# habits.test").assertIsDisplayed()
+        awaitText("habits.test")
+        compose.onNodeWithText("habits.test").assertIsDisplayed()
         compose.onNodeWithText("$ thabit add").assertDoesNotExist()
     }
 
@@ -208,7 +249,8 @@ class ThabitAppTest {
         // (VISION §1.1: the comment wears the host file's syntax). Only
         // `stats.md` is still a placeholder: the log landed in Fase 6.
         compose.onNodeWithText("Stats").performClick()
-        awaitText("# stats.md — not yet written")
-        compose.onNodeWithText("# stats.md — not yet written").assertIsDisplayed()
+        awaitText("stats.md")
+        compose.onNodeWithText("stats.md").assertIsDisplayed()
+        compose.onNodeWithText("# not yet written").assertIsDisplayed()
     }
 }

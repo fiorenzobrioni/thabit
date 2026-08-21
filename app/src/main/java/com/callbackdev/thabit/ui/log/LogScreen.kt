@@ -43,6 +43,7 @@ import com.callbackdev.thabit.domain.model.Schedule
 import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.CodeLine
+import com.callbackdev.thabit.ui.components.EditorTabs
 import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
 import com.callbackdev.thabit.ui.components.StatusBarDivider
@@ -93,6 +94,7 @@ fun LogScreen(
 ) {
     val document = state.document
     Column(modifier.fillMaxSize()) {
+        EditorTabs(fileNames = listOf(LogDocument.FILE_NAME), activeIndex = 0, onSelect = {})
         Box(Modifier.weight(1f)) {
             CodeCanvas(
                 lines = if (document == null) emptyList() else logLines(
@@ -165,7 +167,6 @@ private fun logLines(
     val syntax = ThabitTheme.syntax
     val lines = mutableListOf<CanvasLine>()
 
-    lines += commentLine("# ${LogDocument.FILE_NAME}", syntax)
     lines += commentLine("# ${LogDocument.BRANCH_LINE}", syntax)
     document.todaySummary?.let { lines += commentLine("#   $it", syntax) }
 

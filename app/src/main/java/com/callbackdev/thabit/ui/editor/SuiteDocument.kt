@@ -100,14 +100,16 @@ data class SuiteDocument(
         const val FILE_NAME: String = "habits.test"
 
         /**
-         * Whether the `README.md` editor tab exists yet (Fase 7).
+         * The `README.md` editor tab exists (Fase 7), so the empty state is
+         * allowed to point at it again.
          *
-         * The empty state is supposed to point at it, and until it is there that
-         * line would send a first-time reader to a tab that does not exist —
-         * which is the file lying, on the very first sentence the app ever says.
-         * Flipped in Fase 7, and the hint comes back with it.
+         * It was false from Fase 3 to Fase 6 on purpose: sending a first-time
+         * reader to a tab that did not exist would have been the file lying, on
+         * the very first sentence the app ever says. There is a test on both
+         * branches, and it stays — the constant is the honest way to say "this
+         * sentence depends on something else shipping".
          */
-        const val README_TAB_SHIPPED: Boolean = false
+        const val README_TAB_SHIPPED: Boolean = true
 
         /**
          * The empty suite, which is also the first sentence the app ever says.
