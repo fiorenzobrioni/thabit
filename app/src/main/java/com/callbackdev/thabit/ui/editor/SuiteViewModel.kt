@@ -94,11 +94,11 @@ class SuiteViewModel(
     fun onCheckbox(row: TestRow) {
         when (row.type) {
             HabitType.COUNTER -> openValuePrompt(row)
-            HabitType.AVOID -> write { date ->
+            HabitType.AVOID -> write(row.habitId) { date ->
                 if (row.state == TestState.FAIL) repository.clear(row.habitId, date)
                 else repository.fail(row.habitId, date)
             }
-            HabitType.BOOLEAN -> write { date ->
+            HabitType.BOOLEAN -> write(row.habitId) { date ->
                 if (row.state == TestState.PASS) repository.clear(row.habitId, date)
                 else repository.pass(row.habitId, date)
             }
@@ -108,7 +108,7 @@ class SuiteViewModel(
     /** `[+1]`: the repository owns the step, so the row only has to say "one more". */
     fun onIncrement(row: TestRow) {
         if (row.incrementStep == null) return
-        write { date -> repository.increment(row.habitId, date) }
+        write(row.habitId) { date -> repository.increment(row.habitId, date) }
     }
 
     /**
@@ -139,7 +139,7 @@ class SuiteViewModel(
      * from a holiday is a decision about the future, not a correction of the
      * past (VISION §3.3.5).
      */
-    fun onUnskip(habitId: Long) = write { date -> repository.resumeSkip(habitId, date) }
+    fun onUnskip(habitId: Long) = write(habitId) { date -> repository.resumeSkip(habitId, date) }
 
     fun onNote(habitId: Long) = interaction.update {
         it.copy(prompt = SuitePrompt.Note(habitId, ""), archiveConfirmId = null)
@@ -169,7 +169,7 @@ class SuiteViewModel(
             it.copy(
                 prompt = SuitePrompt.Value(
                     habitId = row.habitId,
-                    unit = (row.detail as? RowDetail.Counter)?.unit.orEmpty(),
+                    unit = row.unit.orEmpty(),
                     text = current?.let { value -> CodeFormat.number(value) }.orEmpty()
                 ),
                 archiveConfirmId = null
@@ -201,14 +201,14 @@ class SuiteViewModel(
         when (prompt) {
             is SuitePrompt.Value -> {
                 val value = prompt.text.trim().replace(',', '.').toDoubleOrNull()
-                write { date ->
+                write(prompt.habitId) { date ->
                     // An empty (or unreadable) answer clears the row rather than
                     // storing a zero: "I did not enter a number" is not "I did none".
                     if (value == null || value <= 0.0) repository.clear(prompt.habitId, date)
                     else repository.record(prompt.habitId, date, value)
                 }
             }
-            is SuitePrompt.Skip -> write { date ->
+            is SuitePrompt.Skip -> write(prompt.habitId) { date ->
                 repository.skip(
                     habitId = prompt.habitId,
                     date = date,
@@ -216,7 +216,7 @@ class SuiteViewModel(
                     until = prompt.window.until(date)
                 )
             }
-            is SuitePrompt.Note -> write { date ->
+            is SuitePrompt.Note -> write(prompt.habitId) { date ->
                 repository.fail(prompt.habitId, date, prompt.text.trim().ifBlank { null })
             }
         }
@@ -239,27 +239,36 @@ class SuiteViewModel(
      * on it would be acting on a state nobody can still see. The file redraws
      * and says what happened, and the second tap is an ordinary one.
      */
-    private fun write(block: suspend (LocalDate) -> WriteOutcome) {
+    private fun write(habitId: Long, block: suspend (LocalDate) -> WriteOutcome) {
         viewModelScope.launch {
             val date = repository.today()
             val shown = state.value.document?.logicalDate
             if (shown != null && shown != date) {
                 redraw.update { it + 1 }
-                say(rolledOver(date))
+                say(rolledOver(date), habitId)
                 return@launch
             }
             when (block(date)) {
                 WriteOutcome.WRITTEN -> Unit
-                WriteOutcome.READ_ONLY_DAY -> say(READ_ONLY)
-                WriteOutcome.UNKNOWN_TEST -> say(UNKNOWN_TEST)
+                WriteOutcome.READ_ONLY_DAY -> say(READ_ONLY, habitId)
+                WriteOutcome.UNKNOWN_TEST -> say(UNKNOWN_TEST, habitId)
             }
         }
     }
 
-    /** A transient comment at the end of the file — the series' answer to a toast. */
-    private fun say(message: String) {
+    /**
+     * A transient comment in the file — the series' answer to a toast.
+     *
+     * It is printed **under the row that produced it**, not at the foot of the
+     * file, because that is where the reader is looking: a message is always the
+     * answer to a tap, and the thumb that tapped is still on the line. At the
+     * end of a suite longer than a screen the same words were technically there
+     * and practically invisible. Only a message with no row to belong to — or
+     * about a test today no longer asks for — falls back to the foot.
+     */
+    private fun say(message: String, habitId: Long? = null) {
         val token = ++transientToken
-        interaction.update { it.copy(transient = message) }
+        interaction.update { it.copy(transient = SuiteMessage(message, habitId)) }
         viewModelScope.launch {
             delay(TRANSIENT_MILLIS)
             if (token == transientToken) interaction.update { it.copy(transient = null) }
@@ -309,13 +318,21 @@ data class SuiteUiState(
     val loading: Boolean = true
 )
 
+/**
+ * One line of terminal output, and the row it is about.
+ *
+ * [habitId] is where it gets printed: under that test's line if the file still
+ * has one for it, at the foot of the file otherwise.
+ */
+data class SuiteMessage(val text: String, val habitId: Long? = null)
+
 /** What the reader has opened, typed or is about to confirm. */
 data class SuiteInteraction(
     val expandedId: Long? = null,
     val notDueExpanded: Boolean = false,
     val archiveConfirmId: Long? = null,
     val prompt: SuitePrompt? = null,
-    val transient: String? = null
+    val transient: SuiteMessage? = null
 )
 
 /** An in-place terminal prompt, opened inside the file rather than over it. */

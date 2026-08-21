@@ -300,6 +300,20 @@ class SuiteViewModelTest {
         assertEquals(0, db.checkDao().all().size)
     }
 
+    @Test
+    fun `a skipped counter still knows what it counts`() = runUi {
+        val test = addHabit("read 20 pages", HabitType.COUNTER, AssertSpec(20.0, "pages"))
+
+        viewModel.onSkip(test.habitId)
+        viewModel.onSubmitPrompt()
+        assertEquals(TestState.SKIP, row().state)
+
+        // The unit belongs to the test, not to the day: the prompt of a skipped
+        // counter used to open as the anonymous .
+        viewModel.onCheckbox(row())
+        assertEquals("pages", (interaction().prompt as SuitePrompt.Value).unit)
+    }
+
     // ---- the day ending under an open file --------------------------------
 
     @Test
@@ -315,10 +329,10 @@ class SuiteViewModelTest {
         // and the file caught up by itself instead of waiting for the database.
         assertEquals(0, db.checkDao().all().size)
         assertEquals(LocalDate.of(2026, 8, 22), file().logicalDate)
-        assertEquals(
-            SuiteViewModel.rolledOver(LocalDate.of(2026, 8, 22)),
-            interaction().transient
-        )
+        val message = interaction().transient!!
+        assertEquals(SuiteViewModel.rolledOver(LocalDate.of(2026, 8, 22)), message.text)
+        // Printed under the row that was tapped, where the thumb still is.
+        assertEquals(test.habitId, message.habitId)
 
         // And the second tap is an ordinary one, on the day that is now open.
         viewModel.onCheckbox(row())

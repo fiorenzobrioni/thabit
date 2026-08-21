@@ -112,6 +112,7 @@
     <string name="cd_action_add_test">Add the test to the suite</string>
     <string name="cd_action_save_test">Save the changes</string>
     <string name="cd_action_add_another">Add another test</string>
+    <string name="cd_action_close_confirm">Confirm: leave and discard this test</string>
     <string name="cd_action_close">Close</string>
     <string name="cd_wizard_added">%1$s added to the suite</string>
 </resources>

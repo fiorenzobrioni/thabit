@@ -251,6 +251,11 @@ private fun suiteLines(
     val syntax = ThabitTheme.syntax
     val lines = mutableListOf<CanvasLine>()
 
+    // Terminal output goes under the row it answers, and only lands at the foot
+    // of the file when there is no such row left to print it against.
+    val message = interaction.transient
+    val inlineId = message?.habitId?.takeIf { id -> document.due.any { it.habitId == id } }
+
     lines += commentLine("# ${SuiteDocument.FILE_NAME}", syntax)
     if (document.isEmpty) {
         SuiteDocument.emptyHints().forEach { hint ->
@@ -263,6 +268,9 @@ private fun suiteLines(
 
         document.due.forEach { row ->
             lines += testLines(row, document, interaction, actions, syntax)
+            if (row.habitId == inlineId && message != null) {
+                lines += commentLine("# ${message.text}", syntax, indent = 1)
+            }
         }
 
         document.notDueComment(interaction.notDueExpanded)?.let { comment ->
@@ -284,9 +292,9 @@ private fun suiteLines(
         }
     }
 
-    interaction.transient?.let { message ->
+    if (message != null && inlineId == null) {
         lines += commentLine("#", syntax)
-        lines += commentLine("# $message", syntax)
+        lines += commentLine("# ${message.text}", syntax)
     }
     return lines
 }

@@ -185,6 +185,9 @@ data class SuiteDocument(
                 state = outcome.state,
                 comment = comment(detail),
                 detail = detail,
+                // The test's own unit, not today's: a skipped counter still
+                // counts pages, and its prompt has to know that.
+                unit = habit.assert?.unit?.takeIf { it.isNotBlank() },
                 incrementStep = incrementStep(habit, outcome.state),
                 spec = spec(history, habit, date)
             )
@@ -270,6 +273,14 @@ data class TestRow(
     val comment: String?,
     /** The same fact, structured, so a screen reader can be told it in its language. */
     val detail: RowDetail,
+    /**
+     * What a counter counts — `pages`, `reps` — or null for the other types.
+     *
+     * A property of the test and not of the day, which is the point: it used to
+     * be read out of [RowDetail.Counter], so a **skipped** counter lost it and
+     * its prompt opened as the anonymous `> value:` instead of `> pages:`.
+     */
+    val unit: String?,
     /** Step of the `[+N]` control, or null when the row does not offer one. */
     val incrementStep: Double?,
     val spec: TestSpec

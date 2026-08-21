@@ -183,9 +183,22 @@ private fun transcriptLines(
     state.error?.let { lines += errorLine(it, syntax) }
 
     lines += commentLine("", syntax)
+    // The confirm sits above the row and not inside it: the row is where every
+    // way out of the confirm already is, because touching any other control
+    // disarms it (Fase 4's lesson, and Fase 3's before that).
+    if (state.discardConfirm) lines += commentLine("# $DISCARD_CONFIRM", syntax)
     lines += controlsLine(state, actions, syntax)
     return lines
 }
+
+/**
+ * What the second `[esc]` will do, said before it does it.
+ *
+ * English, like every other comment: this is the file's own channel. The spoken
+ * half travels on the `[esc]` token itself, which changes what it says when it
+ * is armed.
+ */
+const val DISCARD_CONFIRM: String = "nothing is written yet — tap [esc] again to discard"
 
 // ---- the rows ------------------------------------------------------------
 
@@ -560,8 +573,13 @@ private fun controlsLine(
             }
             TextControl(
                 label = "[esc]",
-                color = syntax.comment,
-                description = stringResource(R.string.cd_action_close),
+                // Armed, it is the one token on screen that throws work away, so
+                // it wears the colour the file gives to a deletion.
+                color = if (state.discardConfirm) syntax.diffDel else syntax.comment,
+                description = stringResource(
+                    if (state.discardConfirm) R.string.cd_action_close_confirm
+                    else R.string.cd_action_close
+                ),
                 onClick = actions.onCancel
             )
         }
@@ -661,12 +679,6 @@ private fun errorLine(message: String, syntax: SyntaxColors): CodeLine = CodeLin
 
 private fun commandLine(command: String, syntax: SyntaxColors): CodeLine =
     CodeLine(AnnotatedString(command, SpanStyle(color = syntax.key)))
-
-private fun plainHint(type: HabitType): String = when (type) {
-    HabitType.BOOLEAN -> "did you do it, yes or no"
-    HabitType.COUNTER -> "count up to a number"
-    HabitType.AVOID -> "something to stay away from"
-}
 
 @Composable
 private fun DayOfWeek.spoken(): String =

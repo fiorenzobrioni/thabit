@@ -114,6 +114,7 @@
     <string name="cd_action_add_test">Aggiungi il test alla suite</string>
     <string name="cd_action_save_test">Salva le modifiche</string>
     <string name="cd_action_add_another">Aggiungi un altro test</string>
+    <string name="cd_action_close_confirm">Conferma: esci e butta via questo test</string>
     <string name="cd_action_close">Chiudi</string>
     <string name="cd_wizard_added">%1$s aggiunto alla suite</string>
 </resources>

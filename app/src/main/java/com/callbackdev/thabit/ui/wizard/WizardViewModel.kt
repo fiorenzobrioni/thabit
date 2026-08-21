@@ -55,7 +55,15 @@ class WizardViewModel(
                         // editor onto nothing.
                         it.copy(loading = false, error = MISSING_TEST, closeRequested = true)
                     } else {
-                        it.copy(draft = WizardDraft.of(habit), loading = false, focus = null)
+                        val loaded = WizardDraft.of(habit)
+                        // The baseline is what `[esc]` compares against: leaving
+                        // an edit nobody changed asks nothing.
+                        it.copy(
+                            draft = loaded,
+                            baseline = loaded,
+                            loading = false,
+                            focus = null
+                        )
                     }
                 }
             }
@@ -69,8 +77,9 @@ class WizardViewModel(
      * there is something to call the test, which is the whole point of a
      * transcript that can be finished after one answer.
      */
-    fun onName(value: String) =
-        _state.update { it.copy(draft = it.draft.withName(value), pending = value, error = null) }
+    fun onName(value: String) = _state.update {
+        it.copy(draft = it.draft.withName(value), pending = value, error = null, discardConfirm = false)
+    }
 
     fun onType(type: HabitType) = edit { it.withType(type) }
 
@@ -104,7 +113,8 @@ class WizardViewModel(
         )
     }
 
-    fun onPromptChange(text: String) = _state.update { it.copy(pending = text) }
+    fun onPromptChange(text: String) =
+        _state.update { it.copy(pending = text, discardConfirm = false) }
 
     fun onPromptSubmit() = _state.update { commit(it) }
 
@@ -117,17 +127,27 @@ class WizardViewModel(
      * that makes an app feel untrustworthy for reasons the user cannot name.
      */
     private fun commit(ui: WizardUiState): WizardUiState {
-        val focus = ui.focus ?: return ui.copy(error = null)
+        // Touching any other control disarms a pending `[esc]`, the same rule
+        // the settings file's restore follows: a confirm armed a minute ago must
+        // not go off under an innocent tap.
+        val focus = ui.focus ?: return ui.copy(error = null, discardConfirm = false)
         val draft = when (focus) {
             WizardField.Name -> ui.draft.withName(ui.pending)
             WizardField.Unit -> ui.draft.withUnit(ui.pending)
             WizardField.Target -> ui.draft.withTarget(ui.pending)
             WizardField.Emoji -> ui.draft.withEmoji(ui.pending)
         }
-        return ui.copy(draft = draft, focus = null, pending = "", error = null)
+        return ui.copy(
+            draft = draft,
+            focus = null,
+            pending = "",
+            error = null,
+            discardConfirm = false
+        )
     }
 
-    fun onPromptCancel() = _state.update { it.copy(focus = null, pending = "", error = null) }
+    fun onPromptCancel() =
+        _state.update { it.copy(focus = null, pending = "", error = null, discardConfirm = false) }
 
     // ---- closing the session ---------------------------------------------
 
@@ -173,7 +193,29 @@ class WizardViewModel(
         WizardUiState(added = it.added, focus = WizardField.Name)
     }
 
-    fun onCancel() = _state.update { it.copy(closeRequested = true) }
+    /**
+     * `[esc]` — and the one place this app asks twice for something that is not
+     * destroying data.
+     *
+     * A draft is a conversation, not a record, so confirming the abandonment of
+     * every unfinished sentence would be pure friction: an empty transcript, or
+     * an edit nobody changed, closes on the first tap. What makes the second tap
+     * worth asking for is **where the token sits** — `[esc]` is eight points
+     * from `[done]` on the same row, and a thumb that misses loses everything
+     * that was typed with nothing to undo it.
+     *
+     * So the question is not "are you sure" but "is there anything to lose":
+     * the draft is compared with the point it started from.
+     */
+    fun onCancel() = _state.update { ui ->
+        val armed = ui.discardConfirm
+        val committed = commit(ui)
+        when {
+            committed.draft == committed.baseline -> committed.copy(closeRequested = true)
+            armed -> committed.copy(closeRequested = true)
+            else -> committed.copy(discardConfirm = true)
+        }
+    }
 
     private fun edit(block: (WizardDraft) -> WizardDraft) =
         _state.update { ui -> commit(ui).let { it.copy(draft = block(it.draft)) } }
@@ -205,6 +247,14 @@ enum class WizardField { Name, Unit, Target, Emoji }
 
 data class WizardUiState(
     val draft: WizardDraft = WizardDraft(),
+    /**
+     * The draft as the session found it — empty for a new test, the stored test
+     * for an `[edit]`. Only there to answer one question: has anything been said
+     * that leaving would throw away?
+     */
+    val baseline: WizardDraft = WizardDraft(),
+    /** True once `[esc]` has asked, and only while nothing else has been tapped. */
+    val discardConfirm: Boolean = false,
     /** The open prompt, or null when the transcript is waiting for a tap. */
     val focus: WizardField? = WizardField.Name,
     val pending: String = "",

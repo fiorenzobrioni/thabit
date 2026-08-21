@@ -173,6 +173,27 @@ class WizardScreenTest {
     }
 
     @Test
+    fun `esc asks once before throwing a draft away`() {
+        show(
+            WizardUiState(
+                draft = WizardDraft(name = "meditate"),
+                focus = null,
+                discardConfirm = true
+            )
+        )
+        compose.onNodeWithText("# " + DISCARD_CONFIRM).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Confirm: leave and discard this test")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `with nothing to lose esc says only what it is`() {
+        show()
+        compose.onNodeWithText("# " + DISCARD_CONFIRM).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Close").assertIsDisplayed()
+    }
+
+    @Test
     fun `a quota of one is spoken in the singular`() {
         show(
             WizardUiState(

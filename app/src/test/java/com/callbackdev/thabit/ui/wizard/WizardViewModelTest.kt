@@ -293,8 +293,43 @@ class WizardViewModelTest {
     fun `escaping writes nothing`() = runUi { wizard ->
         wizard.onName("meditate")
         wizard.onCancel()
+        wizard.onCancel()
         runCurrent()
         assertTrue(state(wizard).closeRequested)
         assertTrue(suite().isEmpty())
+    }
+
+    @Test
+    fun `an empty transcript closes on the first tap`() = runUi { wizard ->
+        // Nothing has been said yet: asking would be friction, not care.
+        wizard.onCancel()
+        runCurrent()
+        assertTrue(state(wizard).closeRequested)
+    }
+
+    @Test
+    fun `escaping asks once when there is something to lose`() = runUi { wizard ->
+        wizard.onName("meditate")
+
+        wizard.onCancel()
+        assertTrue(state(wizard).discardConfirm)
+        assertFalse(state(wizard).closeRequested)
+
+        wizard.onCancel()
+        assertTrue(state(wizard).closeRequested)
+    }
+
+    @Test
+    fun `touching anything else disarms a pending escape`() = runUi { wizard ->
+        wizard.onName("meditate")
+        wizard.onCancel()
+        assertTrue(state(wizard).discardConfirm)
+
+        // A confirm armed a minute ago must not go off under an innocent tap.
+        wizard.onType(HabitType.COUNTER)
+        assertFalse(state(wizard).discardConfirm)
+
+        wizard.onCancel()
+        assertFalse(state(wizard).closeRequested)
     }
 }

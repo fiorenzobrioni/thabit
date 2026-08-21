@@ -2,6 +2,7 @@ package com.callbackdev.thabit.ui.editor
 
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -17,6 +18,7 @@ import com.callbackdev.thabit.domain.model.CheckState
 import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -223,6 +225,37 @@ class HabitsTestScreenTest {
 
         compose.onNodeWithText("[~ unskip]").assertIsDisplayed().assert(hasClickAction())
         compose.onNodeWithText("[~ skip]").assertDoesNotExist()
+    }
+
+    // ---- terminal output --------------------------------------------------
+
+    @Test
+    fun `terminal output is printed under the row it answers`() {
+        show(
+            suite(),
+            interaction = SuiteInteraction(
+                transient = SuiteMessage(SuiteViewModel.UNKNOWN_TEST, habitId = 1L)
+            )
+        )
+        // A message is always the answer to a tap, and the thumb that tapped is
+        // still on that line — so it is printed there, not at the foot of a file
+        // that may be longer than the screen.
+        val message = compose.onNodeWithText("# " + SuiteViewModel.UNKNOWN_TEST)
+            .getUnclippedBoundsInRoot()
+        val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
+        assertTrue(message.top < lastRow.top)
+    }
+
+    @Test
+    fun `terminal output with no row of its own falls to the foot of the file`() {
+        show(
+            suite(),
+            interaction = SuiteInteraction(transient = SuiteMessage(SuiteViewModel.UNKNOWN_TEST))
+        )
+        val message = compose.onNodeWithText("# " + SuiteViewModel.UNKNOWN_TEST)
+            .getUnclippedBoundsInRoot()
+        val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
+        assertTrue(message.top > lastRow.top)
     }
 
     // ---- the spoken half -------------------------------------------------
