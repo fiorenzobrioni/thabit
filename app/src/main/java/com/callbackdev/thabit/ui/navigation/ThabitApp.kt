@@ -31,6 +31,7 @@ import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.components.LocalEditorOptions
 import com.callbackdev.thabit.ui.components.commentLine
 import com.callbackdev.thabit.ui.editor.HabitsTestScreen
+import com.callbackdev.thabit.ui.log.LogScreen
 import com.callbackdev.thabit.ui.settings.SettingsScreen
 import com.callbackdev.thabit.ui.wizard.WizardScreen
 import com.callbackdev.thabit.ui.theme.SyntaxColors
@@ -112,9 +113,7 @@ fun ThabitApp(
                                 )
                             }
                         }
-                        composable(EditorNavItems.Log.route) {
-                            NotYetWritten("habits_history.diff")
-                        }
+                        composable(EditorNavItems.Log.route) { LogScreen() }
                         composable(EditorNavItems.Stats.route) { NotYetWritten("stats.md") }
                         composable(EditorNavItems.Settings.route) { SettingsScreen() }
                     }

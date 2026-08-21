@@ -117,4 +117,26 @@
     <string name="cd_action_close_confirm">Conferma: esci e butta via questo test</string>
     <string name="cd_action_close">Chiudi</string>
     <string name="cd_wizard_added">%1$s aggiunto alla suite</string>
+    <!-- habits_history.diff. Il log è dove il vocabolario CI è più fitto, quindi
+         la metà parlata è tenuta più stretta che altrove: un verdetto non arriva
+         mai senza l'aritmetica che lo spiega, e un hash non porta mai un fatto
+         che sta solo lì (VISION §3.3.7). -->
+    <plurals name="cd_status_commits">
+        <item quantity="one">%1$d giorno committato</item>
+        <item quantity="many">%1$d giorni committati</item>
+        <item quantity="other">%1$d giorni committati</item>
+    </plurals>
+    <string name="cd_status_head">Il commit più recente</string>
+    <string name="cd_log_commit">Commit del %1$s</string>
+    <string name="cd_log_commit_show">Mostra cosa è andato quel giorno</string>
+    <string name="cd_log_commit_hide">Nascondi cosa è andato quel giorno</string>
+    <string name="cd_log_amended">modificato dopo la chiusura del giorno</string>
+    <string name="cd_log_amendable">Puoi ancora cambiare questo giorno fino alle %1$s</string>
+    <string name="cd_log_amend">Cambia questo giorno</string>
+    <string name="cd_log_tag">record: %1$s</string>
+    <string name="cd_log_week">Settimana %1$d, %2$s passati</string>
+    <string name="cd_log_quota">%1$s, %2$d su %3$d questa settimana</string>
+    <string name="cd_build_passed">è passato tutto (%1$s)</string>
+    <string name="cd_build_unstable">qualcosa è passato, qualcosa no (%1$s)</string>
+    <string name="cd_build_failed">non è passato niente (%1$s)</string>
 </resources>

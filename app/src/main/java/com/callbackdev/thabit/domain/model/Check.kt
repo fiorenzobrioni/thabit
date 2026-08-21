@@ -88,5 +88,7 @@ enum class CheckState {
 data class DayPresence(
     val date: LocalDate,
     /** Wall-clock instant (epoch millis) of the first deliberate interaction. */
-    val firstSeen: Long
+    val firstSeen: Long,
+    /** True once the day's run was edited after the day had closed (`--amend`). */
+    val amended: Boolean = false
 )

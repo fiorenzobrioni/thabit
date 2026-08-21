@@ -16,6 +16,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.callbackdev.thabit.domain.TestState
 import com.callbackdev.thabit.ui.components.CheckboxState
 import com.callbackdev.thabit.ui.theme.SyntaxColors
 
@@ -113,6 +114,21 @@ fun TestLine(
             )
         }
     }
+}
+
+/**
+ * The domain's state, in the glyph the file draws for it.
+ *
+ * Shared rather than written twice: `habits.test` and `habits_history.diff` draw
+ * the same five boxes, and a mapping kept in two places is a mapping that will
+ * eventually disagree with itself about what `[·]` means.
+ */
+fun TestState.checkbox(): CheckboxState = when (this) {
+    TestState.PASS -> CheckboxState.Passed
+    TestState.FAIL -> CheckboxState.Failed
+    TestState.SKIP -> CheckboxState.Skipped
+    TestState.HOLDING -> CheckboxState.Holding
+    TestState.PENDING -> CheckboxState.Pending
 }
 
 /**
