@@ -35,9 +35,30 @@ fun buildJsonLines(root: JsonElement, syntax: SyntaxColors): List<CodeLine> {
     return lines
 }
 
-/** A whole line in comment gray; [text] should include the `//`. */
-fun commentLine(text: String, syntax: SyntaxColors, indent: Int = 0): CodeLine =
-    CodeLine(AnnotatedString(text, SpanStyle(color = syntax.comment)), indent)
+/**
+ * A whole line in comment gray; [text] should include its marker (`//` in a
+ * JSON-style file, `#` in a YAML-style one — the comment wears the host file's
+ * syntax, VISION §1.1).
+ *
+ * A comment can be a control: `# 2 tests not due today — [show]` is a line of
+ * source that answers to a tap. Hence the optional [onClick] — the series has no
+ * buttons, so when a comment is the affordance it needs to carry the gesture and
+ * the words that describe it (backport candidate for tweather/tsteps).
+ */
+fun commentLine(
+    text: String,
+    syntax: SyntaxColors,
+    indent: Int = 0,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
+    contentDescription: String? = null
+): CodeLine = CodeLine(
+    text = AnnotatedString(text, SpanStyle(color = syntax.comment)),
+    indent = indent,
+    onClick = onClick,
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
+)
 
 /** Punctuation only: `{`, `},`, `]`… — the structural lines of a fake config file. */
 fun punctLine(text: String, indent: Int, syntax: SyntaxColors): CodeLine =
@@ -70,6 +91,7 @@ fun stringValueLine(
     syntax: SyntaxColors,
     indent: Int = 2,
     hint: String? = null,
+    contentDescription: String? = null,
     onClickLabel: String? = null,
     onClick: (() -> Unit)? = null
 ): CodeLine = CodeLine(
@@ -82,7 +104,66 @@ fun stringValueLine(
     },
     indent = indent,
     onClick = onClick,
-    onClickLabel = onClickLabel
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
+)
+
+/**
+ * `"line_numbers": true,  // hint` — a value that is **not** a string, so it
+ * carries no quotes and takes the number/boolean color.
+ *
+ * The twin of [stringValueLine], and the settings file needs both: quoting a
+ * boolean would make the config claim a type it does not have, which in a series
+ * whose first rule is that the file must not lie is not a detail (backport
+ * candidate for tweather/tsteps).
+ */
+fun rawValueLine(
+    key: String,
+    value: String,
+    comma: Boolean,
+    syntax: SyntaxColors,
+    indent: Int = 2,
+    hint: String? = null,
+    contentDescription: String? = null,
+    onClickLabel: String? = null,
+    onClick: (() -> Unit)? = null
+): CodeLine = CodeLine(
+    text = buildAnnotatedString {
+        withStyle(SpanStyle(color = syntax.key)) { append("\"$key\"") }
+        withStyle(SpanStyle(color = syntax.comment)) { append(": ") }
+        withStyle(SpanStyle(color = syntax.number)) { append(value) }
+        if (comma) withStyle(SpanStyle(color = syntax.comment)) { append(",") }
+        appendHint(hint, syntax)
+    },
+    indent = indent,
+    onClick = onClick,
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
+)
+
+/**
+ * `"obsidian",  // active` — an element of a string array, tappable when the
+ * array is a set of choices rather than a list of facts.
+ */
+fun stringItemLine(
+    value: String,
+    comma: Boolean,
+    syntax: SyntaxColors,
+    indent: Int = 3,
+    hint: String? = null,
+    contentDescription: String? = null,
+    onClickLabel: String? = null,
+    onClick: (() -> Unit)? = null
+): CodeLine = CodeLine(
+    text = buildAnnotatedString {
+        withStyle(SpanStyle(color = syntax.string)) { append("\"$value\"") }
+        if (comma) withStyle(SpanStyle(color = syntax.comment)) { append(",") }
+        appendHint(hint, syntax)
+    },
+    indent = indent,
+    onClick = onClick,
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
 )
 
 /** Trailing `  // hint`, dimmed like the mockups' inline annotations. */

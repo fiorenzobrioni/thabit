@@ -22,4 +22,86 @@
     <string name="cd_state_holding">holding, it fails only if you break it</string>
     <string name="cd_state_skipped">skipped</string>
     <string name="cd_state_failed">failed</string>
+
+    <!-- The main file's rows. Each row offers two targets: the checkbox runs the
+         test, the name unfolds its spec. The action labels say what the tap will
+         DO, never what the glyph looks like. -->
+    <string name="cd_action_pass">Mark as done</string>
+    <string name="cd_action_undo">Undo</string>
+    <string name="cd_action_log_value">Enter a value</string>
+    <string name="cd_action_break">Mark as broken</string>
+    <string name="cd_action_details_show">Show details</string>
+    <string name="cd_action_details_hide">Hide details</string>
+    <string name="cd_row_details">Details of %1$s</string>
+    <string name="cd_action_increment">Add %1$s</string>
+    <string name="cd_action_note">Add a note</string>
+    <string name="cd_action_skip">Skip this test</string>
+    <string name="cd_action_edit">Edit this test</string>
+    <string name="cd_action_archive">Archive this test</string>
+    <string name="cd_action_archive_confirm">Confirm: archive this test</string>
+    <string name="cd_action_cancel">Cancel</string>
+    <string name="cd_action_confirm">Confirm</string>
+    <string name="cd_action_show_not_due">Show the tests not due today</string>
+    <string name="cd_action_hide_not_due">Hide the tests not due today</string>
+    <string name="cd_action_skip_window">Change how long the skip lasts</string>
+    <string name="cd_not_due">not due today</string>
+
+    <!-- Live detail, spoken. The comment channel says the same thing in English
+         because a comment is source; this is the half that speaks the reader's
+         language, and no fact ever lives in only one of the two. -->
+    <string name="cd_detail_at">at %1$s</string>
+    <string name="cd_detail_counter">%1$s of %2$s %3$s</string>
+    <string name="cd_detail_counter_done">%1$s %2$s</string>
+    <string name="cd_detail_until">until %1$s</string>
+    <string name="cd_detail_quota">%1$d of %2$d this week</string>
+
+    <!-- Status bar. The git decorations are signature, not information, so the
+         spoken version states the plain fact instead of the glyph. -->
+    <string name="cd_status_suite">%1$d tests in the suite</string>
+    <string name="cd_status_passed">%1$d of %2$d passed</string>
+
+    <!-- settings.config. The file itself is source and stays English; these are
+         the sentences a screen reader gets instead of `"day_ends": "03:00"`. -->
+    <string name="cd_setting_day_ends">The day ends at %1$s</string>
+    <string name="cd_setting_week_starts">The week starts on %1$s</string>
+    <string name="cd_setting_line_numbers">Line numbers, %1$s</string>
+    <string name="cd_setting_word_wrap">Word wrap, %1$s</string>
+    <string name="cd_setting_theme">Theme %1$s</string>
+    <string name="cd_setting_theme_active">Theme %1$s, in use</string>
+    <string name="cd_setting_version">Version %1$s</string>
+    <string name="cd_value_on">on</string>
+    <string name="cd_value_off">off</string>
+    <string name="cd_action_change">Change</string>
+    <string name="cd_action_use_theme">Use this theme</string>
+    <string name="cd_action_restore">Restore the settings file</string>
+    <string name="cd_action_restore_confirm">Confirm: restore the settings file</string>
+    <string name="cd_action_export_json">Export your data as JSON</string>
+    <string name="cd_action_export_csv">Export your data as CSV</string>
+    <string name="cd_last_modified">Settings last changed on %1$s</string>
+
+    <!-- The wizard: the app's first sixty seconds, so §3.3.7 is held harder here
+         than anywhere else. Every token the transcript offers has its plain
+         meaning spoken beside it — nobody should need the word "boolean". -->
+    <string name="cd_wizard_name">Name of the test</string>
+    <string name="cd_type_boolean">yes or no</string>
+    <string name="cd_type_counter">a number to reach</string>
+    <string name="cd_type_avoid">something to stay away from</string>
+    <string name="cd_when_daily">every day</string>
+    <string name="cd_when_weekdays">on chosen days of the week</string>
+    <string name="cd_when_quota">%1$d times a week</string>
+    <string name="cd_when_interval">every %1$d days</string>
+    <string name="cd_wizard_chosen">%1$s, chosen</string>
+    <string name="cd_wizard_choose">Choose: %1$s</string>
+    <string name="cd_wizard_weekday_on">%1$s, included</string>
+    <string name="cd_wizard_weekday_off">%1$s, not included</string>
+    <string name="cd_wizard_unit">What you are counting: %1$s</string>
+    <string name="cd_wizard_target">How much counts as done: %1$s</string>
+    <string name="cd_wizard_emoji">Emoji: %1$s</string>
+    <string name="cd_wizard_emoji_none">no emoji</string>
+    <string name="cd_action_more">Show the remaining questions</string>
+    <string name="cd_action_add_test">Add the test to the suite</string>
+    <string name="cd_action_save_test">Save the changes</string>
+    <string name="cd_action_add_another">Add another test</string>
+    <string name="cd_action_close">Close</string>
+    <string name="cd_wizard_added">%1$s added to the suite</string>
 </resources>

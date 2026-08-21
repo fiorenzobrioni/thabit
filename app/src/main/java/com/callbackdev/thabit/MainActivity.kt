@@ -7,8 +7,17 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
+import com.callbackdev.thabit.data.ThabitSettings
+import com.callbackdev.thabit.di.ServiceLocator
+import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.navigation.ThabitApp
 import com.callbackdev.thabit.ui.theme.ThabitTheme
+import com.callbackdev.thabit.work.RolloverScheduler
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -25,11 +34,45 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
         )
         setContent {
-            ThabitTheme {
-                // Fase 1 shell: editor bottom bar + one placeholder per tab.
-                // Theme switching at runtime arrives with settings (Fase 4).
-                ThabitApp()
+            // The theme profile and the editor options are read live from
+            // `settings.config`: tapping "dracula" in the file repaints the app
+            // on the next frame, with no restart and no separate theme state.
+            val settings by remember { ServiceLocator.settings(applicationContext).settings }
+                .collectAsStateWithLifecycle(initialValue = ThabitSettings())
+            ThabitTheme(profile = settings.theme) {
+                ThabitApp(
+                    editorOptions = EditorOptions(
+                        showLineNumbers = settings.showLineNumbers,
+                        wordWrap = settings.wordWrap
+                    )
+                )
             }
+        }
+    }
+
+    /**
+     * Opening the app is a deliberate interaction, so it stamps the day's
+     * presence row (VISION §7) — the evidence that makes `no run` sayable, and
+     * the reason a week away comes back as blank days instead of seven failures
+     * the app made up.
+     *
+     * It runs on every start rather than once on create: an app left open across
+     * `day_ends` is a new logical day when the user comes back to it, and that
+     * day deserves its own row. The write is idempotent, so a start inside a day
+     * that already ran costs one ignored insert.
+     *
+     * The same pass re-aligns the rollover job. That is the safety net VISION §7
+     * asks for: a phone asleep at the boundary, a day made 23 hours long by DST
+     * or a `day_ends` edit all leave the periodic job pointing at the wrong
+     * minute, and the cheapest place to notice is the next time somebody opens
+     * the app.
+     */
+    override fun onStart() {
+        super.onStart()
+        lifecycleScope.launch {
+            val repository = ServiceLocator.repository(applicationContext)
+            repository.markPresent()
+            RolloverScheduler.ensureScheduled(applicationContext, repository.boundary())
         }
     }
 }

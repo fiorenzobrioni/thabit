@@ -7,83 +7,165 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.callbackdev.thabit.ui.components.CheckboxState
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.EditorNavBar
+import com.callbackdev.thabit.ui.components.EditorNavItem
 import com.callbackdev.thabit.ui.components.EditorNavItems
+import com.callbackdev.thabit.ui.components.EditorOptions
+import com.callbackdev.thabit.ui.components.LocalEditorOptions
 import com.callbackdev.thabit.ui.components.commentLine
-import com.callbackdev.thabit.ui.components.yamlTestLine
+import com.callbackdev.thabit.ui.editor.HabitsTestScreen
+import com.callbackdev.thabit.ui.settings.SettingsScreen
+import com.callbackdev.thabit.ui.wizard.WizardScreen
 import com.callbackdev.thabit.ui.theme.SyntaxColors
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 
 /**
- * Provisional Fase 1 shell: the editor bottom bar over one placeholder per tab,
- * WITHOUT Navigation Compose — the real NavHost with per-tab stacks is Fase 4
- * work (series pattern). It exists so the ported kit and the new YAML tokenizer
- * are exercised on device from day one: the editor tab renders a static
- * `habits.test` through CodeCanvas + YamlSyntax (it replaced Fase 0's
- * hand-drawn SkeletonScreen), the other tabs state honestly that their file is
- * not yet written.
+ * The shell: four files behind the editor's bottom bar.
+ *
+ * Navigation Compose with one destination per tab and the series' tab behaviour —
+ * `saveState`/`restoreState` around the start destination, so switching to Stats
+ * and back finds `habits.test` scrolled where it was left, and the system back
+ * button walks to the editor tab before leaving the app.
+ *
+ * The editor tab is a **nested graph** now that it has a second destination: the
+ * suite file and the `$ thabit add` transcript are two screens of one tab, so
+ * the bottom bar stays put, the Editor tab stays lit while the wizard is open,
+ * and back returns to the file rather than leaving the app. The other three tabs
+ * stay single destinations until they have a reason not to (VISION §3.3.1) —
+ * which is what this graph looked like one phase ago.
+ *
+ * [editorOptions] comes from `settings.config` and is provided once for every
+ * file: line numbers and word wrap are properties of the editor, not of a screen.
  */
 @Composable
-fun ThabitApp() {
-    var selectedRoute by rememberSaveable { mutableStateOf(EditorNavItems.Editor.route) }
+fun ThabitApp(
+    editorOptions: EditorOptions = EditorOptions(),
+    navController: NavHostController = rememberNavController()
+) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val destination = backStackEntry?.destination
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(Modifier.statusBarsPadding()) {
-            Box(Modifier.weight(1f)) {
-                val syntax = ThabitTheme.syntax
-                val lines = remember(selectedRoute, syntax) {
-                    when (selectedRoute) {
-                        EditorNavItems.Editor.route -> sampleSuite(syntax)
-                        EditorNavItems.Log.route -> placeholder("habits_history.diff", syntax)
-                        EditorNavItems.Stats.route -> placeholder("stats.md", syntax)
-                        else -> placeholder("settings.config", syntax)
+            CompositionLocalProvider(LocalEditorOptions provides editorOptions) {
+                Box(Modifier.weight(1f)) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = EditorNavItems.Editor.route
+                    ) {
+                        navigation(
+                            route = EditorNavItems.Editor.route,
+                            startDestination = EditorRoutes.SUITE
+                        ) {
+                            composable(EditorRoutes.SUITE) {
+                                HabitsTestScreen(
+                                    onAddTest = { navController.navigate(EditorRoutes.WIZARD) },
+                                    onEditTest = { habitId ->
+                                        navController.navigate(EditorRoutes.wizardFor(habitId))
+                                    }
+                                )
+                            }
+                            composable(EditorRoutes.WIZARD) {
+                                WizardScreen(onClose = { navController.popBackStack() })
+                            }
+                            composable(
+                                route = EditorRoutes.WIZARD_EDIT,
+                                arguments = listOf(
+                                    navArgument(EditorRoutes.ARG_HABIT_ID) {
+                                        type = NavType.LongType
+                                    }
+                                )
+                            ) { entry ->
+                                WizardScreen(
+                                    onClose = { navController.popBackStack() },
+                                    editingId = entry.arguments
+                                        ?.getLong(EditorRoutes.ARG_HABIT_ID)
+                                )
+                            }
+                        }
+                        composable(EditorNavItems.Log.route) {
+                            NotYetWritten("habits_history.diff")
+                        }
+                        composable(EditorNavItems.Stats.route) { NotYetWritten("stats.md") }
+                        composable(EditorNavItems.Settings.route) { SettingsScreen() }
                     }
                 }
-                CodeCanvas(lines = lines)
             }
             EditorNavBar(
                 items = EditorNavItems.All,
-                isSelected = { it.route == selectedRoute },
-                onSelect = { selectedRoute = it.route }
+                // By hierarchy, not by route: the wizard is a destination *of*
+                // the editor tab, and that tab must stay lit while it is open.
+                isSelected = { item ->
+                    destination?.hierarchy?.any { it.route == item.route } == true
+                },
+                onSelect = { item -> navController.openTab(item, destination) }
             )
         }
     }
 }
 
-/** Static sample suite: the Fase 3 screen's shape, drawn with the real tokenizer. */
-private fun sampleSuite(syntax: SyntaxColors) = listOf(
-    commentLine("# habits.test", syntax),
-    commentLine("# suite — 3 passed · 2 pending · 1 skipped", syntax),
-    commentLine("#", syntax),
-    yamlTestLine(CheckboxState.Passed, "meditate 10 min", syntax, comment = "07:12"),
-    yamlTestLine(CheckboxState.Passed, "read 20 pages 📖", syntax, comment = "23 pages"),
-    yamlTestLine(CheckboxState.Pending, "pushups", syntax, comment = "12/30    [+1]"),
-    yamlTestLine(CheckboxState.Skipped, "run 5k", syntax, comment = "skip: rest day"),
-    yamlTestLine(CheckboxState.Holding, "no sugar", syntax, comment = "holds — asserts at commit"),
-    yamlTestLine(CheckboxState.Passed, "journal", syntax, comment = "21:40"),
-    commentLine("#", syntax),
-    commentLine("# static sample — the live suite arrives with Fase 3", syntax)
-)
+/**
+ * Switches tab without stacking one on top of the other.
+ *
+ * Re-tapping the tab you are on does nothing at all — not even a recomposition of
+ * the graph — because the alternative is a file that scrolls back to the top
+ * every time a thumb brushes the bar it is already on.
+ */
+private fun NavHostController.openTab(
+    item: EditorNavItem,
+    destination: androidx.navigation.NavDestination?
+) {
+    if (destination?.hierarchy?.any { it.route == item.route } == true) return
+    navigate(item.route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+/** The destinations inside the editor tab. */
+object EditorRoutes {
+    const val SUITE = "editor/suite"
+    const val WIZARD = "editor/wizard"
+    const val ARG_HABIT_ID = "habitId"
+    const val WIZARD_EDIT = "editor/wizard/{$ARG_HABIT_ID}"
+
+    fun wizardFor(habitId: Long): String = "editor/wizard/$habitId"
+}
 
 /** The honest empty tab: the file exists in the plan, not yet in the app. */
-private fun placeholder(fileName: String, syntax: SyntaxColors) = listOf(
+@Composable
+private fun NotYetWritten(fileName: String) {
+    val syntax = ThabitTheme.syntax
+    val lines = remember(fileName, syntax) { notYetWritten(fileName, syntax) }
+    CodeCanvas(lines = lines, modifier = Modifier.fillMaxSize())
+}
+
+internal fun notYetWritten(fileName: String, syntax: SyntaxColors) = listOf(
     commentLine(
         // Placeholders are terminal output, so the comment marker follows the
         // future host file's syntax (VISION §1.1): # for yaml/md/diff-header
         // territory, // for the JSON-style settings.config.
-        if (fileName == "settings.config") "// $fileName — not yet written"
+        if (fileName.endsWith(".config")) "// $fileName — not yet written"
         else "# $fileName — not yet written",
         syntax
     )

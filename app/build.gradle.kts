@@ -103,6 +103,15 @@ android {
     }
 }
 
+// Room writes a JSON description of every schema version to app/schemas/, and the
+// directory is committed: a migration is written against a checked-in description
+// of the previous version, never against somebody's memory of it. The directory is
+// also a test resource, so the migration tests of later versions can read it.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)

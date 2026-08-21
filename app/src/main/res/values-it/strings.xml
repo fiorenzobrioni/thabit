@@ -20,4 +20,87 @@
     <string name="cd_state_holding">sta reggendo, fallisce solo se lo interrompi</string>
     <string name="cd_state_skipped">saltato</string>
     <string name="cd_state_failed">fallito</string>
+
+    <!-- Le righe del file principale. Due bersagli per riga: la casella esegue
+         il test, il nome apre la sua scheda. Le etichette dicono cosa FA il tap,
+         mai che aspetto ha il glifo. -->
+    <string name="cd_action_pass">Segna come fatto</string>
+    <string name="cd_action_undo">Annulla</string>
+    <string name="cd_action_log_value">Inserisci un valore</string>
+    <string name="cd_action_break">Segna come interrotto</string>
+    <string name="cd_action_details_show">Mostra i dettagli</string>
+    <string name="cd_action_details_hide">Nascondi i dettagli</string>
+    <string name="cd_row_details">Dettagli di %1$s</string>
+    <string name="cd_action_increment">Aggiungi %1$s</string>
+    <string name="cd_action_note">Aggiungi una nota</string>
+    <string name="cd_action_skip">Salta questo test</string>
+    <string name="cd_action_edit">Modifica questo test</string>
+    <string name="cd_action_archive">Archivia questo test</string>
+    <string name="cd_action_archive_confirm">Conferma: archivia questo test</string>
+    <string name="cd_action_cancel">Annulla</string>
+    <string name="cd_action_confirm">Conferma</string>
+    <string name="cd_action_show_not_due">Mostra i test non richiesti oggi</string>
+    <string name="cd_action_hide_not_due">Nascondi i test non richiesti oggi</string>
+    <string name="cd_action_skip_window">Cambia quanto dura il salto</string>
+    <string name="cd_not_due">non richiesto oggi</string>
+
+    <!-- Il dettaglio vivo, detto a parole. Il canale commenti dice la stessa
+         cosa in inglese perché è sorgente; questa è la metà che parla la lingua
+         di chi legge, e nessun fatto vive in una sola delle due. -->
+    <string name="cd_detail_at">alle %1$s</string>
+    <string name="cd_detail_counter">%1$s di %2$s %3$s</string>
+    <string name="cd_detail_counter_done">%1$s %2$s</string>
+    <string name="cd_detail_until">fino al %1$s</string>
+    <string name="cd_detail_quota">%1$d su %2$d questa settimana</string>
+
+    <!-- Barra di stato: le decorazioni git sono firma, non informazione, quindi
+         la versione parlata dice il fatto in chiaro invece del glifo. -->
+    <string name="cd_status_suite">%1$d test nella suite</string>
+    <string name="cd_status_passed">%1$d su %2$d passati</string>
+
+    <!-- settings.config. Il file è sorgente e resta inglese; queste sono le
+         frasi che un lettore di schermo sente al posto di `"day_ends": "03:00"`. -->
+    <string name="cd_setting_day_ends">Il giorno finisce alle %1$s</string>
+    <string name="cd_setting_week_starts">La settimana comincia di %1$s</string>
+    <string name="cd_setting_line_numbers">Numeri di riga, %1$s</string>
+    <string name="cd_setting_word_wrap">A capo automatico, %1$s</string>
+    <string name="cd_setting_theme">Tema %1$s</string>
+    <string name="cd_setting_theme_active">Tema %1$s, in uso</string>
+    <string name="cd_setting_version">Versione %1$s</string>
+    <string name="cd_value_on">attivi</string>
+    <string name="cd_value_off">disattivati</string>
+    <string name="cd_action_change">Cambia</string>
+    <string name="cd_action_use_theme">Usa questo tema</string>
+    <string name="cd_action_restore">Ripristina il file delle impostazioni</string>
+    <string name="cd_action_restore_confirm">Conferma: ripristina il file delle impostazioni</string>
+    <string name="cd_action_export_json">Esporta i tuoi dati in JSON</string>
+    <string name="cd_action_export_csv">Esporta i tuoi dati in CSV</string>
+    <string name="cd_last_modified">Impostazioni cambiate l\'ultima volta il %1$s</string>
+
+    <!-- Il wizard: sono i primi sessanta secondi dell'app, quindi §3.3.7 vale qui
+         più che altrove. Ogni token che il transcript propone ha accanto il suo
+         significato in lingua piana: nessuno deve aver bisogno della parola
+         "boolean". -->
+    <string name="cd_wizard_name">Nome del test</string>
+    <string name="cd_type_boolean">sì o no</string>
+    <string name="cd_type_counter">un numero da raggiungere</string>
+    <string name="cd_type_avoid">qualcosa da cui stare alla larga</string>
+    <string name="cd_when_daily">ogni giorno</string>
+    <string name="cd_when_weekdays">in certi giorni della settimana</string>
+    <string name="cd_when_quota">%1$d volte a settimana</string>
+    <string name="cd_when_interval">ogni %1$d giorni</string>
+    <string name="cd_wizard_chosen">%1$s, scelto</string>
+    <string name="cd_wizard_choose">Scegli: %1$s</string>
+    <string name="cd_wizard_weekday_on">%1$s, incluso</string>
+    <string name="cd_wizard_weekday_off">%1$s, non incluso</string>
+    <string name="cd_wizard_unit">Che cosa stai contando: %1$s</string>
+    <string name="cd_wizard_target">Quanto conta come fatto: %1$s</string>
+    <string name="cd_wizard_emoji">Emoji: %1$s</string>
+    <string name="cd_wizard_emoji_none">nessuna emoji</string>
+    <string name="cd_action_more">Mostra le domande rimaste</string>
+    <string name="cd_action_add_test">Aggiungi il test alla suite</string>
+    <string name="cd_action_save_test">Salva le modifiche</string>
+    <string name="cd_action_add_another">Aggiungi un altro test</string>
+    <string name="cd_action_close">Chiudi</string>
+    <string name="cd_wizard_added">%1$s aggiunto alla suite</string>
 </resources>
