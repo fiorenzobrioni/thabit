@@ -78,7 +78,7 @@ class LogScreenTest {
     @Test
     fun `the file names itself and puts today on top as uncommitted changes`() {
         show()
-        compose.onNodeWithText("# habits_history.diff").assertIsDisplayed()
+        compose.onNodeWithText("habits_history.diff").assertIsDisplayed()
         compose.onNodeWithText("# ${LogDocument.BRANCH_LINE}").assertIsDisplayed()
         compose.onNodeWithText("#   1/1 passed").assertIsDisplayed()
     }

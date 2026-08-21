@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -76,6 +77,7 @@ fun HabitsTestScreen(
     onAddTest: () -> Unit,
     onEditTest: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
     viewModel: SuiteViewModel = viewModel(factory = SuiteViewModel.Factory)
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -86,6 +88,7 @@ fun HabitsTestScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onResumed() }
     HabitsTestScreen(
         state = state,
+        listState = listState,
         // Adding and editing are the same conversation, so they are navigation
         // rather than state: the file hands the reader to `$ thabit add` and
         // gets them back with a test in the suite.
@@ -102,10 +105,10 @@ fun HabitsTestScreen(
 fun HabitsTestScreen(
     state: SuiteUiState,
     actions: SuiteActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState()
 ) {
     val document = state.document
-    val listState = rememberLazyListState()
 
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
@@ -256,7 +259,6 @@ private fun suiteLines(
     val message = interaction.transient
     val inlineId = message?.habitId?.takeIf { id -> document.due.any { it.habitId == id } }
 
-    lines += commentLine("# ${SuiteDocument.FILE_NAME}", syntax)
     if (document.isEmpty) {
         SuiteDocument.emptyHints().forEach { hint ->
             lines += commentLine(if (hint.isEmpty()) "#" else "# $hint", syntax)

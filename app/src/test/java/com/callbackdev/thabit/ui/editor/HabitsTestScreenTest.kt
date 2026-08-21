@@ -81,9 +81,11 @@ class HabitsTestScreenTest {
     // ---- what is drawn ---------------------------------------------------
 
     @Test
-    fun `the file names itself and states the day's arithmetic`() {
+    fun `the file states the day's arithmetic`() {
         show(suite())
-        compose.onNodeWithText("# habits.test").assertIsDisplayed()
+        // The file's own name lives in the tab strip above it now (Fase 7), so
+        // the document does not repeat it.
+        compose.onNodeWithText("# habits.test").assertDoesNotExist()
         compose.onNodeWithText("# suite 2026-08-01 — 1 passed · 2 pending").assertIsDisplayed()
     }
 
@@ -107,9 +109,9 @@ class HabitsTestScreenTest {
         show(SuiteHistory.Empty)
         compose.onNodeWithText("# no tests in the suite yet").assertIsDisplayed()
         compose.onNodeWithText("# tap + to add your first test").assertIsDisplayed()
-        // The README tab is Fase 7: until it exists, the file does not send
-        // anybody to it (SuiteDocument.README_TAB_SHIPPED).
-        compose.onNodeWithText("# the README tab says what a test is here").assertDoesNotExist()
+        // The README tab shipped in Fase 7, so the first sentence the app ever
+        // says is allowed to point at it (SuiteDocument.README_TAB_SHIPPED).
+        compose.onNodeWithText("# the README tab says what a test is here").assertIsDisplayed()
     }
 
     @Test

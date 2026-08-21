@@ -136,4 +136,62 @@
     <string name="cd_build_passed">everything passed (%1$s)</string>
     <string name="cd_build_unstable">some passed, some did not (%1$s)</string>
     <string name="cd_build_failed">nothing passed (%1$s)</string>
+    <!-- README.md. A README is prose, not source, so this is the one file that
+         localizes completely, headings included (VISION 1.3). It is also the
+         app's plain-language layer: every sentence here is a gloss of a term the
+         other files are showing right now (3.3.7). No glossary section: the
+         explanation lives inside the prose that is already there. -->
+    <string name="readme_h_today">Today</string>
+    <string name="readme_h_status">Where things stand</string>
+    <string name="readme_h_week">This week</string>
+    <string name="readme_clause_separator">, </string>
+    <string name="readme_empty_suite">There are no tests yet. Add the first one from the habits.test tab.</string>
+    <string name="readme_nothing_due">Nothing is due today.</string>
+    <plurals name="readme_today_passed">
+        <item quantity="one">%1$d of %2$d done</item>
+        <item quantity="other">%1$d of %2$d done</item>
+    </plurals>
+    <plurals name="readme_today_pending">
+        <item quantity="one">%1$d still to do</item>
+        <item quantity="other">%1$d still to do</item>
+    </plurals>
+    <plurals name="readme_today_failed">
+        <item quantity="one">%1$d not done</item>
+        <item quantity="other">%1$d not done</item>
+    </plurals>
+    <plurals name="readme_today_skipped">
+        <item quantity="one">%1$d skipped</item>
+        <item quantity="other">%1$d skipped</item>
+    </plurals>
+    <!-- The [.] gloss: the one glyph nobody has met anywhere else. -->
+    <string name="readme_holds">“%1$s” asks nothing of you: it counts as done unless you say you broke it.</string>
+    <!-- The three build verdicts, in words instead of the badge glyphs. -->
+    <string name="readme_status_all">Everything due so far has been done: %1$d of them.</string>
+    <string name="readme_status_some">So far %1$d of the %2$d you have answered are done.</string>
+    <string name="readme_status_none">None of the %1$d you have answered are done yet.</string>
+    <string name="readme_yesterday">Yesterday: %1$d of %2$d done.</string>
+    <string name="readme_amended">You changed yesterday after it had closed, so its entry in the history says it was edited.</string>
+    <plurals name="readme_streak_days">
+        <item quantity="one">“%1$s” has been going for %2$d day.</item>
+        <item quantity="other">“%1$s” has been going for %2$d days.</item>
+    </plurals>
+    <plurals name="readme_streak_weeks">
+        <item quantity="one">“%1$s” has hit its weekly target for %2$d week.</item>
+        <item quantity="other">“%1$s” has hit its weekly target for %2$d weeks.</item>
+    </plurals>
+    <string name="readme_health_low">“%1$s” has held about %2$s of the time lately.</string>
+    <!-- The `no run` gloss: the app is allowed to not know (3.3.8). -->
+    <string name="readme_no_run">You did not open the app on %1$s: that day is not counted as failed, it simply is not there.</string>
+    <string name="readme_col_day">Day</string>
+    <string name="readme_col_passed">Done</string>
+    <string name="readme_col_result">How it went</string>
+    <string name="readme_result_all">all</string>
+    <string name="readme_result_some">some</string>
+    <string name="readme_result_none">none</string>
+    <string name="readme_result_open">still open</string>
+    <string name="readme_result_not_opened">app not opened</string>
+    <plurals name="readme_footer">
+        <item quantity="one">Worked out on this device · %1$d day recorded</item>
+        <item quantity="other">Worked out on this device · %1$d days recorded</item>
+    </plurals>
 </resources>

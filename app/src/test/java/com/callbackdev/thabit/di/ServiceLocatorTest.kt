@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.SettingsStore
+import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.db.ThabitDatabase
 import org.junit.After
 import org.junit.Assert.assertNotSame
@@ -58,6 +59,9 @@ class ServiceLocatorTest {
             ThabitDatabase.inMemory(ApplicationProvider.getApplicationContext())
         override val settings: SettingsStore = SettingsStore(
             PreferenceDataStoreFactory.create { folder.newFile("fake.preferences_pb") }
+        )
+        override val workspace: WorkspaceStore = WorkspaceStore(
+            PreferenceDataStoreFactory.create { folder.newFile("fake.workspace_pb") }
         )
         override val repository: HabitRepository = HabitRepository(
             database.habitDao(), database.checkDao(), database.dayDao(), settings, clock

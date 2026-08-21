@@ -74,10 +74,14 @@ class SettingsScreenTest {
     // ---- the file --------------------------------------------------------
 
     @Test
-    fun `the file names itself and opens a real JSON object`() {
+    fun `the strip names the file, and the file opens a real JSON object`() {
         show()
-        compose.onNodeWithText("// settings.config").assertIsDisplayed()
+        // The name lives in the tab strip now; the document does not repeat it,
+        // and neither does the status bar (which says `rw` instead).
+        compose.onNodeWithText("settings.config").assertIsDisplayed()
+        compose.onNodeWithText("// settings.config").assertDoesNotExist()
         compose.onNodeWithText("{").assertIsDisplayed()
+        compose.onNodeWithText("rw").assertIsDisplayed()
     }
 
     @Test
@@ -120,6 +124,9 @@ class SettingsScreenTest {
     @Test
     fun `the sections that are not wired yet say so instead of showing dead switches`() {
         show()
+        // The tab strip costs the file 48dp at the top (Fase 7), so the section
+        // that used to sit just inside the viewport now needs a scroll.
+        scrollTo(SettingsDocument.NOTIFICATIONS_PLACEHOLDER)
         compose.onNodeWithText("\"notifications\": {").assertIsDisplayed()
         compose.onNodeWithText(SettingsDocument.NOTIFICATIONS_PLACEHOLDER).assertIsDisplayed()
         compose.onNodeWithText("\"daily_commit\"", substring = true).assertDoesNotExist()
