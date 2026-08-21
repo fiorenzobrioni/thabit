@@ -20,4 +20,41 @@
     <string name="cd_state_holding">sta reggendo, fallisce solo se lo interrompi</string>
     <string name="cd_state_skipped">saltato</string>
     <string name="cd_state_failed">fallito</string>
+
+    <!-- Le righe del file principale. Due bersagli per riga: la casella esegue
+         il test, il nome apre la sua scheda. Le etichette dicono cosa FA il tap,
+         mai che aspetto ha il glifo. -->
+    <string name="cd_action_pass">Segna come fatto</string>
+    <string name="cd_action_undo">Annulla</string>
+    <string name="cd_action_log_value">Inserisci un valore</string>
+    <string name="cd_action_break">Segna come interrotto</string>
+    <string name="cd_action_details_show">Mostra i dettagli</string>
+    <string name="cd_action_details_hide">Nascondi i dettagli</string>
+    <string name="cd_row_details">Dettagli di %1$s</string>
+    <string name="cd_action_increment">Aggiungi %1$s</string>
+    <string name="cd_action_note">Aggiungi una nota</string>
+    <string name="cd_action_skip">Salta questo test</string>
+    <string name="cd_action_edit">Modifica questo test</string>
+    <string name="cd_action_archive">Archivia questo test</string>
+    <string name="cd_action_archive_confirm">Conferma: archivia questo test</string>
+    <string name="cd_action_cancel">Annulla</string>
+    <string name="cd_action_confirm">Conferma</string>
+    <string name="cd_action_show_not_due">Mostra i test non richiesti oggi</string>
+    <string name="cd_action_hide_not_due">Nascondi i test non richiesti oggi</string>
+    <string name="cd_action_skip_window">Cambia quanto dura il salto</string>
+    <string name="cd_not_due">non richiesto oggi</string>
+
+    <!-- Il dettaglio vivo, detto a parole. Il canale commenti dice la stessa
+         cosa in inglese perché è sorgente; questa è la metà che parla la lingua
+         di chi legge, e nessun fatto vive in una sola delle due. -->
+    <string name="cd_detail_at">alle %1$s</string>
+    <string name="cd_detail_counter">%1$s di %2$s %3$s</string>
+    <string name="cd_detail_counter_done">%1$s %2$s</string>
+    <string name="cd_detail_until">fino al %1$s</string>
+    <string name="cd_detail_quota">%1$d su %2$d questa settimana</string>
+
+    <!-- Barra di stato: le decorazioni git sono firma, non informazione, quindi
+         la versione parlata dice il fatto in chiaro invece del glifo. -->
+    <string name="cd_status_suite">%1$d test nella suite</string>
+    <string name="cd_status_passed">%1$d su %2$d passati</string>
 </resources>

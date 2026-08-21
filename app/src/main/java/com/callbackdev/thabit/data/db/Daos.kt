@@ -52,6 +52,9 @@ interface CheckDao {
     @Query("SELECT * FROM `check` ORDER BY date ASC")
     suspend fun all(): List<CheckEntity>
 
+    @Query("SELECT * FROM `check` ORDER BY date ASC")
+    fun observeAll(): Flow<List<CheckEntity>>
+
     @Query("SELECT * FROM `check` WHERE habit_id = :habitId AND date = :date")
     suspend fun find(habitId: Long, date: String): CheckEntity?
 
@@ -101,6 +104,9 @@ interface DayDao {
 
     @Query("SELECT * FROM day ORDER BY date ASC")
     suspend fun all(): List<DayEntity>
+
+    @Query("SELECT * FROM day ORDER BY date ASC")
+    fun observeAll(): Flow<List<DayEntity>>
 
     @Query("SELECT EXISTS(SELECT 1 FROM day WHERE date = :date)")
     suspend fun exists(date: String): Boolean

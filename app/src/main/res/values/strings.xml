@@ -22,4 +22,41 @@
     <string name="cd_state_holding">holding, it fails only if you break it</string>
     <string name="cd_state_skipped">skipped</string>
     <string name="cd_state_failed">failed</string>
+
+    <!-- The main file's rows. Each row offers two targets: the checkbox runs the
+         test, the name unfolds its spec. The action labels say what the tap will
+         DO, never what the glyph looks like. -->
+    <string name="cd_action_pass">Mark as done</string>
+    <string name="cd_action_undo">Undo</string>
+    <string name="cd_action_log_value">Enter a value</string>
+    <string name="cd_action_break">Mark as broken</string>
+    <string name="cd_action_details_show">Show details</string>
+    <string name="cd_action_details_hide">Hide details</string>
+    <string name="cd_row_details">Details of %1$s</string>
+    <string name="cd_action_increment">Add %1$s</string>
+    <string name="cd_action_note">Add a note</string>
+    <string name="cd_action_skip">Skip this test</string>
+    <string name="cd_action_edit">Edit this test</string>
+    <string name="cd_action_archive">Archive this test</string>
+    <string name="cd_action_archive_confirm">Confirm: archive this test</string>
+    <string name="cd_action_cancel">Cancel</string>
+    <string name="cd_action_confirm">Confirm</string>
+    <string name="cd_action_show_not_due">Show the tests not due today</string>
+    <string name="cd_action_hide_not_due">Hide the tests not due today</string>
+    <string name="cd_action_skip_window">Change how long the skip lasts</string>
+    <string name="cd_not_due">not due today</string>
+
+    <!-- Live detail, spoken. The comment channel says the same thing in English
+         because a comment is source; this is the half that speaks the reader's
+         language, and no fact ever lives in only one of the two. -->
+    <string name="cd_detail_at">at %1$s</string>
+    <string name="cd_detail_counter">%1$s of %2$s %3$s</string>
+    <string name="cd_detail_counter_done">%1$s %2$s</string>
+    <string name="cd_detail_until">until %1$s</string>
+    <string name="cd_detail_quota">%1$d of %2$d this week</string>
+
+    <!-- Status bar. The git decorations are signature, not information, so the
+         spoken version states the plain fact instead of the glyph. -->
+    <string name="cd_status_suite">%1$d tests in the suite</string>
+    <string name="cd_status_passed">%1$d of %2$d passed</string>
 </resources>

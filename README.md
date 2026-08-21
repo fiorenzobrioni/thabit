@@ -22,7 +22,7 @@ The extension is `.test` and not `.yaml` on purpose: `- [x] meditate 10 min` is 
 
 ## Status
 
-Under construction. The spec is complete (see `VISION.md`) and the plan is phased and public (see `PLANNING.md`). The editor kit is ported and the domain engine is in: schedules (daily, weekday sets, weekly quotas, intervals), the configurable day boundary, build verdicts, streaks, health, coverage, regressions and records, all computed on read and covered by 200+ JVM tests. The screens land phase by phase.
+Under construction. The spec is complete (see `VISION.md`) and the plan is phased and public (see `PLANNING.md`). The domain engine is in (schedules, the configurable day boundary, build verdicts, streaks, health, coverage, regressions, records: all computed on read) and `habits.test` is live: the suite renders from your own data, one tap runs a test, counters ask for their number, and the file speaks its state out loud to a screen reader in English or Italian. 270+ JVM tests. The other three files land phase by phase.
 
 ## What it will do
 

@@ -245,6 +245,27 @@ class HabitRepository(
         )
     }
 
+    /**
+     * Everything, observed — what the screens read.
+     *
+     * Deliberately not a window. Streaks and health run back to a test's
+     * `createdAt`, so a range query would have to guess how far back is far
+     * enough and would silently truncate the longest streak in the suite the day
+     * it grew past the guess. A decade of checks is a few hundred kilobytes
+     * (VISION §7), so the honest query is the whole table.
+     */
+    fun observeFullHistory(): Flow<SuiteHistory> = combine(
+        habitDao.observeAll(),
+        checkDao.observeAll(),
+        dayDao.observeAll()
+    ) { habits, checks, days ->
+        SuiteHistory(
+            habits = habits.mapNotNull { it.toDomain() },
+            checks = checks.mapNotNull { it.toDomain() },
+            presentDays = days.mapNotNull { it.toDomain()?.date }.toSet()
+        )
+    }
+
     /** Everything, for the stats screens and the export. It is a small database. */
     suspend fun fullHistory(): SuiteHistory = SuiteHistory(
         habits = habitDao.all().mapNotNull { it.toDomain() },

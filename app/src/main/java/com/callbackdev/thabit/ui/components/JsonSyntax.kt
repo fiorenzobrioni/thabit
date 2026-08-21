@@ -35,9 +35,30 @@ fun buildJsonLines(root: JsonElement, syntax: SyntaxColors): List<CodeLine> {
     return lines
 }
 
-/** A whole line in comment gray; [text] should include the `//`. */
-fun commentLine(text: String, syntax: SyntaxColors, indent: Int = 0): CodeLine =
-    CodeLine(AnnotatedString(text, SpanStyle(color = syntax.comment)), indent)
+/**
+ * A whole line in comment gray; [text] should include its marker (`//` in a
+ * JSON-style file, `#` in a YAML-style one — the comment wears the host file's
+ * syntax, VISION §1.1).
+ *
+ * A comment can be a control: `# 2 tests not due today — [show]` is a line of
+ * source that answers to a tap. Hence the optional [onClick] — the series has no
+ * buttons, so when a comment is the affordance it needs to carry the gesture and
+ * the words that describe it (backport candidate for tweather/tsteps).
+ */
+fun commentLine(
+    text: String,
+    syntax: SyntaxColors,
+    indent: Int = 0,
+    onClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
+    contentDescription: String? = null
+): CodeLine = CodeLine(
+    text = AnnotatedString(text, SpanStyle(color = syntax.comment)),
+    indent = indent,
+    onClick = onClick,
+    onClickLabel = onClickLabel,
+    contentDescription = contentDescription
+)
 
 /** Punctuation only: `{`, `},`, `]`… — the structural lines of a fake config file. */
 fun punctLine(text: String, indent: Int, syntax: SyntaxColors): CodeLine =
