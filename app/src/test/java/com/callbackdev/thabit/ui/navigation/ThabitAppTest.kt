@@ -144,6 +144,39 @@ class ThabitAppTest {
     }
 
     @Test
+    fun `the FAB is on the README too, and opens the same transcript`() {
+        show()
+        awaitText("README.md")
+        compose.onNodeWithText("README.md").performClick()
+        awaitText("## Today")
+
+        // The verb belongs to the tab, not to the suite: it does not go away
+        // because the reader is on the other file.
+        compose.onNodeWithContentDescription("Add a test to the suite").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Add a test to the suite").performClick()
+        awaitText("$ thabit add")
+        compose.onNodeWithText("$ thabit add").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the wizard gives the README back, not the suite`() {
+        show()
+        awaitText("README.md")
+        compose.onNodeWithText("README.md").performClick()
+        awaitText("## Today")
+
+        compose.onNodeWithContentDescription("Add a test to the suite").performClick()
+        awaitText("$ thabit add")
+        compose.onNodeWithText("[esc]").performClick()
+
+        // Which file is open is the reader's decision, and adding a test is not
+        // a reason for the app to overrule it.
+        awaitText("## Today")
+        compose.onNodeWithText("## Today").assertIsDisplayed()
+        compose.onNodeWithText("$ thabit add").assertDoesNotExist()
+    }
+
+    @Test
     fun `each tab opens its own file`() {
         show()
 

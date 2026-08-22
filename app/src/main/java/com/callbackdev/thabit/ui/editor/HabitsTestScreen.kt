@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
@@ -23,7 +21,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -35,7 +32,6 @@ import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CheckboxState
 import com.callbackdev.thabit.ui.components.CodeCanvas
-import com.callbackdev.thabit.ui.components.GlowFab
 import com.callbackdev.thabit.ui.components.StatusBarDivider
 import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
@@ -123,17 +119,12 @@ fun HabitsTestScreen(
                 ),
                 state = listState,
                 // Room at the foot of the file for the FAB: the last test of
-                // the suite must never be the one hidden under it.
-                contentPadding = PaddingValues(top = 8.dp, bottom = 88.dp),
+                // the suite must never be the one hidden under it. Shared with
+                // the README, which shares the FAB.
+                contentPadding = EditorFileClearance,
                 modifier = Modifier.fillMaxSize()
             )
-            // The one glowing verb of this app: growing the suite (VISION §4.1).
-            GlowFab(
-                onClick = actions.onAddTest,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-            )
+            AddTestFab(onClick = actions.onAddTest)
         }
         SuiteStatusBar(document)
     }

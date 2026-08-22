@@ -30,6 +30,7 @@ import com.callbackdev.thabit.ui.theme.ThabitTheme
 @Composable
 fun ReadmeScreen(
     state: EditorUiState,
+    onAddTest: () -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState()
 ) {
@@ -56,12 +57,26 @@ fun ReadmeScreen(
 
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
-            CodeCanvas(lines = lines, state = listState, modifier = Modifier.fillMaxSize())
+            CodeCanvas(
+                lines = lines,
+                state = listState,
+                // The same clearance the suite gets: the footer that says how
+                // many days this was computed on is the last line of the file,
+                // and a fact hidden under the glow is a fact the reader has to
+                // scroll past the end to find.
+                contentPadding = EditorFileClearance,
+                modifier = Modifier.fillMaxSize()
+            )
+            // The tab's verb, not the suite's: reading what the day looks like
+            // is when a missing test is easiest to notice.
+            AddTestFab(onClick = onAddTest)
         }
         TerminalStatusBar {
             StatusBarStart { StatusBarText("⎇ main") }
             // `ro` is the truth here: the README is written by the app, from the
-            // rows the other file holds. Nothing on this screen answers a tap.
+            // rows the other file holds. The FAB does not make it `rw` — it
+            // writes a test into `habits.test`, and this file only reports what
+            // that file says.
             StatusBarText("ro")
         }
     }
@@ -71,6 +86,6 @@ fun ReadmeScreen(
 @Composable
 private fun ReadmeScreenPreview() {
     ThabitTheme {
-        ReadmeScreen(state = EditorUiState(loading = false))
+        ReadmeScreen(state = EditorUiState(loading = false), onAddTest = {})
     }
 }

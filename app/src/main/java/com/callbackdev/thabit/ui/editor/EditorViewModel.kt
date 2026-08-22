@@ -44,14 +44,26 @@ class EditorViewModel(
 
     private val redraw = MutableStateFlow(0)
 
+    /**
+     * Which of the two files is open — a flow of its own, deliberately not a
+     * field of [state].
+     *
+     * The tab has to come back the moment the workspace store answers, and that
+     * is a one-key preferences file; folded into [state] it would have waited
+     * for the whole history query as well, and a reader who left the README open
+     * would have watched the suite flash past on every cold start. [state] is
+     * about the day, this is about the session. Eager, like the siblings': the
+     * read starts with the view model, not with the first collector.
+     */
+    val activeFile: StateFlow<EditorFile> =
+        workspace.editorFile.stateIn(viewModelScope, SharingStarted.Eagerly, EditorFile.TEST)
+
     val state: StateFlow<EditorUiState> = combine(
-        workspace.editorFile,
         settings.settings,
         repository.observeFullHistory(),
         redraw
-    ) { file, config, history, _ ->
+    ) { config, history, _ ->
         EditorUiState(
-            file = file,
             history = history,
             today = config.boundary.logicalDate(clock.instant(), clock.zone),
             weekStartsOn = config.weekStartsOn,
@@ -93,7 +105,6 @@ class EditorViewModel(
 }
 
 data class EditorUiState(
-    val file: EditorFile = EditorFile.TEST,
     val history: SuiteHistory = SuiteHistory.Empty,
     /**
      * A placeholder that is never drawn: nothing renders while [loading].
