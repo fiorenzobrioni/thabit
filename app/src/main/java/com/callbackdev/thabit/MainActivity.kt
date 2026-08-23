@@ -34,6 +34,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         readFocus(intent)
+        watchAlarms()
         // The app is dark-only (see ThabitTheme), so the system bars must always
         // draw their icons light. enableEdgeToEdge()'s default is SystemBarStyle.auto,
         // which picks the appearance from the *system* dark-mode setting: on a phone
@@ -84,7 +85,6 @@ class MainActivity : ComponentActivity() {
             repository.markPresent()
             RolloverScheduler.ensureScheduled(applicationContext, repository.boundary())
         }
-        watchAlarms()
     }
 
     /**
@@ -100,10 +100,18 @@ class MainActivity : ComponentActivity() {
      * the file.
      *
      * This is also the app-open safety net VISION §7 asks for, applied to the
-     * alarms: the first emission of each flow is the current state, so a fire
-     * swallowed by a doze window or lost to a reinstall is put back simply by
-     * the app being opened. The registrations are idempotent — same
-     * PendingIntents, replaced — so an extra pass costs nothing.
+     * alarms: `repeatOnLifecycle` re-collects on every return to the front and
+     * each flow's first emission is the current state, so a fire swallowed by a
+     * doze window or lost to a reinstall is put back simply by the app being
+     * opened. The registrations are idempotent — same PendingIntents, replaced —
+     * so an extra pass costs nothing.
+     *
+     * Called from `onCreate` and **not** from `onStart`, which is where it first
+     * went: `repeatOnLifecycle` already starts and stops itself with the
+     * lifecycle, so starting it per start registers a second collector on every
+     * return to the front and never lets the first one go. Lint says so out
+     * loud (`RepeatOnLifecycleWrongUsage`) — the presence row and the rollover
+     * alignment above genuinely belong in `onStart`, this does not.
      */
     private fun watchAlarms() {
         val app = applicationContext
