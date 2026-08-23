@@ -1,5 +1,6 @@
 package com.callbackdev.thabit
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,21 +10,33 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.callbackdev.thabit.data.ThabitSettings
 import com.callbackdev.thabit.di.ServiceLocator
+import com.callbackdev.thabit.notifications.Reminders
+import com.callbackdev.thabit.notifications.ThabitNotifier
 import com.callbackdev.thabit.ui.components.EditorOptions
+import com.callbackdev.thabit.ui.editor.SuiteFocus
 import com.callbackdev.thabit.ui.navigation.ThabitApp
 import com.callbackdev.thabit.ui.theme.ThabitTheme
+import com.callbackdev.thabit.widget.ThabitWidgetUpdater
 import com.callbackdev.thabit.work.RolloverScheduler
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.time.ZonedDateTime
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        readFocus(intent)
+        watchAlarms()
+        watchWidget()
         // The app is dark-only (see ThabitTheme), so the system bars must always
         // draw their icons light. enableEdgeToEdge()'s default is SystemBarStyle.auto,
         // which picks the appearance from the *system* dark-mode setting: on a phone
@@ -74,5 +87,122 @@ class MainActivity : ComponentActivity() {
             repository.markPresent()
             RolloverScheduler.ensureScheduled(applicationContext, repository.boundary())
         }
+    }
+
+    /**
+     * The alarms, kept in step with what the files say — for as long as the app
+     * is in front.
+     *
+     * A one-shot re-arm on start would have left a real hole: a reminder set at
+     * nine in the morning for nine in the evening would not be registered until
+     * the *next* time somebody opened the app, and "I set it and it never rang"
+     * is the only bug a reminder can have. So the suite and the `notifications`
+     * block are **observed**: adding a test, editing its `remind:`, archiving it
+     * or moving `digest_hour` re-registers within the same frame that redraws
+     * the file.
+     *
+     * This is also the app-open safety net VISION §7 asks for, applied to the
+     * alarms: `repeatOnLifecycle` re-collects on every return to the front and
+     * each flow's first emission is the current state, so a fire swallowed by a
+     * doze window or lost to a reinstall is put back simply by the app being
+     * opened. The registrations are idempotent — same PendingIntents, replaced —
+     * so an extra pass costs nothing.
+     *
+     * Called from `onCreate` and **not** from `onStart`, which is where it first
+     * went: `repeatOnLifecycle` already starts and stops itself with the
+     * lifecycle, so starting it per start registers a second collector on every
+     * return to the front and never lets the first one go. Lint says so out
+     * loud (`RepeatOnLifecycleWrongUsage`) — the presence row and the rollover
+     * alignment above genuinely belong in `onStart`, this does not.
+     */
+    /**
+     * The widget, kept in step with the app while the app is in front.
+     *
+     * Ticking a box in `habits.test` has to reach the home screen: a widget
+     * still showing `[ ]` for something the user just checked off is the app
+     * disagreeing with itself, and the widget is the surface people trust
+     * *because* it is a glance. The collector covers every write there is —
+     * checks, skips, edits, archives — because they all move the same history.
+     *
+     * The settings flow is here for the same reason as the theme in `setContent`:
+     * tapping "dracula" or dropping the widget's opacity has to repaint the home
+     * screen, not just this window.
+     *
+     * A repaint is **not** presence (VISION §7): this collector writes nothing,
+     * and neither does the render it triggers.
+     */
+    private fun watchWidget() {
+        val app = applicationContext
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    ServiceLocator.repository(app).observeFullHistory()
+                        .distinctUntilChanged()
+                        .collect { ThabitWidgetUpdater.updateAll(app) }
+                }
+                launch {
+                    ServiceLocator.settings(app).settings
+                        .distinctUntilChanged()
+                        .collect { ThabitWidgetUpdater.updateAll(app) }
+                }
+            }
+        }
+    }
+
+    private fun watchAlarms() {
+        val app = applicationContext
+        val clock = ServiceLocator.graph(app).clock
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    // The whole suite, archived tests included: `armAll` cancels
+                    // what no longer has a next fire.
+                    ServiceLocator.repository(app).observeSuite()
+                        .distinctUntilChanged()
+                        .collect { suite -> Reminders.armAll(app, suite, ZonedDateTime.now(clock)) }
+                }
+                launch {
+                    ServiceLocator.settings(app).settings
+                        .map { it.notifications }
+                        .distinctUntilChanged()
+                        .collect { Reminders.armDigest(app, it, ZonedDateTime.now(clock)) }
+                }
+            }
+        }
+    }
+
+    /**
+     * The app was already running when the notification was tapped.
+     *
+     * The content intent carries `FLAG_ACTIVITY_SINGLE_TOP`, so a second tap
+     * lands here instead of building a second activity — and the request has to
+     * be read out of *this* intent, because [getIntent] still holds the one that
+     * launched the app the first time.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readFocus(intent)
+    }
+
+    /**
+     * `- [ ] read 20 pages` — the row a reminder was about.
+     *
+     * The extra is removed once read: a configuration change re-delivers the
+     * launching intent, and a prompt that reopened itself on every rotation
+     * would be the app arguing with the reader.
+     */
+    private fun readFocus(intent: Intent) {
+        val habitId = intent.getLongExtra(EXTRA_HABIT_ID, NO_ID)
+        if (habitId == NO_ID) return
+        intent.removeExtra(EXTRA_HABIT_ID)
+        SuiteFocus.request(habitId)
+    }
+
+    companion object {
+        /** Which test a notification is about — set by [ThabitNotifier]. */
+        const val EXTRA_HABIT_ID: String = "com.callbackdev.thabit.extra.HABIT_ID"
+
+        private const val NO_ID = -1L
     }
 }

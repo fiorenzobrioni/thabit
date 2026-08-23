@@ -36,6 +36,7 @@ import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 
 /**
@@ -286,6 +287,64 @@ class WizardViewModelTest {
             assertEquals(WizardViewModel.MISSING_TEST, opened.error)
             assertTrue(opened.closeRequested)
         }
+
+    // ---- the reminder ------------------------------------------------------
+
+    @Test
+    fun `a reminder is typed, kept, and written onto the test`() = runUi { wizard ->
+        wizard.onName("meditate 10 min")
+        wizard.onOpenPrompt(WizardField.Remind)
+        wizard.onPromptChange("7")
+        wizard.onPromptSubmit()
+        assertEquals(LocalTime.of(7, 0), state(wizard).draft.remindAt)
+
+        wizard.onDone()
+        runCurrent()
+        assertEquals(LocalTime.of(7, 0), suite().single().remindAt)
+    }
+
+    @Test
+    fun `an empty answer is how a reminder is turned off`() = runUi { wizard ->
+        wizard.onName("meditate 10 min")
+        wizard.onOpenPrompt(WizardField.Remind)
+        wizard.onPromptChange("07:00")
+        wizard.onPromptSubmit()
+
+        wizard.onOpenPrompt(WizardField.Remind)
+        wizard.onPromptChange("")
+        wizard.onPromptSubmit()
+        assertNull(state(wizard).draft.remindAt)
+    }
+
+    @Test
+    fun `an unreadable time is refused in the terminal's own voice, and changes nothing`() =
+        runUi { wizard ->
+            wizard.onName("meditate 10 min")
+            wizard.onOpenPrompt(WizardField.Remind)
+            wizard.onPromptChange("07:00")
+            wizard.onPromptSubmit()
+
+            wizard.onOpenPrompt(WizardField.Remind)
+            wizard.onPromptChange("half seven")
+            wizard.onPromptSubmit()
+
+            val after = state(wizard)
+            assertEquals(WizardViewModel.BAD_TIME, after.error)
+            // The draft is untouched: a guess would put a time in the file that
+            // nobody typed.
+            assertEquals(LocalTime.of(7, 0), after.draft.remindAt)
+        }
+
+    @Test
+    fun `the reminder prompt opens on the time that is already set`() = runUi { wizard ->
+        wizard.onName("meditate 10 min")
+        wizard.onOpenPrompt(WizardField.Remind)
+        wizard.onPromptChange("21:30")
+        wizard.onPromptSubmit()
+
+        wizard.onOpenPrompt(WizardField.Remind)
+        assertEquals("21:30", state(wizard).pending)
+    }
 
     // ---- leaving -----------------------------------------------------------
 

@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
@@ -72,6 +74,42 @@ class SuiteViewModel(
             loading = false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SuiteUiState())
+
+    /**
+     * A reminder or a widget row tapped from outside names a test; the file
+     * opens on it. Collected here rather than in the screen because what "open
+     * on it" means depends on the test's kind, and the kind lives in the
+     * document this view model already builds.
+     *
+     * **This block sits below [state] on purpose, and it is load-bearing.**
+     * `viewModelScope` runs on `Dispatchers.Main.immediate`, so a `launch` from
+     * a constructor already on the main thread executes its body *synchronously*
+     * — and a `StateFlow` hands a new collector the value it is already holding.
+     * With the request already set (which is precisely the case here: the
+     * activity reads the intent before this view model exists) the body ran
+     * inside the constructor, where `state` had not been initialised yet, and
+     * dereferencing it threw. Opening the app from the widget crashed it. An
+     * `init` above a property it reads is a null waiting for a coroutine
+     * dispatcher to be fast enough.
+     */
+    init {
+        viewModelScope.launch {
+            SuiteFocus.request.filterNotNull().collect { habitId ->
+                // Waiting for the document rather than reading whatever is in
+                // `state` right now is the difference between opening the test
+                // and doing nothing at all.
+                val document = state.first { !it.loading }.document
+                val row = document?.rowFor(habitId)
+                when {
+                    row?.type == HabitType.COUNTER -> openValuePrompt(row)
+                    document?.knows(habitId) == true ->
+                        interaction.update { it.copy(expandedId = habitId) }
+                    else -> Unit
+                }
+                SuiteFocus.consume()
+            }
+        }
+    }
 
     /**
      * The screen came back to the front: read the clock again.

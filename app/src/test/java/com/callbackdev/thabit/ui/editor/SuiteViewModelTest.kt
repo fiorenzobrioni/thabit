@@ -18,6 +18,7 @@ import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -82,6 +83,7 @@ class SuiteViewModelTest {
 
     @Before
     fun setUp() {
+        SuiteFocus.consume()
         Dispatchers.setMain(dispatcher)
         db = ThabitDatabase.inMemory(
             ApplicationProvider.getApplicationContext(),
@@ -100,6 +102,9 @@ class SuiteViewModelTest {
 
     @After
     fun tearDown() {
+        // `SuiteFocus` is a process-wide channel: a request left behind by one
+        // test is a request the next test's view model swallows.
+        SuiteFocus.consume()
         store.clear()
         dataStoreScope.cancel()
         db.close()
@@ -402,5 +407,85 @@ class SuiteViewModelTest {
         val document = file()
         assertTrue(document.isEmpty)
         assertTrue(document.due.isEmpty())
+    }
+
+    // ---- the jump a reminder asks for (Fase 9) ----------------------------
+
+    @Test
+    fun `a reminder tapped from the shade unfolds the test it was about`() = runUi {
+        val id = repository.addHabit("meditate 10 min")
+        file()
+
+        SuiteFocus.request(id)
+        runCurrent()
+        assertEquals(id, interaction().expandedId)
+        // Consumed, so the file does not reopen it on every redraw.
+        assertNull(SuiteFocus.request.value)
+        // And it never ticks the box for the reader: they were being asked, not
+        // answered for.
+        assertNull(db.checkDao().find(id, "2026-08-21"))
+    }
+
+    @Test
+    fun `a counter opens its prompt, because that is why the shade could not settle it`() =
+        runUi {
+            val id = repository.addHabit(
+                name = "read 20 pages",
+                type = HabitType.COUNTER,
+                assert = AssertSpec(20.0, "pages")
+            )
+            file()
+
+            SuiteFocus.request(id)
+            runCurrent()
+            assertEquals("pages", (interaction().prompt as SuitePrompt.Value).unit)
+        }
+
+    /**
+     * The crash this test exists for: opening the app **from** the widget.
+     *
+     * The request is already set when the view model is constructed — the
+     * activity reads the intent before any view model exists — and the app's
+     * real main dispatcher is `Dispatchers.Main.immediate`, which runs a
+     * `launch` issued from a constructor already on the main thread
+     * *synchronously*. With the `init` block declared above `state`, that
+     * dereferenced a property Kotlin had not initialised yet and threw: the app
+     * opened from a widget row and bounced straight back out.
+     *
+     * It runs on an **unconfined** dispatcher on purpose. The rest of this suite
+     * uses `StandardTestDispatcher`, which *queues* the body instead of running
+     * it — by the time it runs, the constructor has finished and the field is
+     * there, so the bug is invisible. Reproducing a timing bug needs the timing.
+     */
+    @Test
+    fun `a request already pending when the view model is built does not kill it`() =
+        runTest(dispatcher) {
+            // `Main.immediate`'s timing — and on *this* test's scheduler, so the
+            // uncaught exception the bug produces fails this test instead of
+            // surfacing in whichever one happens to run next.
+            Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+            val freshStore = ViewModelStore()
+            try {
+                SuiteFocus.request(1L)
+                // Constructing it is the whole test: this used to throw.
+                ViewModelProvider(
+                    freshStore,
+                    SuiteViewModel.factory(repository, settings, clock)
+                ).get(SuiteViewModel::class.java)
+                runCurrent()
+            } finally {
+                freshStore.clear()
+                Dispatchers.setMain(dispatcher)
+            }
+        }
+
+    @Test
+    fun `a request for a test the file does not know is dropped, not acted on`() = runUi {
+        file()
+        SuiteFocus.request(404L)
+        runCurrent()
+        assertNull(interaction().expandedId)
+        assertNull(interaction().prompt)
+        assertNull(SuiteFocus.request.value)
     }
 }

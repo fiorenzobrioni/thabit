@@ -3,6 +3,8 @@ package com.callbackdev.thabit.work
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.callbackdev.thabit.notifications.DailyCommitNotifier
+import com.callbackdev.thabit.widget.ThabitWidgetUpdater
 
 /**
  * What happens at `day_ends` — and, far more importantly, what does not.
@@ -23,10 +25,10 @@ import androidx.work.WorkerParameters
  * - post the `daily_commit` notification for the day that just closed (Fase 9)
  * - repaint the widget so it stops showing yesterday's suite (Fase 10)
  *
- * Until those phases land, [RolloverEffects.None] does nothing at all and the
- * job's only real work is keeping itself aligned with the boundary — which is
- * worth having on device now, because DST and `day_ends` edits are exactly the
- * things one wants to have been running for a while before trusting them.
+ * Fase 9 supplied the first of the two. The widget's repaint joins it in Fase 10
+ * without changing anything here: the effect is still handed nothing but a
+ * [Context], which is what keeps "never writes" a property of a small interface
+ * rather than a promise in a comment.
  */
 class RolloverWorker(
     context: Context,
@@ -46,21 +48,47 @@ class RolloverWorker(
  *
  * Fase 9 supplies the notification, Fase 10 the widget repaint. Neither is
  * allowed to write data, and both are given only a [Context].
+ *
+ * The real effect is the **default** rather than something an `Application`
+ * installs at startup, and that is deliberate: WorkManager can start this
+ * process on its own at `day_ends` with no screen involved, and a static that
+ * somebody has to remember to fill would leave that run posting nothing. A field
+ * whose correct value depends on a startup hook having run is a field that will
+ * eventually be empty.
  */
 fun interface RolloverEffects {
 
     suspend fun onDayClosed(context: Context)
 
     companion object {
-        /** Nothing to do yet: the notification and the widget are later phases. */
+        /** What a test installs when the day's close must have no side effect. */
         val None = RolloverEffects { }
 
+        /**
+         * The day that just closed, announced once (Fase 9), and the widget
+         * repainted so it stops showing yesterday's suite (Fase 10).
+         *
+         * Both are repaints in the sense that matters: neither writes a row.
+         * The widget in particular must not stamp presence here — a rollover
+         * that did would turn every day with the phone switched on into a day
+         * that "ran" (VISION §7).
+         */
+        val Default = RolloverEffects { context ->
+            DailyCommitNotifier.run(context)
+            ThabitWidgetUpdater.updateAll(context)
+        }
+
         @Volatile
-        var current: RolloverEffects = None
+        var current: RolloverEffects = Default
             private set
 
         fun install(effects: RolloverEffects) {
             current = effects
+        }
+
+        /** Back to the shipping behaviour — what a test's teardown restores. */
+        fun reset() {
+            current = Default
         }
     }
 }

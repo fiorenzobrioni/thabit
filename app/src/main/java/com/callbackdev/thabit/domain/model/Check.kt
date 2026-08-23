@@ -37,8 +37,13 @@ data class Check(
      * rows would make those days count as coverage — a week away would come back
      * as a week of full attendance.
      *
-     * Downstream nothing knows the difference: every denominator and the export
-     * see plain skips, because that is what the read model hands them.
+     * Downstream nothing knows the difference: every denominator sees plain
+     * skips, because that is what the read model hands them.
+     *
+     * The **export** is the one reader that sees the row as written, and
+     * deliberately so (Fase 11): materialising fourteen rows into an archive
+     * would claim fourteen interactions the user never made. The expansion rule
+     * travels in the export's header instead, so the count stays recomputable.
      */
     val until: LocalDate? = null
 ) {

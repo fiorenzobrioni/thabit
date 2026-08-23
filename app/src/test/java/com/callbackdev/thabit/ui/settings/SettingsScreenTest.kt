@@ -10,6 +10,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.callbackdev.thabit.data.NotificationSettings
+import com.callbackdev.thabit.export.ExportFormat
+import com.callbackdev.thabit.export.ExportResult
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import org.junit.Assert.assertEquals
@@ -40,6 +43,11 @@ class SettingsScreenTest {
         showLineNumbers: Boolean = true,
         wordWrap: Boolean = false,
         lastModified: Long? = null,
+        notifications: NotificationSettings = NotificationSettings(),
+        reminderCount: Int = 0,
+        widgetOpacityPct: Int = 100,
+        notifState: NotifLineState = NotifLineState.Armed,
+        export: ExportState = ExportState.Idle,
         interaction: SettingsInteraction = SettingsInteraction()
     ) {
         compose.setContent {
@@ -53,11 +61,16 @@ class SettingsScreenTest {
                             showLineNumbers = showLineNumbers,
                             wordWrap = wordWrap,
                             lastModified = lastModified,
-                            versionName = "0.1.0"
+                            versionName = "0.1.0",
+                            notifications = notifications,
+                            reminderCount = reminderCount,
+                            widgetOpacityPct = widgetOpacityPct
                         ),
-                        interaction = interaction
+                        interaction = interaction,
+                        export = export
                     ),
-                    actions = actions
+                    actions = actions,
+                    notifState = notifState
                 )
             }
         }
@@ -122,14 +135,65 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `the sections that are not wired yet say so instead of showing dead switches`() {
-        show()
-        // The tab strip costs the file 48dp at the top (Fase 7), so the section
-        // that used to sit just inside the viewport now needs a scroll.
-        scrollTo(SettingsDocument.NOTIFICATIONS_PLACEHOLDER)
+    fun `the notifications block shows its two switches and the hour they use`() {
+        show(notifications = NotificationSettings(dailyCommit = true, pendingDigest = false))
+        // The tab strip costs the file 48dp at the top (Fase 7), so this section
+        // needs a scroll to reach.
+        scrollTo("\"daily_commit\": true,  ${SettingsDocument.DAILY_COMMIT_HINT}")
         compose.onNodeWithText("\"notifications\": {").assertIsDisplayed()
-        compose.onNodeWithText(SettingsDocument.NOTIFICATIONS_PLACEHOLDER).assertIsDisplayed()
-        compose.onNodeWithText("\"daily_commit\"", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("\"daily_commit\": true,", substring = true)
+            .assertIsDisplayed()
+            .assert(hasClickAction())
+        compose.onNodeWithText("\"pending_digest\": false,", substring = true)
+            .assertIsDisplayed()
+            .assert(hasClickAction())
+        compose.onNodeWithText("\"digest_hour\": \"20:00\"", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the block says how many reminders it does not own, and where they live`() {
+        show(reminderCount = 2)
+        scrollTo("// 2 tests carry a reminder — set on the test, in habits.test")
+        compose.onNodeWithText("// 2 tests carry a reminder — set on the test, in habits.test")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `a missing permission is stated in the file, and the line grants it`() {
+        var tapped = false
+        show(
+            notifState = NotifLineState.MissingPermission,
+            actions = SettingsActions(onNotifLine = { tapped = true })
+        )
+        scrollTo("// ERROR: notifications permission missing — tap to grant")
+        compose.onNodeWithText("// ERROR: notifications permission missing — tap to grant")
+            .assertIsDisplayed()
+            .performClick()
+        assertTrue(tapped)
+    }
+
+    @Test
+    fun `an armed block says so, and says nothing to tap`() {
+        show(notifState = NotifLineState.Armed)
+        scrollTo("// armed — posts at the boundary and at the times you set")
+        compose.onNodeWithText("// armed — posts at the boundary and at the times you set")
+            .assertIsDisplayed()
+            .assert(hasClickAction().not())
+    }
+
+    @Test
+    fun `the widget block offers its opacity as a number that cycles`() {
+        var cycled = false
+        show(
+            widgetOpacityPct = 85,
+            actions = SettingsActions(onCycleWidgetOpacity = { cycled = true })
+        )
+        scrollTo("\"bg_opacity_pct\": 85  ${SettingsDocument.WIDGET_OPACITY_HINT}")
+        compose.onNodeWithText("\"widget\": {").assertIsDisplayed()
+        compose.onNodeWithText("\"bg_opacity_pct\": 85", substring = true)
+            .assertIsDisplayed()
+            .performClick()
+        assertTrue(cycled)
     }
 
     @Test
@@ -164,10 +228,46 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `a transient answer appears at the foot of the file`() {
-        show(interaction = SettingsInteraction(transient = "$ thabit export --json  // nothing yet"))
-        scrollTo("$ thabit export --json  // nothing yet")
-        compose.onNodeWithText("$ thabit export --json  // nothing yet").assertIsDisplayed()
+    fun `the export reports the names the store wrote, and what went into them`() {
+        show(
+            export = ExportState.Done(
+                ExportResult.Written(
+                    files = listOf("thabit-export-2026-08-21.json"),
+                    tests = 6,
+                    checks = 142,
+                    days = 30
+                )
+            )
+        )
+        scrollTo("// wrote Downloads/thabit-export-2026-08-21.json")
+        compose.onNodeWithText("// wrote Downloads/thabit-export-2026-08-21.json")
+            .assertIsDisplayed()
+        compose.onNodeWithText("// 6 tests · 142 checks · 30 days").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an empty database is stated as a fact, not as a problem`() {
+        show(export = ExportState.Done(ExportResult.Empty))
+        scrollTo(SettingsDocument.EXPORT_PENDING)
+        compose.onNodeWithText("// nothing to export yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a failed write goes out on the ERROR channel`() {
+        show(export = ExportState.Done(ExportResult.Failed("Downloads is not writable")))
+        scrollTo("// ERROR: Downloads is not writable")
+        compose.onNodeWithText("// ERROR: Downloads is not writable").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the export commands are the two the exporter knows`() {
+        val asked = mutableListOf<ExportFormat>()
+        show(actions = SettingsActions(onExport = { asked += it }))
+        scrollTo("$ ${ExportFormat.JSON.command}")
+        compose.onNodeWithText("$ ${ExportFormat.JSON.command}").performClick()
+        scrollTo("$ ${ExportFormat.CSV.command}")
+        compose.onNodeWithText("$ ${ExportFormat.CSV.command}").performClick()
+        assertEquals(listOf(ExportFormat.JSON, ExportFormat.CSV), asked)
     }
 
     // ---- the spoken half -------------------------------------------------

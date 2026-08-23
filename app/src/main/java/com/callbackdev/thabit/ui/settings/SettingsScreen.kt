@@ -1,5 +1,12 @@
 package com.callbackdev.thabit.ui.settings
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,18 +15,31 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.callbackdev.thabit.R
+import com.callbackdev.thabit.export.ExportFormat
+import com.callbackdev.thabit.export.ExportResult
+import com.callbackdev.thabit.notifications.ThabitNotifier
 import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.CodeLine
@@ -36,6 +56,7 @@ import com.callbackdev.thabit.ui.components.stringItemLine
 import com.callbackdev.thabit.ui.components.stringValueLine
 import com.callbackdev.thabit.ui.editor.TextControl
 import com.callbackdev.thabit.ui.editor.decorative
+import com.callbackdev.thabit.ui.theme.SyntaxColors
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import java.time.DayOfWeek
@@ -61,7 +82,123 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    SettingsScreen(state = state, actions = SettingsActions(viewModel), modifier = modifier)
+    val context = LocalContext.current
+    val activity = LocalActivity.current
+
+    // POST_NOTIFICATIONS — the series' state machine, ported from tsteps.
+    //
+    // Re-read on every resume rather than remembered once: the grant lives in
+    // the system settings, where it can be given or taken away while this screen
+    // is paused, and a config file showing a stale answer would be lying about
+    // the one thing this block is for.
+    var permissionEpoch by remember { mutableIntStateOf(0) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) permissionEpoch++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val hasPermission = remember(permissionEpoch) { ThabitNotifier.canPost(context) }
+    var deniedPermanently by remember { mutableStateOf(false) }
+    // A switch flipped on before the grant, applied the moment it arrives.
+    var pendingToggle by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        permissionEpoch++
+        if (granted) {
+            deniedPermanently = false
+            pendingToggle?.invoke()
+        } else if (
+            activity?.shouldShowRequestPermissionRationale(
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == false
+        ) {
+            // Android stops showing the dialog after the second refusal, so from
+            // here the only way back is the app's own page in the settings.
+            deniedPermanently = true
+        }
+        pendingToggle = null
+    }
+    // The system-settings detour has no result callback: coming back IS the
+    // callback. A grant applies the pending switch; any other return drops it,
+    // so a switch flipped ten minutes ago cannot go off by surprise.
+    LaunchedEffect(permissionEpoch) {
+        if (hasPermission) pendingToggle?.invoke()
+        pendingToggle = null
+    }
+
+    val document = state.document
+    val notifState = when {
+        document == null || !document.anyNotification -> NotifLineState.Disabled
+        hasPermission -> NotifLineState.Armed
+        deniedPermanently -> NotifLineState.DeniedPermanently
+        else -> NotifLineState.MissingPermission
+    }
+
+    /** Switching a notification ON without the permission asks for it first. */
+    fun gated(toggle: () -> Unit): () -> Unit = {
+        if (!hasPermission) {
+            pendingToggle = toggle
+            if (deniedPermanently) {
+                context.openAppSystemSettings()
+            } else {
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            toggle()
+        }
+    }
+
+    SettingsScreen(
+        state = state,
+        actions = SettingsActions(viewModel).copy(
+            // Only the switch going ON needs the grant; turning one off must
+            // never open a permission dialog.
+            onToggleDailyCommit = {
+                if (document?.notifications?.dailyCommit == true) viewModel.onToggleDailyCommit()
+                else gated(viewModel::onToggleDailyCommit)()
+            },
+            onTogglePendingDigest = {
+                if (document?.notifications?.pendingDigest == true) viewModel.onTogglePendingDigest()
+                else gated(viewModel::onTogglePendingDigest)()
+            },
+            onNotifLine = {
+                when (notifState) {
+                    NotifLineState.MissingPermission ->
+                        launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    NotifLineState.DeniedPermanently -> context.openAppSystemSettings()
+                    else -> Unit
+                }
+            }
+        ),
+        notifState = notifState,
+        modifier = modifier
+    )
+}
+
+/**
+ * What the `notifications` block's dynamic `//` line has to say (tweather's
+ * states, tsteps' wording).
+ *
+ * The line exists because a permission the app never got is a fact the config
+ * file must state: without it a reader sees `"daily_commit": true` and a phone
+ * that never buzzes, with nothing on screen connecting the two.
+ */
+enum class NotifLineState {
+    /** Nothing is on and no test carries a reminder: nothing will ever post. */
+    Disabled,
+
+    /** Something is on and the permission is granted. */
+    Armed,
+
+    /** Something is on but there is no permission; tapping asks for it. */
+    MissingPermission,
+
+    /** Refused twice: only the system settings can give it back. */
+    DeniedPermanently
 }
 
 /** The stateless half — what the previews and the UI tests drive. */
@@ -69,7 +206,8 @@ fun SettingsScreen(
 fun SettingsScreen(
     state: SettingsUiState,
     actions: SettingsActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    notifState: NotifLineState = NotifLineState.Disabled
 ) {
     val document = state.document
     Column(modifier.fillMaxSize()) {
@@ -82,7 +220,8 @@ fun SettingsScreen(
             CodeCanvas(
                 lines = if (document == null) emptyList() else settingsLines(
                     document = document,
-                    interaction = state.interaction,
+                    state = state,
+                    notifState = notifState,
                     actions = actions
                 ),
                 state = rememberLazyListState(),
@@ -100,13 +239,19 @@ fun SettingsScreen(
 }
 
 /** The taps the settings file can produce. */
-class SettingsActions(
+data class SettingsActions(
     val onCycleDayEnds: () -> Unit = {},
     val onCycleWeekStart: () -> Unit = {},
     val onToggleLineNumbers: () -> Unit = {},
     val onToggleWordWrap: () -> Unit = {},
     val onSelectTheme: (ThemeProfile) -> Unit = {},
-    val onExport: (String) -> Unit = {},
+    val onToggleDailyCommit: () -> Unit = {},
+    val onTogglePendingDigest: () -> Unit = {},
+    val onCycleDigestHour: () -> Unit = {},
+    val onCycleWidgetOpacity: () -> Unit = {},
+    /** The dynamic `//` line, tappable only when it reports a missing grant. */
+    val onNotifLine: () -> Unit = {},
+    val onExport: (ExportFormat) -> Unit = {},
     val onRestore: () -> Unit = {},
     val onCancelRestore: () -> Unit = {}
 ) {
@@ -116,6 +261,10 @@ class SettingsActions(
         onToggleLineNumbers = viewModel::onToggleLineNumbers,
         onToggleWordWrap = viewModel::onToggleWordWrap,
         onSelectTheme = viewModel::onSelectTheme,
+        onToggleDailyCommit = viewModel::onToggleDailyCommit,
+        onTogglePendingDigest = viewModel::onTogglePendingDigest,
+        onCycleDigestHour = viewModel::onCycleDigestHour,
+        onCycleWidgetOpacity = viewModel::onCycleWidgetOpacity,
         onExport = viewModel::onExport,
         onRestore = viewModel::onRestore,
         onCancelRestore = viewModel::onCancelRestore
@@ -125,9 +274,11 @@ class SettingsActions(
 @Composable
 private fun settingsLines(
     document: SettingsDocument,
-    interaction: SettingsInteraction,
+    state: SettingsUiState,
+    notifState: NotifLineState,
     actions: SettingsActions
 ): List<CanvasLine> {
+    val interaction = state.interaction
     val syntax = ThabitTheme.syntax
     val change = stringResource(R.string.cd_action_change)
     val lines = mutableListOf<CanvasLine>()
@@ -231,11 +382,72 @@ private fun settingsLines(
 
     // ---- notifications --------------------------------------------------
     lines += keyOpenLine("notifications", 1, syntax)
-    if (!document.notificationsWired) {
-        // An honest empty section beats three switches that do nothing: a
-        // config that shows a toggle is promising the toggle works.
-        lines += commentLine(SettingsDocument.NOTIFICATIONS_PLACEHOLDER, syntax, indent = 2)
-    }
+    lines += rawValueLine(
+        key = "daily_commit",
+        value = document.notifications.dailyCommit.toString(),
+        comma = true,
+        syntax = syntax,
+        hint = SettingsDocument.DAILY_COMMIT_HINT,
+        contentDescription = stringResource(
+            R.string.cd_setting_daily_commit,
+            document.notifications.dailyCommit.spoken()
+        ),
+        onClickLabel = change,
+        onClick = actions.onToggleDailyCommit
+    )
+    lines += rawValueLine(
+        key = "pending_digest",
+        value = document.notifications.pendingDigest.toString(),
+        comma = true,
+        syntax = syntax,
+        hint = SettingsDocument.PENDING_DIGEST_HINT,
+        contentDescription = stringResource(
+            R.string.cd_setting_pending_digest,
+            document.notifications.pendingDigest.spoken()
+        ),
+        onClickLabel = change,
+        onClick = actions.onTogglePendingDigest
+    )
+    lines += stringValueLine(
+        key = "digest_hour",
+        value = document.digestHourValue,
+        comma = false,
+        syntax = syntax,
+        hint = SettingsDocument.DIGEST_HOUR_HINT,
+        contentDescription = stringResource(
+            R.string.cd_setting_digest_hour,
+            document.notifications.digestHour.spoken()
+        ),
+        onClickLabel = change,
+        onClick = actions.onCycleDigestHour
+    )
+    // Per-test reminders are not settings and are not edited here — but leaving
+    // them unmentioned would let this block imply that two `false`s mean silence.
+    lines += commentLine(document.remindersComment, syntax, indent = 2)
+    lines += commentLine(SettingsDocument.REMINDERS_HINT, syntax, indent = 2)
+    lines += notifStatusLine(
+        state = notifState,
+        syntax = syntax,
+        onClickLabel = stringResource(R.string.cd_action_grant_notifications),
+        onClick = actions.onNotifLine
+    )
+    lines += punctLine("},", 1, syntax)
+
+    // ---- widget ---------------------------------------------------------
+    lines += keyOpenLine("widget", 1, syntax)
+    lines += rawValueLine(
+        key = "bg_opacity_pct",
+        value = document.widgetOpacityPct.toString(),
+        comma = false,
+        syntax = syntax,
+        hint = SettingsDocument.WIDGET_OPACITY_HINT,
+        contentDescription = stringResource(
+            R.string.cd_setting_widget_opacity,
+            document.widgetOpacityPct
+        ),
+        onClickLabel = change,
+        onClick = actions.onCycleWidgetOpacity
+    )
     lines += punctLine("},", 1, syntax)
 
     // ---- about ----------------------------------------------------------
@@ -256,17 +468,18 @@ private fun settingsLines(
     // ---- the commands ---------------------------------------------------
     lines += commentLine("", syntax)
     lines += commandLine(
-        command = "$ thabit export --json",
+        command = "$ ${ExportFormat.JSON.command}",
         color = syntax.key,
         description = stringResource(R.string.cd_action_export_json),
-        onClick = { actions.onExport("json") }
+        onClick = { actions.onExport(ExportFormat.JSON) }
     )
     lines += commandLine(
-        command = "$ thabit export --csv",
+        command = "$ ${ExportFormat.CSV.command}",
         color = syntax.key,
         description = stringResource(R.string.cd_action_export_csv),
-        onClick = { actions.onExport("csv") }
+        onClick = { actions.onExport(ExportFormat.CSV) }
     )
+    lines += exportLines(state.export, syntax)
 
     if (interaction.restoreConfirm) {
         lines += commandLine(
@@ -305,11 +518,56 @@ private fun settingsLines(
         lines += commentLine(SettingsDocument.RESTORE_HINT, syntax)
     }
 
-    interaction.transient?.let { message ->
-        lines += commentLine("", syntax)
-        lines += commentLine(message, syntax)
-    }
     return lines
+}
+
+/**
+ * What the export command answered, in the terminal's own channel.
+ *
+ * The names are the ones the **store** wrote, collision suffix and all: a line
+ * pointing at a file that is not there would be worse than no line. `wrote` is
+ * green because something arrived, the failure is red because the `// ERROR:`
+ * channel is red everywhere in this app, and "nothing to export yet" is neither
+ * — it is a fact about an empty database, not a problem.
+ */
+@Composable
+private fun exportLines(state: ExportState, syntax: SyntaxColors): List<CanvasLine> = when (state) {
+    ExportState.Idle -> emptyList()
+    ExportState.Running -> listOf(commentLine("// writing…", syntax))
+    is ExportState.Done -> when (val result = state.result) {
+        is ExportResult.Written -> buildList {
+            result.files.forEach { name ->
+                add(
+                    CodeLine(
+                        text = AnnotatedString(
+                            "// wrote Downloads/$name",
+                            SpanStyle(color = syntax.diffAdd)
+                        ),
+                        contentDescription = stringResource(R.string.cd_export_wrote, name)
+                    )
+                )
+            }
+            // What went into them, so the line is checkable against the file.
+            add(
+                commentLine(
+                    "// ${result.tests} tests · ${result.checks} checks · ${result.days} days",
+                    syntax
+                )
+            )
+        }
+        ExportResult.Empty -> listOf(
+            commentLine(SettingsDocument.EXPORT_PENDING, syntax)
+        )
+        is ExportResult.Failed -> listOf(
+            CodeLine(
+                text = AnnotatedString(
+                    "// ERROR: ${result.message}",
+                    SpanStyle(color = syntax.diffDel)
+                ),
+                contentDescription = stringResource(R.string.cd_export_failed, result.message)
+            )
+        )
+    }
 }
 
 /** A `$` command line: the series' shape for anything that runs or resets. */
@@ -323,6 +581,51 @@ private fun commandLine(
     onClick = onClick,
     contentDescription = description
 )
+
+/**
+ * The `notifications` block's dynamic `//` line.
+ *
+ * The two error states are **tappable**, and that is the whole point of the line:
+ * a config that reports a missing permission without offering the way to grant
+ * it has told the reader about a wall. English like every other comment; the
+ * spoken half travels on the line's own click label.
+ */
+private fun notifStatusLine(
+    state: NotifLineState,
+    syntax: SyntaxColors,
+    onClickLabel: String,
+    onClick: () -> Unit
+): CodeLine {
+    val (text, color) = when (state) {
+        NotifLineState.Disabled ->
+            "// nothing will post — everything here is off" to syntax.comment.copy(alpha = 0.6f)
+        NotifLineState.Armed ->
+            "// armed — posts at the boundary and at the times you set" to
+                syntax.comment.copy(alpha = 0.6f)
+        NotifLineState.MissingPermission ->
+            "// ERROR: notifications permission missing — tap to grant" to syntax.diffDel
+        NotifLineState.DeniedPermanently ->
+            "// ERROR: notifications blocked — tap to open the system settings" to syntax.diffDel
+    }
+    val clickable = state == NotifLineState.MissingPermission ||
+        state == NotifLineState.DeniedPermanently
+    return CodeLine(
+        text = AnnotatedString(text, SpanStyle(color = color)),
+        indent = 2,
+        onClick = onClick.takeIf { clickable },
+        onClickLabel = onClickLabel.takeIf { clickable }
+    )
+}
+
+/** A permission refused twice can only be given back from the app's own page. */
+private fun android.content.Context.openAppSystemSettings() {
+    startActivity(
+        Intent(
+            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            Uri.fromParts("package", packageName, null)
+        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    )
+}
 
 // ---- the localized half --------------------------------------------------
 

@@ -79,6 +79,10 @@
     <string name="cd_action_use_theme">Use this theme</string>
     <string name="cd_action_restore">Restore the settings file</string>
     <string name="cd_action_restore_confirm">Confirm: restore the settings file</string>
+    <string name="cd_setting_daily_commit">The day\'s result as a notification, %1$s</string>
+    <string name="cd_setting_pending_digest">Evening summary of what is left, %1$s</string>
+    <string name="cd_setting_digest_hour">The evening summary goes out at %1$s</string>
+    <string name="cd_action_grant_notifications">Allow notifications</string>
     <string name="cd_action_export_json">Export your data as JSON</string>
     <string name="cd_action_export_csv">Export your data as CSV</string>
     <string name="cd_last_modified">Settings last changed on %1$s</string>
@@ -108,6 +112,9 @@
     <string name="cd_wizard_target">How much counts as done: %1$s</string>
     <string name="cd_wizard_emoji">Emoji: %1$s</string>
     <string name="cd_wizard_emoji_none">no emoji</string>
+    <string name="cd_wizard_remind">Reminder at %1$s</string>
+    <string name="cd_wizard_remind_off">No reminder</string>
+    <string name="cd_wizard_remind_clear">Remove the reminder</string>
     <string name="cd_action_more">Show the remaining questions</string>
     <string name="cd_action_add_test">Add the test to the suite</string>
     <string name="cd_action_save_test">Save the changes</string>
@@ -202,4 +209,49 @@
         <item quantity="other">%1$s: %2$d days with something done</item>
     </plurals>
     <string name="cd_stats_open_commit">Open that day in the history</string>
+
+    <!-- Notifications. The one surface with no file around it: a lock screen
+         gives the reader a line of text and nothing to look up. So the TITLE is
+         prose in the reader's language and always carries the arithmetic
+         (VISION §3.3.7, §4.4) - never a bare `build unstable` - while the body
+         stays the file's own English, decorating facts the title already has.
+         Channel names are chrome and localize like every other label. -->
+    <string name="notif_channel_reminders">Reminders</string>
+    <string name="notif_channel_daily">Daily commit</string>
+    <string name="notif_channel_digest">Evening summary</string>
+    <plurals name="notif_commit_passed">
+        <item quantity="one">✓ The only test passed</item>
+        <item quantity="other">✓ All %1$d tests passed</item>
+    </plurals>
+    <string name="notif_commit_unstable">~ %1$d of %2$d tests passed</string>
+    <plurals name="notif_commit_failed">
+        <item quantity="one">✗ The only test did not pass</item>
+        <item quantity="other">✗ None of the %1$d tests passed</item>
+    </plurals>
+    <plurals name="notif_digest_title">
+        <item quantity="one">%1$d test still to do</item>
+        <item quantity="other">%1$d tests still to do</item>
+    </plurals>
+    <string name="notif_action_pass">Done</string>
+
+    <!-- The home widget. Its spoken half carries more than anywhere else in the
+         app: `habits.test` can put a `#` comment beside a glyph to tell `[·]`
+         from `[ ]`, and a widget row has no room for one, so the words have to
+         do the whole job (VISION §3.3.7, §4.6). -->
+    <string name="widget_label">thabit --status</string>
+    <string name="widget_description">Today\'s suite on the home screen: check a habit off without opening the app.</string>
+    <string name="cd_widget_suite">%1$d of %2$d passed on %3$s</string>
+    <string name="cd_widget_row_pass">%1$s, %2$s. Tap to mark it done</string>
+    <string name="cd_widget_row_open">%1$s, %2$s. Tap to open it in the app</string>
+    <string name="cd_widget_empty">No tests yet. Tap to add the first one</string>
+    <string name="cd_widget_nothing_due">Nothing is due today</string>
+    <string name="cd_widget_day">Showing %1$s</string>
+    <string name="cd_widget_none_pending">Nothing left to do today</string>
+    <plurals name="cd_widget_pending">
+        <item quantity="one">%1$d test still to do</item>
+        <item quantity="other">%1$d tests still to do</item>
+    </plurals>
+    <string name="cd_setting_widget_opacity">Widget background opacity, %1$d percent</string>
+    <string name="cd_export_wrote">Written to your Downloads folder as %1$s</string>
+    <string name="cd_export_failed">The export failed: %1$s</string>
 </resources>

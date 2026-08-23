@@ -1,7 +1,10 @@
 package com.callbackdev.thabit.ui.navigation
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -12,6 +15,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import com.callbackdev.thabit.data.HabitRepository
+import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
 import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.db.ThabitDatabase
@@ -62,10 +66,14 @@ class ThabitAppTest {
         val workspace = WorkspaceStore(
             PreferenceDataStoreFactory.create { folder.newFile("workspace.preferences_pb") }
         )
+        val notificationState = NotificationStateStore(
+            PreferenceDataStoreFactory.create { folder.newFile("notif.preferences_pb") }
+        )
         ServiceLocator.overrideForTests(object : AppGraph {
             override val database = db
             override val settings = settings
             override val workspace = workspace
+            override val notificationState = notificationState
             override val repository = repository
             override val clock: Clock = Clock.systemDefaultZone()
             override val appScope = writeScope
@@ -269,6 +277,12 @@ class ThabitAppTest {
         compose.onNodeWithContentDescription("Name of the test: meditate").performClick()
         compose.onNodeWithContentDescription("Name of the test").performTextClearance()
         compose.onNodeWithContentDescription("Name of the test").performTextInput("meditate 10 min")
+        // The transcript is a file, and an unfolded one runs past the fold on a
+        // small screen: `[save]` lives at its foot, where a terminal's prompt
+        // lives. Scrolled to, the way a reader would (Fase 9 grew the transcript
+        // by the `remind:` row; the vertical budget of the edit session is on
+        // the device list for Fase 12).
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("[save]"))
         compose.onNodeWithText("[save]").performClick()
 
         // An edit closes the session and hands the reader back to the file.

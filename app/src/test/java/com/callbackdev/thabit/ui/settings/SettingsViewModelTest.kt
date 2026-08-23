@@ -1,6 +1,14 @@
 package com.callbackdev.thabit.ui.settings
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.test.core.app.ApplicationProvider
+import com.callbackdev.thabit.data.HabitRepository
+import com.callbackdev.thabit.data.db.ThabitDatabase
+import com.callbackdev.thabit.export.DataExporter
+import com.callbackdev.thabit.export.ExportFile
+import com.callbackdev.thabit.export.ExportFormat
+import com.callbackdev.thabit.export.ExportResult
+import com.callbackdev.thabit.export.ExportSink
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.callbackdev.thabit.data.SettingsStore
@@ -9,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -61,8 +70,15 @@ class SettingsViewModelTest {
     private val dataStoreScope = CoroutineScope(dispatcher + SupervisorJob())
 
     private lateinit var settings: SettingsStore
+    private lateinit var database: ThabitDatabase
+    private lateinit var repository: HabitRepository
     private lateinit var store: ViewModelStore
+    private lateinit var sink: RecordingSink
+    private lateinit var exporter: DataExporter
     private lateinit var viewModel: SettingsViewModel
+
+    /** The export's own scope, driven by the same test dispatcher as the rest. */
+    private val exportScope = CoroutineScope(dispatcher + SupervisorJob())
 
     @Before
     fun setUp() {
@@ -76,13 +92,35 @@ class SettingsViewModelTest {
         // A real ViewModelStore so the teardown can close `viewModelScope`
         // deterministically, before the main dispatcher is handed back.
         store = ViewModelStore()
-        viewModel = ViewModelProvider(store, SettingsViewModel.factory(settings, "0.1.0"))
-            .get(SettingsViewModel::class.java)
+        // Room on the same test dispatcher as everything else: the file now
+        // reads the suite for its reminder count, and a query answering on
+        // Room's own executor would leave the document null forever here.
+        database = ThabitDatabase.inMemory(
+            ApplicationProvider.getApplicationContext(),
+            executor = dispatcher.asExecutor()
+        )
+        repository = HabitRepository(
+            database.habitDao(), database.checkDao(), database.dayDao(), settings, clock
+        )
+        sink = RecordingSink()
+        exporter = DataExporter(repository, settings, sink) { ZoneId.of("Europe/Rome") }
+        viewModel = ViewModelProvider(
+            store,
+            SettingsViewModel.factory(
+                settings = settings,
+                repository = repository,
+                exporter = { exporter },
+                exportScope = exportScope,
+                versionName = "0.1.0"
+            )
+        ).get(SettingsViewModel::class.java)
     }
 
     @After
     fun tearDown() {
         store.clear()
+        exportScope.cancel()
+        database.close()
         dataStoreScope.cancel()
         Dispatchers.resetMain()
     }
@@ -107,6 +145,49 @@ class SettingsViewModelTest {
     private fun TestScope.interaction(): SettingsInteraction {
         runCurrent()
         return viewModel.state.value.interaction
+    }
+
+    // ---- the notifications block -----------------------------------------
+
+    @Test
+    fun `the two switches flip, and the digest hour cycles through the evening`() = runUi {
+        assertTrue(file().notifications.dailyCommit)
+        viewModel.onToggleDailyCommit()
+        assertFalse(file().notifications.dailyCommit)
+
+        assertFalse(file().notifications.pendingDigest)
+        viewModel.onTogglePendingDigest()
+        assertTrue(file().notifications.pendingDigest)
+
+        assertEquals(LocalTime.of(20, 0), file().notifications.digestHour)
+        viewModel.onCycleDigestHour()
+        assertEquals(LocalTime.of(21, 0), file().notifications.digestHour)
+    }
+
+    @Test
+    fun `the block counts the reminders it does not own, so it cannot claim silence`() = runUi {
+        // Out of the box the block itself can post: `daily_commit` is on.
+        assertEquals(0, file().reminderCount)
+        assertTrue(file().anyNotification)
+
+        // Everything in the block off, but a test carries an alarm: the file has
+        // to keep saying that something can post.
+        viewModel.onToggleDailyCommit()
+        assertFalse(file().anyNotification)
+        repository.addHabit("meditate 10 min", remindAt = LocalTime.of(7, 0))
+        assertEquals(1, file().reminderCount)
+        assertTrue(file().anyNotification)
+
+        // And an archived test stops counting: `[rm]` takes the alarm with it.
+        repository.archiveHabit(repository.observeLiveSuite().first().single().id)
+        assertEquals(0, file().reminderCount)
+    }
+
+    @Test
+    fun `the widget opacity cycles and reaches the file`() = runUi {
+        assertEquals(100, file().widgetOpacityPct)
+        viewModel.onCycleWidgetOpacity()
+        assertEquals(85, file().widgetOpacityPct)
     }
 
     // ---- the controls ----------------------------------------------------
@@ -209,22 +290,68 @@ class SettingsViewModelTest {
         assertTrue(file().wordWrap)
     }
 
-    // ---- what is not built yet -------------------------------------------
+    // ---- the export -------------------------------------------------------
 
-    @Test
-    fun `the export commands answer honestly instead of doing nothing`() = runUi {
-        viewModel.onExport("json")
-        val message = interaction().transient
-        assertNotNull(message)
-        assertTrue(message!!.startsWith("$ thabit export --json"))
-        assertTrue(message.contains("nothing to export yet"))
+    private fun TestScope.exportState(): ExportState {
+        runCurrent()
+        return viewModel.state.value.export
     }
 
     @Test
-    fun `a transient answer clears itself instead of staying forever`() = runUi {
-        viewModel.onExport("csv")
-        assertNotNull(interaction().transient)
-        advanceTimeBy(5_000)
-        assertNull(interaction().transient)
+    fun `an empty database says so instead of writing an empty file`() = runUi {
+        viewModel.onExport(ExportFormat.JSON)
+        assertEquals(ExportState.Done(ExportResult.Empty), exportState())
+        assertTrue(sink.written.isEmpty())
+    }
+
+    @Test
+    fun `the command writes, and reports the names the store actually gave`() = runUi {
+        repository.addHabit("meditate 10 min")
+        runCurrent()
+
+        viewModel.onExport(ExportFormat.CSV)
+        val result = (exportState() as ExportState.Done).result as ExportResult.Written
+        // Three tables, and the reported names are the sink's answers, not the
+        // exporter's requests: the store is allowed to rename on collision.
+        assertEquals(3, result.files.size)
+        assertTrue(result.files.all { it.endsWith(" (renamed)") })
+        assertEquals(1, result.tests)
+    }
+
+    @Test
+    fun `a failing sink comes back as an ERROR line, not as a crash`() = runUi {
+        repository.addHabit("meditate 10 min")
+        runCurrent()
+        sink.failWith = "Downloads is not writable"
+
+        viewModel.onExport(ExportFormat.JSON)
+        val result = (exportState() as ExportState.Done).result
+        assertEquals(ExportResult.Failed("Downloads is not writable"), result)
+    }
+
+    @Test
+    fun `a second tap while one export is running is ignored`() = runUi {
+        repository.addHabit("meditate 10 min")
+        runCurrent()
+
+        viewModel.onExport(ExportFormat.JSON)
+        viewModel.onExport(ExportFormat.CSV)
+        runCurrent()
+        // One pass, one set of files: tap-spam must not write twice.
+        assertEquals(1, sink.written.size)
+    }
+
+    /** An [ExportSink] that records instead of touching MediaStore. */
+    private class RecordingSink : ExportSink {
+        val written = mutableListOf<ExportFile>()
+        var failWith: String? = null
+
+        override suspend fun write(file: ExportFile): String {
+            failWith?.let { throw java.io.IOException(it) }
+            written += file
+            // Renaming on purpose: the terminal line must report what the store
+            // wrote, never what the app asked for.
+            return "${file.name} (renamed)"
+        }
     }
 }

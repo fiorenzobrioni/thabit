@@ -22,7 +22,7 @@ The extension is `.test` and not `.yaml` on purpose: `- [x] meditate 10 min` is 
 
 ## Status
 
-Under construction. The spec is complete (see `VISION.md`) and the plan is phased and public (see `PLANNING.md`). The app is usable end to end: `$ thabit add` builds your suite as a terminal conversation (one answer is enough, the rest have defaults), `habits.test` runs it a tap at a time, and `settings.config` is a JSON file whose values are the controls, theme included. The domain underneath computes every verdict on read: schedules, the configurable day boundary, streaks, health, coverage, regressions, records. Every row speaks its state out loud to a screen reader, in English or Italian. 360+ JVM tests. The log and the stats land phase by phase.
+Under construction. The spec is complete (see `VISION.md`) and the plan is phased and public (see `PLANNING.md`). The app is usable end to end: `$ thabit add` builds your suite as a terminal conversation (one answer is enough, the rest have defaults), `habits.test` runs it a tap at a time, `habits_history.diff` is the git log of your days, `stats.md` draws the heatmap and the suite health, the `README.md` tab says the same things in plain prose, and `settings.config` is a JSON file whose values are the controls, theme included. Notifications, the home widget and the export have landed: a reminder per habit answerable from the shade, the day's build result at the boundary, an opt-in evening summary, `thabit --status` on the home screen with a habit ticked off straight from a row, and `$ thabit export` handing the whole history back as JSON or CSV. The domain underneath computes every verdict on read: schedules, the configurable day boundary, streaks, health, coverage, regressions, records. Every row speaks its state out loud to a screen reader, in English or Italian. 590+ JVM tests. What is left before v1.0.0 is a round of field polish and the release itself.
 
 ## What it will do
 
@@ -33,9 +33,24 @@ Under construction. The spec is complete (see `VISION.md`) and the plan is phase
 - **stats.md**: a GitHub style contribution heatmap, per-habit health and streaks, flaky tests called out with their numbers, and regressions (a habit that used to hold and has started breaking).
 - **The app is allowed to not know**: close it for a week and those days come back blank, not as seven red builds it invented. Days the app never saw count nowhere, and `stats.md` reports coverage (how many days actually ran) as its own honest number.
 - **Nothing is precomputed**: streaks, health, build results and records are all derived from your checks at the moment you ask. Nothing is frozen at midnight, so fixing yesterday recomputes everything for free.
-- **A widget that acts**: check habits off from the home screen without opening the app.
+- **Reminders that stay nudges**: a habit can carry its own reminder, and a yes-or-no habit is ticked off straight from the notification. They are approximate on purpose (the app asks Android for a window, never for an exact alarm), because battery is a feature and a habit reminder is not an alarm clock. The evening summary is opt-in, there is never one nag per habit, and nothing motivational is ever sent.
+- **A widget that acts**: `thabit --status` puts today's suite on the home screen, and a yes-or-no habit is ticked off by tapping its row: no app, no unlock past the home screen. It states the date it is showing, so a widget that has not repainted since midnight says so instead of passing yesterday off as today. Habits that need a number, or a decision, open the app on their own row rather than guessing.
 - **You do not have to be a developer**: the look is a checklist in a good outfit, and no CI term is ever the only place a fact lives. Every verdict carries the numbers that explain it (`4/6`), and whatever word is on screen is also said in plain language, in your language, in the README tab.
-- **No network. No account. No INTERNET permission at all.** Habit data is intimate data: it stays on the device, and `$ thabit export` gives it to you as JSON or CSV whenever you want it.
+- **No network. No account. No INTERNET permission at all.** Habit data is intimate data: it stays on the device, and `$ thabit export` gives it to you as JSON or CSV whenever you want it (see below).
+
+## Export
+
+`$ thabit export --json` and `$ thabit export --csv`, at the foot of `settings.config`. Files land in your Downloads folder through MediaStore, so **no storage permission is asked for** and the files stay there after you uninstall the app: they are yours, not thabit's. The terminal line reports the name the system actually wrote, which is not always the name that was asked for (a second export the same day gets a `(1)` suffix).
+
+Three tables go out, and the point of all three is that every number the app shows can be worked out again from them:
+
+- **the suite**: every test, archived ones included, with the day it was created and the day it left. `[rm]` takes a test off today's file, never out of the history it earned.
+- **the checks**: one row per test per day, exactly as it was written. A skip that covered a week away is one row with an `until` date, not seven invented ones.
+- **the days**: when you actually opened the app. This is the unglamorous table that matters: coverage and the `no run` days are counted from it, and without it you could not check the two numbers that say what the app does not know.
+
+JSON is one document and carries the rules in its header: the health half-life and how the average is seeded, what counts as a regression, what counts as flaky, how a weekly quota is graded, how to expand a skip window, and what a `no run` day does to a denominator. They are the same constants the app computes with, so the archive cannot drift from the screens. CSV is three files with clean headers instead: a spreadsheet has nowhere to put a comment, so the sentences live here.
+
+Everything is `Locale.ROOT` and canonical: ISO dates, 24-hour clocks, a full stop for decimals. A file whose meaning changes with the phone's language is not an archive.
 
 ## Install
 

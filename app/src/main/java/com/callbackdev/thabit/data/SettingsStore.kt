@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -24,10 +25,17 @@ import java.time.format.DateTimeFormatter
 /**
  * `settings.config` as data — the minimal store Fase 2 needs and Fase 4 dresses.
  *
- * Only the settings the domain actually reads live here for now: the logical day
- * boundary, the week the display grids start on, the theme profile and the two
- * editor toggles. Notifications and export arrive with their own phases rather
- * than as empty keys nothing writes.
+ * Only the settings the domain actually reads live here: the logical day
+ * boundary, the week the display grids start on, the theme profile, the two
+ * editor toggles and — since Fase 9 — the two notifications the app posts on its
+ * own. Export arrives with its own phase rather than as an empty key nothing
+ * writes.
+ *
+ * **Per-test reminders are deliberately not here.** A reminder belongs to the
+ * test it nudges (VISION §4.4), so it is stored on the `habit` row and edited in
+ * the wizard; the `notifications` block only carries what is true of the app as
+ * a whole. A settings mirror of per-test values is exactly the duplication that
+ * lets two places disagree.
  *
  * `week_starts` deliberately does **not** reach [com.callbackdev.thabit.domain.IsoWeek]:
  * it moves the heatmap columns and the README's seven-day table, while quota
@@ -35,12 +43,39 @@ import java.time.format.DateTimeFormatter
  * whose meaning changed when a display preference flipped would not be
  * recomputable from an export.
  */
+/**
+ * The `notifications` block of `settings.config`.
+ *
+ * Two switches and an hour, and the defaults are the VISION's (§4.4): the day's
+ * build result is on and silent, the evening digest is **off** — it is the one
+ * notification that can read as a nag, so it is opt-in and never a per-test one
+ * (§3.3.4).
+ */
+data class NotificationSettings(
+    /** The closed day's verdict, posted by the rollover on a silent channel. */
+    val dailyCommit: Boolean = true,
+    /** One evening summary of what is still pending. Opt-in, always. */
+    val pendingDigest: Boolean = false,
+    /** When that summary goes out, if it goes out at all. */
+    val digestHour: LocalTime = LocalTime.of(20, 0)
+)
+
+/** The stops the widget's opacity cycles through — the series' four. */
+val WidgetOpacities: List<Int> = listOf(100, 85, 70, 50)
+
 data class ThabitSettings(
     val dayEnds: LocalTime = LocalTime.MIDNIGHT,
     val weekStartsOn: DayOfWeek = DayOfWeek.MONDAY,
     val theme: ThemeProfile = ThemeProfile.Obsidian,
     val showLineNumbers: Boolean = false,
     val wordWrap: Boolean = false,
+    val notifications: NotificationSettings = NotificationSettings(),
+    /**
+     * Home-widget background opacity: alpha on the card fill only, the 1px
+     * border stays crisp (series behaviour). 100 means the terminal window sits
+     * on its own background; lower lets the wallpaper through.
+     */
+    val widgetOpacityPct: Int = 100,
     /**
      * Epoch millis of the first change the user ever made, or null while the
      * file is still exactly what shipped.
@@ -81,6 +116,15 @@ class SettingsStore(
                     ?: ThemeProfile.Obsidian,
                 showLineNumbers = prefs[Keys.LineNumbers] ?: false,
                 wordWrap = prefs[Keys.WordWrap] ?: false,
+                widgetOpacityPct = (prefs[Keys.WidgetOpacity] ?: 100)
+                    .takeIf { it in WidgetOpacities } ?: 100,
+                notifications = NotificationSettings(
+                    dailyCommit = prefs[Keys.DailyCommit] ?: true,
+                    pendingDigest = prefs[Keys.PendingDigest] ?: false,
+                    digestHour = prefs[Keys.DigestHour]
+                        ?.let { runCatching { LocalTime.parse(it, HHMM) }.getOrNull() }
+                        ?: LocalTime.of(20, 0)
+                ),
                 lastModified = prefs[Keys.LastModified]
             )
         }
@@ -94,6 +138,14 @@ class SettingsStore(
     suspend fun setShowLineNumbers(enabled: Boolean) = edit { it[Keys.LineNumbers] = enabled }
 
     suspend fun setWordWrap(enabled: Boolean) = edit { it[Keys.WordWrap] = enabled }
+
+    suspend fun setDailyCommit(enabled: Boolean) = edit { it[Keys.DailyCommit] = enabled }
+
+    suspend fun setPendingDigest(enabled: Boolean) = edit { it[Keys.PendingDigest] = enabled }
+
+    suspend fun setDigestHour(time: LocalTime) = edit { it[Keys.DigestHour] = time.format(HHMM) }
+
+    suspend fun setWidgetOpacity(pct: Int) = edit { it[Keys.WidgetOpacity] = pct }
 
     /**
      * `$ git restore settings.config`.
@@ -130,6 +182,10 @@ class SettingsStore(
         val Theme = stringPreferencesKey("theme")
         val LineNumbers = booleanPreferencesKey("line_numbers")
         val WordWrap = booleanPreferencesKey("word_wrap")
+        val DailyCommit = booleanPreferencesKey("daily_commit")
+        val PendingDigest = booleanPreferencesKey("pending_digest")
+        val DigestHour = stringPreferencesKey("digest_hour")
+        val WidgetOpacity = intPreferencesKey("widget_bg_opacity_pct")
         val LastModified = longPreferencesKey("last_modified")
     }
 

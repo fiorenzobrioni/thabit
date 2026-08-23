@@ -65,6 +65,34 @@ class SettingsStoreTest {
     }
 
     @Test
+    fun `the notifications block keeps the VISION's defaults`() = runTest {
+        val notifications = store().settings.first().notifications
+        // The build result is on and silent; the digest is the one that can read
+        // as pressure, so it is opt-in (VISION 3.3.4, 4.4).
+        assertTrue(notifications.dailyCommit)
+        assertFalse(notifications.pendingDigest)
+        assertEquals(LocalTime.of(20, 0), notifications.digestHour)
+    }
+
+    @Test
+    fun `the notification settings round-trip, and a restore puts them back`() = runTest {
+        val store = store()
+        store.setDailyCommit(false)
+        store.setPendingDigest(true)
+        store.setDigestHour(LocalTime.of(21, 0))
+
+        val changed = store.settings.first().notifications
+        assertFalse(changed.dailyCommit)
+        assertTrue(changed.pendingDigest)
+        assertEquals(LocalTime.of(21, 0), changed.digestHour)
+
+        store.restoreDefaults()
+        val restored = store.settings.first().notifications
+        assertTrue(restored.dailyCommit)
+        assertFalse(restored.pendingDigest)
+    }
+
+    @Test
     fun `restoring defaults clears the config and only the config`() = runTest {
         val store = store()
         store.setDayEnds(LocalTime.of(3, 30))

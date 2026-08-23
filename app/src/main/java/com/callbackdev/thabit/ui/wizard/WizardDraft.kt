@@ -7,6 +7,7 @@ import com.callbackdev.thabit.domain.model.Schedule
 import com.callbackdev.thabit.ui.format.CodeFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 
 /** The four `when:` schemes, as the transcript offers them. */
 enum class ScheduleScheme { Daily, Weekdays, Quota, Interval }
@@ -37,6 +38,8 @@ data class WizardDraft(
     val quota: Int = DEFAULT_QUOTA,
     val intervalDays: Int = DEFAULT_INTERVAL,
     val emoji: String? = null,
+    /** The per-test reminder, or null for none — which is the default. */
+    val remindAt: LocalTime? = null,
     /** True once `[more]` has been tapped — or always, when editing. */
     val expanded: Boolean = false
 ) {
@@ -106,6 +109,9 @@ data class WizardDraft(
 
     fun withEmoji(value: String?) = copy(emoji = value?.trim()?.takeIf { it.isNotEmpty() })
 
+    /** `07:00`, or null for `[off]` — an empty answer is how a reminder is removed. */
+    fun withRemind(value: LocalTime?) = copy(remindAt = value)
+
     fun expand() = copy(expanded = true)
 
     // ---- what comes out --------------------------------------------------
@@ -143,6 +149,7 @@ data class WizardDraft(
         type = type,
         assert = assertSpec,
         schedule = schedule,
+        remindAt = remindAt,
         emoji = emoji,
         position = position,
         createdAt = createdAt
@@ -160,6 +167,7 @@ data class WizardDraft(
         type = type,
         assert = assertSpec,
         schedule = schedule,
+        remindAt = remindAt,
         emoji = emoji
     )
 
@@ -181,6 +189,44 @@ data class WizardDraft(
         /** The interval stops, from every other day to once a month. */
         val INTERVAL_CYCLE: List<Int> = listOf(2, 3, 4, 5, 7, 10, 14, 21, 30)
 
+        /**
+         * A time of day, read the forgiving way a terminal reads one.
+         *
+         * `7`, `7:30`, `07:30`, `730`, `0730` and `7.30` are all the same answer,
+         * because a prompt that rejects `7` for a missing colon is a form
+         * wearing a terminal's clothes. What it will not do is guess: anything
+         * it cannot read comes back null, and the transcript says so in its own
+         * compiler voice rather than silently storing a time nobody meant.
+         *
+         * A cycle was considered here and rejected, unlike everywhere else in
+         * the app — `day_ends` has six sensible stops, but a wake-up time is any
+         * of 1,440 and belongs to the person setting it. This is the one place
+         * where the keyboard is the *smaller* interface.
+         */
+        fun parseTime(raw: String): LocalTime? {
+            val text = raw.trim().replace('.', ':').replace(',', ':').replace('h', ':')
+            if (text.isEmpty()) return null
+            val hourText: String
+            val minuteText: String
+            if (':' in text) {
+                val parts = text.split(':')
+                if (parts.size != 2) return null
+                hourText = parts[0]
+                minuteText = parts[1].ifEmpty { "0" }
+            } else {
+                when (text.length) {
+                    1, 2 -> { hourText = text; minuteText = "0" }
+                    3 -> { hourText = text.take(1); minuteText = text.drop(1) }
+                    4 -> { hourText = text.take(2); minuteText = text.drop(2) }
+                    else -> return null
+                }
+            }
+            val hour = hourText.toIntOrNull() ?: return null
+            val minute = minuteText.toIntOrNull() ?: return null
+            if (hour !in 0..23 || minute !in 0..59) return null
+            return LocalTime.of(hour, minute)
+        }
+
         /** Reopens an existing test in the transcript, prefilled and unfolded. */
         fun of(habit: Habit): WizardDraft {
             val schedule = habit.schedule
@@ -200,6 +246,7 @@ data class WizardDraft(
                 quota = (schedule as? Schedule.Quota)?.times ?: DEFAULT_QUOTA,
                 intervalDays = (schedule as? Schedule.Interval)?.everyDays ?: DEFAULT_INTERVAL,
                 emoji = habit.emoji,
+                remindAt = habit.remindAt,
                 // An edit is never a two-question conversation: the reader came
                 // here to change one specific thing and needs to see all of it.
                 expanded = true

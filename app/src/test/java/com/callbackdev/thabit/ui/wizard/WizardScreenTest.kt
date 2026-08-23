@@ -13,12 +13,14 @@ import androidx.compose.ui.test.performClick
 import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.DayOfWeek
+import java.time.LocalTime
 
 /**
  * The transcript as it reads.
@@ -36,9 +38,20 @@ class WizardScreenTest {
 
     private fun show(
         state: WizardUiState = WizardUiState(),
-        actions: WizardActions = WizardActions()
+        actions: WizardActions = WizardActions(),
+        remindArmed: Boolean = true,
+        onGrantNotifications: () -> Unit = {}
     ) {
-        compose.setContent { ThabitTheme { WizardScreen(state = state, actions = actions) } }
+        compose.setContent {
+            ThabitTheme {
+                WizardScreen(
+                    state = state,
+                    actions = actions,
+                    remindArmed = remindArmed,
+                    onGrantNotifications = onGrantNotifications
+                )
+            }
+        }
     }
 
     // ---- the session ------------------------------------------------------
@@ -223,10 +236,59 @@ class WizardScreenTest {
     // ---- honesty ----------------------------------------------------------
 
     @Test
-    fun `the reminder row says where reminders are instead of offering a dead switch`() {
+    fun `the reminder row offers off by default, and declares the approximation`() {
         show(WizardUiState(draft = WizardDraft(name = "x", expanded = true), focus = null))
-        compose.onNodeWithText("# remind: off — reminders arrive with their own phase")
-            .assertIsDisplayed()
+        compose.onNodeWithText("> remind:").assertIsDisplayed()
+        compose.onNodeWithText("[off]").assertIsDisplayed().assert(hasClickAction())
+        compose.onNodeWithText("  # optional — a nudge at a time you pick").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a reminder that is set says it can be late, and can be taken back`() {
+        var cleared = false
+        show(
+            WizardUiState(
+                draft = WizardDraft(name = "x", expanded = true, remindAt = LocalTime.of(7, 0)),
+                focus = null
+            ),
+            actions = WizardActions(onClearRemind = { cleared = true })
+        )
+        compose.onNodeWithText("[07:00]").assertIsDisplayed().assert(hasClickAction())
+        // The approximation is declared where the reminder is set, not only in
+        // `settings.config` (VISION §6.7).
+        compose.onNodeWithText("  # approximate — a nudge, not an alarm").assertIsDisplayed()
+        compose.onNodeWithText("[off]").performClick()
+        assertTrue(cleared)
+    }
+
+    @Test
+    fun `a reminder nothing could post says so, and offers the grant`() {
+        var granted = false
+        show(
+            WizardUiState(
+                draft = WizardDraft(name = "x", expanded = true, remindAt = LocalTime.of(7, 0)),
+                focus = null
+            ),
+            remindArmed = false,
+            onGrantNotifications = { granted = true }
+        )
+        compose.onNodeWithText("# not armed: notifications are off").assertIsDisplayed()
+        // On its own line, so a narrow screen cannot push it past the right edge.
+        compose.onNodeWithText("[grant]").assertIsDisplayed().performClick()
+        assertTrue(granted)
+    }
+
+    @Test
+    fun `the reminder prompt says how to turn it off`() {
+        show(
+            WizardUiState(
+                draft = WizardDraft(name = "x", expanded = true),
+                focus = WizardField.Remind,
+                pending = ""
+            )
+        )
+        compose.onNodeWithText("> remind:").assertIsDisplayed()
+        compose.onNodeWithText("# empty to turn it off").assertIsDisplayed()
     }
 
     @Test
