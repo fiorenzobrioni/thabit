@@ -251,4 +251,6 @@
         <item quantity="other">%1$d tests still to do</item>
     </plurals>
     <string name="cd_setting_widget_opacity">Widget background opacity, %1$d percent</string>
+    <string name="cd_export_wrote">Written to your Downloads folder as %1$s</string>
+    <string name="cd_export_failed">The export failed: %1$s</string>
 </resources>

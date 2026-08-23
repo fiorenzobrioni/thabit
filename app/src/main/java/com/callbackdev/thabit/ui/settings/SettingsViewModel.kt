@@ -13,8 +13,11 @@ import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.SettingsStore
 import com.callbackdev.thabit.data.ThabitSettings
 import com.callbackdev.thabit.di.ServiceLocator
+import com.callbackdev.thabit.export.DataExporter
+import com.callbackdev.thabit.export.ExportFormat
+import com.callbackdev.thabit.export.ExportResult
 import com.callbackdev.thabit.ui.theme.ThemeProfile
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -45,17 +48,22 @@ class SettingsViewModel(
      * the exact failure §1.1 exists to prevent.
      */
     private val repository: HabitRepository,
+    /** Built lazily so a screen that never exports never touches MediaStore. */
+    private val exporter: () -> DataExporter,
+    /** Survives this destination, so `[esc]` mid-write cannot cancel the write. */
+    private val exportScope: CoroutineScope,
     private val versionName: String = BuildConfig.VERSION_NAME
 ) : ViewModel() {
 
     private val interaction = MutableStateFlow(SettingsInteraction())
-    private var transientToken = 0
+    private val _export = MutableStateFlow<ExportState>(ExportState.Idle)
 
     val state: StateFlow<SettingsUiState> = combine(
         settings.settings,
         repository.observeLiveSuite().map { suite -> suite.count { it.remindAt != null } },
-        interaction
-    ) { config, reminders, ui ->
+        interaction,
+        _export
+    ) { config, reminders, ui, export ->
         SettingsUiState(
             document = SettingsDocument.of(
                 dayEnds = config.dayEnds,
@@ -69,7 +77,8 @@ class SettingsViewModel(
                 reminderCount = reminders,
                 widgetOpacityPct = config.widgetOpacityPct
             ),
-            interaction = ui
+            interaction = ui,
+            export = export
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
@@ -123,8 +132,22 @@ class SettingsViewModel(
 
     private suspend fun current(): ThabitSettings = settings.settings.first()
 
-    /** Export lands in Fase 11; until then the command answers instead of lying. */
-    fun onExport(format: String) = say("$ thabit export --$format  ${SettingsDocument.EXPORT_PENDING}")
+    /**
+     * `$ thabit export --json|--csv`.
+     *
+     * One tap, one pass, and the answer comes back into the file as terminal
+     * output — the names the store actually wrote, not the names that were
+     * asked for. It runs on [appScope] and not on `viewModelScope`: leaving the
+     * settings tab mid-write would otherwise cancel the export and leave a
+     * pending row in MediaStore that nobody ever publishes.
+     */
+    fun onExport(format: ExportFormat) {
+        if (_export.value == ExportState.Running) return
+        _export.value = ExportState.Running
+        exportScope.launch {
+            _export.value = ExportState.Done(exporter().export(format))
+        }
+    }
 
     /**
      * `$ git restore settings.config`, two taps.
@@ -150,23 +173,18 @@ class SettingsViewModel(
         viewModelScope.launch { block() }
     }
 
-    /** A transient comment at the foot of the file — the series' answer to a toast. */
-    private fun say(message: String) {
-        val token = ++transientToken
-        interaction.update { it.copy(transient = message) }
-        viewModelScope.launch {
-            delay(TRANSIENT_MILLIS)
-            if (token == transientToken) interaction.update { it.copy(transient = null) }
-        }
-    }
-
     companion object {
-        private const val TRANSIENT_MILLIS = 4_000L
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as Application
-                SettingsViewModel(ServiceLocator.settings(app), ServiceLocator.repository(app))
+                val graph = ServiceLocator.graph(app)
+                SettingsViewModel(
+                    settings = graph.settings,
+                    repository = graph.repository,
+                    exporter = { ServiceLocator.exporter(app) },
+                    exportScope = graph.appScope
+                )
             }
         }
 
@@ -174,22 +192,51 @@ class SettingsViewModel(
         fun factory(
             settings: SettingsStore,
             repository: HabitRepository,
+            exporter: () -> DataExporter,
+            exportScope: CoroutineScope,
             versionName: String
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T =
-                    SettingsViewModel(settings, repository, versionName) as T
+                    SettingsViewModel(
+                        settings, repository, exporter, exportScope, versionName
+                    ) as T
             }
     }
 }
 
 data class SettingsUiState(
     val document: SettingsDocument? = null,
-    val interaction: SettingsInteraction = SettingsInteraction()
+    val interaction: SettingsInteraction = SettingsInteraction(),
+    val export: ExportState = ExportState.Idle
 )
 
+/**
+ * What the export command is doing right now.
+ *
+ * Its own state and not a [SettingsInteraction.transient] line: an export
+ * answers with several lines (one per file the store wrote, plus what went into
+ * them), it can fail with a message worth colouring red, and unlike a transient
+ * it must **not** time out — the filename it reports is the only place the user
+ * will ever see where their data went.
+ */
+sealed interface ExportState {
+    data object Idle : ExportState
+    data object Running : ExportState
+    data class Done(val result: ExportResult) : ExportState
+}
+
+/**
+ * The file's own confirmations.
+ *
+ * There used to be a `transient` line here too — the series' answer to a toast,
+ * with a four-second life. Fase 11 took it out with its only caller: an export
+ * reports a **filename**, and a filename that disappears while you are reading
+ * it is worse than no line at all, so [ExportState] answers instead and stays
+ * put. A channel with no producer left is dead code, and dead code in this repo
+ * is a defect, not furniture.
+ */
 data class SettingsInteraction(
-    val restoreConfirm: Boolean = false,
-    val transient: String? = null
+    val restoreConfirm: Boolean = false
 )

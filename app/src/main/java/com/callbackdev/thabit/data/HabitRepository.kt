@@ -12,6 +12,7 @@ import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.domain.model.AssertSpec
 import com.callbackdev.thabit.domain.model.Check
 import com.callbackdev.thabit.domain.model.CheckState
+import com.callbackdev.thabit.domain.model.DayPresence
 import com.callbackdev.thabit.domain.model.Habit
 import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.domain.model.Schedule
@@ -332,6 +333,25 @@ class HabitRepository(
             amendedDays = present.filter { it.amended }.map { it.date }.toSet()
         )
     }
+
+    /**
+     * Every check row **as stored** — a skip window is one row, with its `until`.
+     *
+     * [fullHistory] hands the same rows to the engines, which expand the windows
+     * on read; the export wants them unexpanded, so it asks here instead of
+     * relying on a read model that is free to change what it derives.
+     */
+    suspend fun allChecks(): List<Check> = checkDao.all().mapNotNull { it.toDomain() }
+
+    /**
+     * Every presence row, with the time of the first deliberate interaction.
+     *
+     * [SuiteHistory] keeps only the dates, because that is all a verdict needs.
+     * The export wants the rows themselves: coverage and `no run` are computed
+     * from them, and a statistic the user cannot recompute is a secret formula
+     * (VISION §5, §7).
+     */
+    suspend fun presence(): List<DayPresence> = dayDao.all().mapNotNull { it.toDomain() }
 
     /** Everything, for the stats screens and the export. It is a small database. */
     suspend fun fullHistory(): SuiteHistory {

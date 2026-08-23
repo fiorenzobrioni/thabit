@@ -84,9 +84,12 @@ class SettingsDocumentTest {
     }
 
     @Test
-    fun `the sections that are not wired yet say so instead of showing dead switches`() {
-        assertFalse(doc().exportWired)
-        assertTrue(SettingsDocument.EXPORT_PENDING.startsWith("//"))
+    fun `every section of the file is wired now, and the empty-export line says why`() {
+        // The `notificationsWired`/`exportWired` flags are gone with the phases
+        // that needed them: a flag whose answer is always yes is dead code, and
+        // the constant it guarded now describes an empty database instead of a
+        // missing feature.
+        assertEquals("// nothing to export yet", SettingsDocument.EXPORT_PENDING)
     }
 
     @Test

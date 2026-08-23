@@ -43,9 +43,7 @@ data class SettingsDocument(
      */
     val reminderCount: Int = 0,
     /** Home-widget background opacity, as a percentage. */
-    val widgetOpacityPct: Int = 100,
-    /** False until Fase 11: the export commands answer honestly meanwhile. */
-    val exportWired: Boolean = EXPORT_SHIPPED
+    val widgetOpacityPct: Int = 100
 ) {
     val digestHourValue: String get() = CodeFormat.time(notifications.digestHour)
 
@@ -90,9 +88,6 @@ data class SettingsDocument(
 
     companion object {
         const val FILE_NAME: String = "settings.config"
-
-        /** Wired in Fase 11. */
-        const val EXPORT_SHIPPED: Boolean = false
 
         /**
          * The stops `day_ends` cycles through: midnight and the small hours.
@@ -144,8 +139,14 @@ data class SettingsDocument(
         const val REMINDERS_HINT: String =
             "// reminders are approximate — a nudge, not an alarm clock"
         val WIDGET_OPACITY_HINT: String = "// ${WidgetOpacities.joinToString(" | ")}"
-        const val EXPORT_PENDING: String =
-            "// nothing to export yet — the writer arrives with its own phase"
+        /**
+         * The answer to an export with an empty database.
+         *
+         * It used to say the writer had not arrived yet; now it says the only
+         * other honest thing — there is nothing in there. An export that wrote
+         * an empty file would be worse than one that says so.
+         */
+        const val EXPORT_PENDING: String = "// nothing to export yet"
         const val RESTORE_CONFIRM: String = "// tap the command to confirm"
 
         /**

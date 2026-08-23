@@ -4,6 +4,11 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.db.ThabitDatabase
+import com.callbackdev.thabit.export.DataExporter
+import com.callbackdev.thabit.export.ExportFile
+import com.callbackdev.thabit.export.ExportFormat
+import com.callbackdev.thabit.export.ExportResult
+import com.callbackdev.thabit.export.ExportSink
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.callbackdev.thabit.data.SettingsStore
@@ -68,7 +73,12 @@ class SettingsViewModelTest {
     private lateinit var database: ThabitDatabase
     private lateinit var repository: HabitRepository
     private lateinit var store: ViewModelStore
+    private lateinit var sink: RecordingSink
+    private lateinit var exporter: DataExporter
     private lateinit var viewModel: SettingsViewModel
+
+    /** The export's own scope, driven by the same test dispatcher as the rest. */
+    private val exportScope = CoroutineScope(dispatcher + SupervisorJob())
 
     @Before
     fun setUp() {
@@ -92,15 +102,24 @@ class SettingsViewModelTest {
         repository = HabitRepository(
             database.habitDao(), database.checkDao(), database.dayDao(), settings, clock
         )
+        sink = RecordingSink()
+        exporter = DataExporter(repository, settings, sink) { ZoneId.of("Europe/Rome") }
         viewModel = ViewModelProvider(
             store,
-            SettingsViewModel.factory(settings, repository, "0.1.0")
+            SettingsViewModel.factory(
+                settings = settings,
+                repository = repository,
+                exporter = { exporter },
+                exportScope = exportScope,
+                versionName = "0.1.0"
+            )
         ).get(SettingsViewModel::class.java)
     }
 
     @After
     fun tearDown() {
         store.clear()
+        exportScope.cancel()
         database.close()
         dataStoreScope.cancel()
         Dispatchers.resetMain()
@@ -271,22 +290,68 @@ class SettingsViewModelTest {
         assertTrue(file().wordWrap)
     }
 
-    // ---- what is not built yet -------------------------------------------
+    // ---- the export -------------------------------------------------------
 
-    @Test
-    fun `the export commands answer honestly instead of doing nothing`() = runUi {
-        viewModel.onExport("json")
-        val message = interaction().transient
-        assertNotNull(message)
-        assertTrue(message!!.startsWith("$ thabit export --json"))
-        assertTrue(message.contains("nothing to export yet"))
+    private fun TestScope.exportState(): ExportState {
+        runCurrent()
+        return viewModel.state.value.export
     }
 
     @Test
-    fun `a transient answer clears itself instead of staying forever`() = runUi {
-        viewModel.onExport("csv")
-        assertNotNull(interaction().transient)
-        advanceTimeBy(5_000)
-        assertNull(interaction().transient)
+    fun `an empty database says so instead of writing an empty file`() = runUi {
+        viewModel.onExport(ExportFormat.JSON)
+        assertEquals(ExportState.Done(ExportResult.Empty), exportState())
+        assertTrue(sink.written.isEmpty())
+    }
+
+    @Test
+    fun `the command writes, and reports the names the store actually gave`() = runUi {
+        repository.addHabit("meditate 10 min")
+        runCurrent()
+
+        viewModel.onExport(ExportFormat.CSV)
+        val result = (exportState() as ExportState.Done).result as ExportResult.Written
+        // Three tables, and the reported names are the sink's answers, not the
+        // exporter's requests: the store is allowed to rename on collision.
+        assertEquals(3, result.files.size)
+        assertTrue(result.files.all { it.endsWith(" (renamed)") })
+        assertEquals(1, result.tests)
+    }
+
+    @Test
+    fun `a failing sink comes back as an ERROR line, not as a crash`() = runUi {
+        repository.addHabit("meditate 10 min")
+        runCurrent()
+        sink.failWith = "Downloads is not writable"
+
+        viewModel.onExport(ExportFormat.JSON)
+        val result = (exportState() as ExportState.Done).result
+        assertEquals(ExportResult.Failed("Downloads is not writable"), result)
+    }
+
+    @Test
+    fun `a second tap while one export is running is ignored`() = runUi {
+        repository.addHabit("meditate 10 min")
+        runCurrent()
+
+        viewModel.onExport(ExportFormat.JSON)
+        viewModel.onExport(ExportFormat.CSV)
+        runCurrent()
+        // One pass, one set of files: tap-spam must not write twice.
+        assertEquals(1, sink.written.size)
+    }
+
+    /** An [ExportSink] that records instead of touching MediaStore. */
+    private class RecordingSink : ExportSink {
+        val written = mutableListOf<ExportFile>()
+        var failWith: String? = null
+
+        override suspend fun write(file: ExportFile): String {
+            failWith?.let { throw java.io.IOException(it) }
+            written += file
+            // Renaming on purpose: the terminal line must report what the store
+            // wrote, never what the app asked for.
+            return "${file.name} (renamed)"
+        }
     }
 }

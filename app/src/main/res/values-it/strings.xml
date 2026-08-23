@@ -262,4 +262,6 @@
         <item quantity="other">%1$d test ancora da fare</item>
     </plurals>
     <string name="cd_setting_widget_opacity">Opacità dello sfondo del widget, %1$d per cento</string>
+    <string name="cd_export_wrote">Scritto nella cartella Download come %1$s</string>
+    <string name="cd_export_failed">L\'esportazione non è riuscita: %1$s</string>
 </resources>

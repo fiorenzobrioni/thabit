@@ -37,6 +37,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.callbackdev.thabit.R
+import com.callbackdev.thabit.export.ExportFormat
+import com.callbackdev.thabit.export.ExportResult
 import com.callbackdev.thabit.notifications.ThabitNotifier
 import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CodeCanvas
@@ -218,7 +220,7 @@ fun SettingsScreen(
             CodeCanvas(
                 lines = if (document == null) emptyList() else settingsLines(
                     document = document,
-                    interaction = state.interaction,
+                    state = state,
                     notifState = notifState,
                     actions = actions
                 ),
@@ -249,7 +251,7 @@ data class SettingsActions(
     val onCycleWidgetOpacity: () -> Unit = {},
     /** The dynamic `//` line, tappable only when it reports a missing grant. */
     val onNotifLine: () -> Unit = {},
-    val onExport: (String) -> Unit = {},
+    val onExport: (ExportFormat) -> Unit = {},
     val onRestore: () -> Unit = {},
     val onCancelRestore: () -> Unit = {}
 ) {
@@ -272,10 +274,11 @@ data class SettingsActions(
 @Composable
 private fun settingsLines(
     document: SettingsDocument,
-    interaction: SettingsInteraction,
+    state: SettingsUiState,
     notifState: NotifLineState,
     actions: SettingsActions
 ): List<CanvasLine> {
+    val interaction = state.interaction
     val syntax = ThabitTheme.syntax
     val change = stringResource(R.string.cd_action_change)
     val lines = mutableListOf<CanvasLine>()
@@ -465,17 +468,18 @@ private fun settingsLines(
     // ---- the commands ---------------------------------------------------
     lines += commentLine("", syntax)
     lines += commandLine(
-        command = "$ thabit export --json",
+        command = "$ ${ExportFormat.JSON.command}",
         color = syntax.key,
         description = stringResource(R.string.cd_action_export_json),
-        onClick = { actions.onExport("json") }
+        onClick = { actions.onExport(ExportFormat.JSON) }
     )
     lines += commandLine(
-        command = "$ thabit export --csv",
+        command = "$ ${ExportFormat.CSV.command}",
         color = syntax.key,
         description = stringResource(R.string.cd_action_export_csv),
-        onClick = { actions.onExport("csv") }
+        onClick = { actions.onExport(ExportFormat.CSV) }
     )
+    lines += exportLines(state.export, syntax)
 
     if (interaction.restoreConfirm) {
         lines += commandLine(
@@ -514,11 +518,56 @@ private fun settingsLines(
         lines += commentLine(SettingsDocument.RESTORE_HINT, syntax)
     }
 
-    interaction.transient?.let { message ->
-        lines += commentLine("", syntax)
-        lines += commentLine(message, syntax)
-    }
     return lines
+}
+
+/**
+ * What the export command answered, in the terminal's own channel.
+ *
+ * The names are the ones the **store** wrote, collision suffix and all: a line
+ * pointing at a file that is not there would be worse than no line. `wrote` is
+ * green because something arrived, the failure is red because the `// ERROR:`
+ * channel is red everywhere in this app, and "nothing to export yet" is neither
+ * — it is a fact about an empty database, not a problem.
+ */
+@Composable
+private fun exportLines(state: ExportState, syntax: SyntaxColors): List<CanvasLine> = when (state) {
+    ExportState.Idle -> emptyList()
+    ExportState.Running -> listOf(commentLine("// writing…", syntax))
+    is ExportState.Done -> when (val result = state.result) {
+        is ExportResult.Written -> buildList {
+            result.files.forEach { name ->
+                add(
+                    CodeLine(
+                        text = AnnotatedString(
+                            "// wrote Downloads/$name",
+                            SpanStyle(color = syntax.diffAdd)
+                        ),
+                        contentDescription = stringResource(R.string.cd_export_wrote, name)
+                    )
+                )
+            }
+            // What went into them, so the line is checkable against the file.
+            add(
+                commentLine(
+                    "// ${result.tests} tests · ${result.checks} checks · ${result.days} days",
+                    syntax
+                )
+            )
+        }
+        ExportResult.Empty -> listOf(
+            commentLine(SettingsDocument.EXPORT_PENDING, syntax)
+        )
+        is ExportResult.Failed -> listOf(
+            CodeLine(
+                text = AnnotatedString(
+                    "// ERROR: ${result.message}",
+                    SpanStyle(color = syntax.diffDel)
+                ),
+                contentDescription = stringResource(R.string.cd_export_failed, result.message)
+            )
+        )
+    }
 }
 
 /** A `$` command line: the series' shape for anything that runs or resets. */

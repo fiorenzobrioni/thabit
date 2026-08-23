@@ -329,10 +329,27 @@ Architettura widget di serie ereditata intera (sizes-map, un gradino per riga, b
 
 ## Fase 11 — Export dati
 
-- [ ] `$ thabit export --json` e `--csv` in fondo a settings.config (pattern tsteps Fase 13 per intero: MediaStore pending→publish, zero permission storage, nome riportato = quello vero, esiti `// wrote …` / `// nothing to export yet` / `// ERROR:`)
-- [ ] JSON un documento (suite + tutti i check + **tutte le righe `day` di presenza**, un record per riga); CSV tre file (`thabit-suite-*.csv` + `thabit-checks-*.csv` + `thabit-days-*.csv`); `Locale.ROOT`, valori canonici, half-life dell'health e regola delle regressioni dichiarate nell'header — tutto ricalcolabile, coverage e `no run` compresi (una statistica che l'utente non può verificare è una formula segreta)
-- [ ] Onestà del formato: skip con nota, `# amended` come flag dato, test archiviati inclusi con `archived_at` (la storia è dell'utente)
-- [ ] Formato documentato nel README (sezione Export); test su documenti e sink
+- [x] `$ thabit export --json` e `--csv` in fondo a `settings.config` (pattern di serie per intero: MediaStore pending→publish, **zero permission storage**, nome riportato = quello vero che il sistema ha scritto, esiti `// wrote Downloads/…` / `// nothing to export yet` / `// ERROR:`)
+- [x] JSON un documento (suite + tutti i check + **tutte le righe `day` di presenza**, un record per riga); CSV tre file (`thabit-suite-*.csv` + `thabit-checks-*.csv` + `thabit-days-*.csv`); `Locale.ROOT`, valori canonici, e nell'header **tutte** le regole che producono un numero: half-life dell'health, regressioni, flaky, come si grada una quota, come si espande una finestra di skip, cosa fa un `no run` a un denominatore — sono le stesse costanti con cui l'app calcola (`Health.FORMULA`, `Regressions.RULE`, `FlakyTests.RULE`, scritte in Fase 2 apposta), quindi l'archivio non può divergere dalle schermate
+- [x] Onestà del formato: skip con nota e `until`, `amended` come flag dato, test archiviati inclusi con `archived_at` (la storia è dell'utente)
+- [x] Formato documentato nel README (sezione Export); test sui documenti (JSON *parsato*, non solo cercato con `contains`) e sul sink
+- [x] Test: **31 nuovi** (594 totali, verdi), lint pulito
+
+### Decisioni prese in Fase 11
+
+- **Le righe escono come sono state scritte, mai come vengono lette.** Un `[~ skip] until:` è **una** riga che copre quattordici giorni, ed è quella che esce: materializzarne quattordici significherebbe dichiarare quattordici interazioni che l'utente non ha mai fatto — lo stesso motivo per cui non sono materializzate nel database. La regola per espanderle sta nell'header, quindi il conteggio resta ricalcolabile: lo scambio onesto è *dichiarare la regola*, non *materializzare la conseguenza*. Il KDoc di `Check.until` diceva l'opposto («anche l'export vede skip semplici») ed è stato corretto: in questo repo un commento diventato falso è un bug
+- **La tabella delle presenze è la ragione per cui l'export esiste in questa forma.** Coverage e `no run` si calcolano dai giorni in cui l'app è stata davvero aperta: senza quella tabella l'utente non potrebbe verificare **le due statistiche che dicono cosa l'app non sa**, ed è esattamente lì che una formula segreta farebbe più danno
+- **Niente di derivato in uscita.** Streak, health, build result e record non compaiono: si ricalcolano tutti dalle tre tabelle più le regole dell'header, e spedire le risposte dell'app invece dei fatti su cui gira sarebbe spedire l'istantanea di una formula al posto della formula
+- **Le regole viaggiano sul JSON, non sul CSV** (stessa chiamata dei gemelli, stessa ragione): un CSV non ha un canale di commento che un foglio di calcolo tolleri, quindi il suo header resta un header e le frasi stanno nel README. Il CSV è il formato che apri in un foglio; il JSON è quello che conservi
+- **L'export appartiene al giorno logico, non a quello da parete**: all'una di notte con `day_ends: "03:00"` il file si chiama `thabit-export-<ieri>.json`, perché è il giorno che sta ancora girando
+- **Il quoting CSV serve davvero, qui.** Nei gemelli ogni cella è generata dalla macchina; qui il nome di un test e la nota di uno skip sono **parole dell'utente** e possono contenere virgole, virgolette e a capo. C'è un test che glielo fa fare
+- **L'export gira su `appScope`, non su `viewModelScope`**: uscire dalla tab impostazioni a metà scrittura cancellerebbe il job e lascerebbe in MediaStore una riga *pending* che nessuno pubblica più. Stessa lezione del wizard in Fase 5
+- **Un secondo tap mentre una scrittura è in corso non fa niente**, e il file lo dice con `// writing…`: due export contemporanei sono due file uguali con un `(1)` appiccicato
+
+### Pulizia trascinata dalla fase
+
+- **Il canale `transient` di `settings.config` è stato rimosso con il suo unico produttore.** Era la risposta di serie al toast (quattro secondi e sparisce) e serviva solo a `onExport` finché l'export non esisteva. Un export riporta un **nome di file**, e un nome di file che sparisce mentre lo stai leggendo è peggio che nessuna riga: adesso risponde `ExportState`, che non scade. Un canale rimasto senza produttori è codice morto, e il codice morto qui è un difetto (Fase 5.1, `plainHint()`)
+- **Via anche i flag `notificationsWired`/`exportWired`**: erano il modo onesto di dire «questa sezione arriva con la sua fase» finché le fasi non erano arrivate. Adesso sono arrivate tutte e due, e un flag la cui risposta è sempre sì è codice morto uguale. La costante che restava (`EXPORT_PENDING`) ha cambiato significato e lo dichiara: non più «il writer non c'è», ma «il database è vuoto»
 
 ## Fase 12 — Rifiniture dal campo
 

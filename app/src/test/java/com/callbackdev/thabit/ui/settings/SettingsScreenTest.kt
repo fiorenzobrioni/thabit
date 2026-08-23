@@ -11,6 +11,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.callbackdev.thabit.data.NotificationSettings
+import com.callbackdev.thabit.export.ExportFormat
+import com.callbackdev.thabit.export.ExportResult
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import org.junit.Assert.assertEquals
@@ -45,6 +47,7 @@ class SettingsScreenTest {
         reminderCount: Int = 0,
         widgetOpacityPct: Int = 100,
         notifState: NotifLineState = NotifLineState.Armed,
+        export: ExportState = ExportState.Idle,
         interaction: SettingsInteraction = SettingsInteraction()
     ) {
         compose.setContent {
@@ -63,7 +66,8 @@ class SettingsScreenTest {
                             reminderCount = reminderCount,
                             widgetOpacityPct = widgetOpacityPct
                         ),
-                        interaction = interaction
+                        interaction = interaction,
+                        export = export
                     ),
                     actions = actions,
                     notifState = notifState
@@ -224,10 +228,46 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `a transient answer appears at the foot of the file`() {
-        show(interaction = SettingsInteraction(transient = "$ thabit export --json  // nothing yet"))
-        scrollTo("$ thabit export --json  // nothing yet")
-        compose.onNodeWithText("$ thabit export --json  // nothing yet").assertIsDisplayed()
+    fun `the export reports the names the store wrote, and what went into them`() {
+        show(
+            export = ExportState.Done(
+                ExportResult.Written(
+                    files = listOf("thabit-export-2026-08-21.json"),
+                    tests = 6,
+                    checks = 142,
+                    days = 30
+                )
+            )
+        )
+        scrollTo("// wrote Downloads/thabit-export-2026-08-21.json")
+        compose.onNodeWithText("// wrote Downloads/thabit-export-2026-08-21.json")
+            .assertIsDisplayed()
+        compose.onNodeWithText("// 6 tests · 142 checks · 30 days").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an empty database is stated as a fact, not as a problem`() {
+        show(export = ExportState.Done(ExportResult.Empty))
+        scrollTo(SettingsDocument.EXPORT_PENDING)
+        compose.onNodeWithText("// nothing to export yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a failed write goes out on the ERROR channel`() {
+        show(export = ExportState.Done(ExportResult.Failed("Downloads is not writable")))
+        scrollTo("// ERROR: Downloads is not writable")
+        compose.onNodeWithText("// ERROR: Downloads is not writable").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the export commands are the two the exporter knows`() {
+        val asked = mutableListOf<ExportFormat>()
+        show(actions = SettingsActions(onExport = { asked += it }))
+        scrollTo("$ ${ExportFormat.JSON.command}")
+        compose.onNodeWithText("$ ${ExportFormat.JSON.command}").performClick()
+        scrollTo("$ ${ExportFormat.CSV.command}")
+        compose.onNodeWithText("$ ${ExportFormat.CSV.command}").performClick()
+        assertEquals(listOf(ExportFormat.JSON, ExportFormat.CSV), asked)
     }
 
     // ---- the spoken half -------------------------------------------------

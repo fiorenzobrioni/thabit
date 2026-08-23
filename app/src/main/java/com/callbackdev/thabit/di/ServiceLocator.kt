@@ -6,6 +6,8 @@ import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
 import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.db.ThabitDatabase
+import com.callbackdev.thabit.export.DataExporter
+import com.callbackdev.thabit.export.DownloadsExportSink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,6 +40,15 @@ object ServiceLocator {
 
     fun notificationState(context: Context): NotificationStateStore =
         graph(context).notificationState
+
+    /**
+     * Built per call rather than held on the graph: an exporter is a one-shot
+     * pipeline with a sink on the end, and the sink is the only part that needs
+     * a Context. Nothing about it is worth keeping alive between two taps.
+     */
+    fun exporter(context: Context): DataExporter = graph(context).let { graph ->
+        DataExporter(graph.repository, graph.settings, DownloadsExportSink(context))
+    }
 
     /** Swaps the graph in a test, or restores the real one with null. */
     fun overrideForTests(replacement: AppGraph?) {
