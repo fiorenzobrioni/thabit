@@ -57,6 +57,22 @@
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- The `thabit status` home widget (Fase 10; its title bar spells the
+             flag, which an XML comment cannot). exported=false: the
+             system delivers APPWIDGET_* regardless, and nothing outside the app
+             has any business asking it to repaint. -->
+        <receiver
+            android:name=".widget.ThabitWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_thabit_info" />
+        </receiver>
     </application>
 
 </manifest>

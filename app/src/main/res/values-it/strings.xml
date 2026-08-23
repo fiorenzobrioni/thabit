@@ -243,4 +243,23 @@
         <item quantity="other">%1$d test ancora da fare</item>
     </plurals>
     <string name="notif_action_pass">Fatto</string>
+
+    <!-- Il widget. La sua metà parlata porta più peso che altrove: in
+         `habits.test` un commento `#` accanto al glifo distingue `[·]` da `[ ]`,
+         su una riga di widget non c'è spazio, quindi le parole devono fare tutto
+         il lavoro (VISION §3.3.7, §4.6). -->
+    <string name="widget_label" translatable="false">thabit --status</string>
+    <string name="widget_description">La suite di oggi sulla home: smarca un\'abitudine senza aprire l\'app.</string>
+    <string name="cd_widget_suite">%1$d su %2$d passati il %3$s</string>
+    <string name="cd_widget_row_pass">%1$s, %2$s. Tocca per segnarlo fatto</string>
+    <string name="cd_widget_row_open">%1$s, %2$s. Tocca per aprirlo nell\'app</string>
+    <string name="cd_widget_empty">Ancora nessun test. Tocca per aggiungere il primo</string>
+    <string name="cd_widget_nothing_due">Oggi non è dovuto niente</string>
+    <string name="cd_widget_none_pending">Non è rimasto niente da fare oggi</string>
+    <plurals name="cd_widget_pending">
+        <item quantity="one">%1$d test ancora da fare</item>
+        <item quantity="many">%1$d test ancora da fare</item>
+        <item quantity="other">%1$d test ancora da fare</item>
+    </plurals>
+    <string name="cd_setting_widget_opacity">Opacità dello sfondo del widget, %1$d per cento</string>
 </resources>

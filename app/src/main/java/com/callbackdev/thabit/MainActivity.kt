@@ -22,6 +22,7 @@ import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.editor.SuiteFocus
 import com.callbackdev.thabit.ui.navigation.ThabitApp
 import com.callbackdev.thabit.ui.theme.ThabitTheme
+import com.callbackdev.thabit.widget.ThabitWidgetUpdater
 import com.callbackdev.thabit.work.RolloverScheduler
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         readFocus(intent)
         watchAlarms()
+        watchWidget()
         // The app is dark-only (see ThabitTheme), so the system bars must always
         // draw their icons light. enableEdgeToEdge()'s default is SystemBarStyle.auto,
         // which picks the appearance from the *system* dark-mode setting: on a phone
@@ -113,6 +115,40 @@ class MainActivity : ComponentActivity() {
      * loud (`RepeatOnLifecycleWrongUsage`) — the presence row and the rollover
      * alignment above genuinely belong in `onStart`, this does not.
      */
+    /**
+     * The widget, kept in step with the app while the app is in front.
+     *
+     * Ticking a box in `habits.test` has to reach the home screen: a widget
+     * still showing `[ ]` for something the user just checked off is the app
+     * disagreeing with itself, and the widget is the surface people trust
+     * *because* it is a glance. The collector covers every write there is —
+     * checks, skips, edits, archives — because they all move the same history.
+     *
+     * The settings flow is here for the same reason as the theme in `setContent`:
+     * tapping "dracula" or dropping the widget's opacity has to repaint the home
+     * screen, not just this window.
+     *
+     * A repaint is **not** presence (VISION §7): this collector writes nothing,
+     * and neither does the render it triggers.
+     */
+    private fun watchWidget() {
+        val app = applicationContext
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    ServiceLocator.repository(app).observeFullHistory()
+                        .distinctUntilChanged()
+                        .collect { ThabitWidgetUpdater.updateAll(app) }
+                }
+                launch {
+                    ServiceLocator.settings(app).settings
+                        .distinctUntilChanged()
+                        .collect { ThabitWidgetUpdater.updateAll(app) }
+                }
+            }
+        }
+    }
+
     private fun watchAlarms() {
         val app = applicationContext
         val clock = ServiceLocator.graph(app).clock

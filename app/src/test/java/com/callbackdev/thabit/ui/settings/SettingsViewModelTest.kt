@@ -164,6 +164,13 @@ class SettingsViewModelTest {
         assertEquals(0, file().reminderCount)
     }
 
+    @Test
+    fun `the widget opacity cycles and reaches the file`() = runUi {
+        assertEquals(100, file().widgetOpacityPct)
+        viewModel.onCycleWidgetOpacity()
+        assertEquals(85, file().widgetOpacityPct)
+    }
+
     // ---- the controls ----------------------------------------------------
 
     @Test

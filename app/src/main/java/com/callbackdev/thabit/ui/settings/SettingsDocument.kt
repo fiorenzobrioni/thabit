@@ -1,6 +1,7 @@
 package com.callbackdev.thabit.ui.settings
 
 import com.callbackdev.thabit.data.NotificationSettings
+import com.callbackdev.thabit.data.WidgetOpacities
 import com.callbackdev.thabit.ui.format.CodeFormat
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import java.time.DayOfWeek
@@ -41,6 +42,8 @@ data class SettingsDocument(
      * honest without becoming a second place to edit it.
      */
     val reminderCount: Int = 0,
+    /** Home-widget background opacity, as a percentage. */
+    val widgetOpacityPct: Int = 100,
     /** False until Fase 11: the export commands answer honestly meanwhile. */
     val exportWired: Boolean = EXPORT_SHIPPED
 ) {
@@ -48,6 +51,9 @@ data class SettingsDocument(
 
     /** The next value a tap on `digest_hour` moves to. */
     fun cycledDigestHour(): LocalTime = nextDigestHour(notifications.digestHour)
+
+    /** The next value a tap on `bg_opacity_pct` moves to. */
+    fun cycledWidgetOpacity(): Int = nextWidgetOpacity(widgetOpacityPct)
 
     /** `// 2 tests carry a reminder — set on the test, in habits.test`. */
     val remindersComment: String
@@ -137,6 +143,7 @@ data class SettingsDocument(
         const val DIGEST_HOUR_HINT: String = "// when that summary goes out"
         const val REMINDERS_HINT: String =
             "// reminders are approximate — a nudge, not an alarm clock"
+        val WIDGET_OPACITY_HINT: String = "// ${WidgetOpacities.joinToString(" | ")}"
         const val EXPORT_PENDING: String =
             "// nothing to export yet — the writer arrives with its own phase"
         const val RESTORE_CONFIRM: String = "// tap the command to confirm"
@@ -160,6 +167,17 @@ data class SettingsDocument(
 
         fun nextDigestHour(current: LocalTime): LocalTime = DIGEST_HOUR_CYCLE.nextAfter(current)
 
+        /**
+         * Descending, unlike every other cycle in the file, because the values
+         * are: the list reads `100 | 85 | 70 | 50` and a tap walks it in the
+         * order it is written. `nextAfter` would jump backwards through it.
+         */
+        fun nextWidgetOpacity(current: Int): Int {
+            val index = WidgetOpacities.indexOf(current)
+            if (index >= 0) return WidgetOpacities[(index + 1) % WidgetOpacities.size]
+            return WidgetOpacities.firstOrNull { it < current } ?: WidgetOpacities.first()
+        }
+
         private fun <T : Comparable<T>> List<T>.nextAfter(current: T): T {
             val index = indexOf(current)
             if (index >= 0) return this[(index + 1) % size]
@@ -175,7 +193,8 @@ data class SettingsDocument(
             lastModified: Long?,
             versionName: String,
             notifications: NotificationSettings = NotificationSettings(),
-            reminderCount: Int = 0
+            reminderCount: Int = 0,
+            widgetOpacityPct: Int = 100
         ) = SettingsDocument(
             dayEnds = dayEnds,
             weekStartsOn = weekStartsOn,
@@ -185,7 +204,8 @@ data class SettingsDocument(
             lastModified = lastModified,
             versionName = versionName,
             notifications = notifications,
-            reminderCount = reminderCount
+            reminderCount = reminderCount,
+            widgetOpacityPct = widgetOpacityPct
         )
     }
 }

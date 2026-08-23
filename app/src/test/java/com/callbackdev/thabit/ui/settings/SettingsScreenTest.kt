@@ -43,6 +43,7 @@ class SettingsScreenTest {
         lastModified: Long? = null,
         notifications: NotificationSettings = NotificationSettings(),
         reminderCount: Int = 0,
+        widgetOpacityPct: Int = 100,
         notifState: NotifLineState = NotifLineState.Armed,
         interaction: SettingsInteraction = SettingsInteraction()
     ) {
@@ -59,7 +60,8 @@ class SettingsScreenTest {
                             lastModified = lastModified,
                             versionName = "0.1.0",
                             notifications = notifications,
-                            reminderCount = reminderCount
+                            reminderCount = reminderCount,
+                            widgetOpacityPct = widgetOpacityPct
                         ),
                         interaction = interaction
                     ),
@@ -173,6 +175,21 @@ class SettingsScreenTest {
         compose.onNodeWithText("// armed — posts at the boundary and at the times you set")
             .assertIsDisplayed()
             .assert(hasClickAction().not())
+    }
+
+    @Test
+    fun `the widget block offers its opacity as a number that cycles`() {
+        var cycled = false
+        show(
+            widgetOpacityPct = 85,
+            actions = SettingsActions(onCycleWidgetOpacity = { cycled = true })
+        )
+        scrollTo("\"bg_opacity_pct\": 85  ${SettingsDocument.WIDGET_OPACITY_HINT}")
+        compose.onNodeWithText("\"widget\": {").assertIsDisplayed()
+        compose.onNodeWithText("\"bg_opacity_pct\": 85", substring = true)
+            .assertIsDisplayed()
+            .performClick()
+        assertTrue(cycled)
     }
 
     @Test

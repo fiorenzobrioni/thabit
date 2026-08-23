@@ -233,4 +233,22 @@
         <item quantity="other">%1$d tests still to do</item>
     </plurals>
     <string name="notif_action_pass">Done</string>
+
+    <!-- The home widget. Its spoken half carries more than anywhere else in the
+         app: `habits.test` can put a `#` comment beside a glyph to tell `[·]`
+         from `[ ]`, and a widget row has no room for one, so the words have to
+         do the whole job (VISION §3.3.7, §4.6). -->
+    <string name="widget_label">thabit --status</string>
+    <string name="widget_description">Today\'s suite on the home screen: check a habit off without opening the app.</string>
+    <string name="cd_widget_suite">%1$d of %2$d passed on %3$s</string>
+    <string name="cd_widget_row_pass">%1$s, %2$s. Tap to mark it done</string>
+    <string name="cd_widget_row_open">%1$s, %2$s. Tap to open it in the app</string>
+    <string name="cd_widget_empty">No tests yet. Tap to add the first one</string>
+    <string name="cd_widget_nothing_due">Nothing is due today</string>
+    <string name="cd_widget_none_pending">Nothing left to do today</string>
+    <plurals name="cd_widget_pending">
+        <item quantity="one">%1$d test still to do</item>
+        <item quantity="other">%1$d tests still to do</item>
+    </plurals>
+    <string name="cd_setting_widget_opacity">Widget background opacity, %1$d percent</string>
 </resources>

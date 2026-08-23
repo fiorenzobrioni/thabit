@@ -24,7 +24,8 @@ class SettingsDocumentTest {
         wordWrap: Boolean = false,
         lastModified: Long? = null,
         notifications: NotificationSettings = NotificationSettings(),
-        reminderCount: Int = 0
+        reminderCount: Int = 0,
+        widgetOpacityPct: Int = 100
     ) = SettingsDocument(
         dayEnds = dayEnds,
         weekStartsOn = weekStartsOn,
@@ -34,7 +35,8 @@ class SettingsDocumentTest {
         lastModified = lastModified,
         versionName = "0.1.0",
         notifications = notifications,
-        reminderCount = reminderCount
+        reminderCount = reminderCount,
+        widgetOpacityPct = widgetOpacityPct
     )
 
     @Test
@@ -126,6 +128,18 @@ class SettingsDocumentTest {
     }
 
     @Test
+    fun `the widget opacity cycles down the values the hint lists`() {
+        assertEquals(85, doc(widgetOpacityPct = 100).cycledWidgetOpacity())
+        assertEquals(50, doc(widgetOpacityPct = 70).cycledWidgetOpacity())
+        // Wraps back to the top, like every other cycle in the file.
+        assertEquals(100, doc(widgetOpacityPct = 50).cycledWidgetOpacity())
+        // A value from outside the cycle steps to the next one DOWN, because
+        // this is the one cycle whose list descends.
+        assertEquals(70, SettingsDocument.nextWidgetOpacity(80))
+        assertTrue(SettingsDocument.WIDGET_OPACITY_HINT.startsWith("// 100 | 85"))
+    }
+
+    @Test
     fun `the reset says out loud what it will not touch`() {
         assertTrue(SettingsDocument.RESTORE_HINT.contains("suite"))
         assertTrue(SettingsDocument.RESTORE_HINT.contains("history"))
@@ -141,6 +155,7 @@ class SettingsDocumentTest {
             SettingsDocument.PENDING_DIGEST_HINT,
             SettingsDocument.DIGEST_HOUR_HINT,
             SettingsDocument.REMINDERS_HINT,
+            SettingsDocument.WIDGET_OPACITY_HINT,
             SettingsDocument.EXPORT_PENDING,
             SettingsDocument.RESTORE_HINT
         ).forEach { assertTrue("'$it' is not a comment", it.startsWith("//")) }

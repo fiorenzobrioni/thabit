@@ -5,8 +5,16 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
 import com.callbackdev.thabit.data.HabitRepository
+import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
+import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.db.ThabitDatabase
+import com.callbackdev.thabit.di.AppGraph
+import com.callbackdev.thabit.di.ServiceLocator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import java.time.Clock
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -18,6 +26,27 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.time.LocalDate
+
+/** The app's own graph, pointed at this test's database. */
+private class TestGraph(
+    override val database: ThabitDatabase,
+    folder: TemporaryFolder
+) : AppGraph {
+    override val clock: Clock = Clock.systemDefaultZone()
+    override val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    override val settings = SettingsStore(
+        PreferenceDataStoreFactory.create { folder.newFile("graph-settings.preferences_pb") }
+    )
+    override val workspace = WorkspaceStore(
+        PreferenceDataStoreFactory.create { folder.newFile("graph-workspace.preferences_pb") }
+    )
+    override val notificationState = NotificationStateStore(
+        PreferenceDataStoreFactory.create { folder.newFile("graph-notif.preferences_pb") }
+    )
+    override val repository = HabitRepository(
+        database.habitDao(), database.checkDao(), database.dayDao(), settings, clock
+    )
+}
 
 /**
  * The contract that matters about the rollover: **it never writes.**
@@ -71,6 +100,35 @@ class RolloverWorkerTest {
         assertEquals(checksBefore, db.checkDao().all())
         assertEquals(daysBefore, db.dayDao().all())
         assertTrue("the boundary must never stamp presence", db.dayDao().all().isEmpty())
+    }
+
+    /**
+     * The same contract, against the effect the app actually ships.
+     *
+     * Fase 9 gave the rollover a notification and Fase 10 a widget repaint, and
+     * both are exactly the kind of thing that grows a write by accident: a
+     * repaint that stamped presence would turn every day with the phone switched
+     * on into a day that "ran", and `no run` would stop meaning anything
+     * (VISION §7, §3.3.8). So the default effect is run for real, against a real
+     * database, and the database must not move.
+     */
+    @Test
+    fun `the shipping effect notifies and repaints — and still writes nothing`() = runTest {
+        val graph = TestGraph(db, folder)
+        ServiceLocator.overrideForTests(graph)
+        try {
+            val id = graph.repository.addHabit("meditate 10 min")
+            graph.repository.pass(id, LocalDate.now())
+            val checksBefore = db.checkDao().all()
+            val daysBefore = db.dayDao().all()
+
+            RolloverEffects.Default.onDayClosed(ApplicationProvider.getApplicationContext())
+
+            assertEquals(checksBefore, db.checkDao().all())
+            assertEquals(daysBefore, db.dayDao().all())
+        } finally {
+            ServiceLocator.overrideForTests(null)
+        }
     }
 
     @Test

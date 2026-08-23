@@ -66,7 +66,8 @@ class SettingsViewModel(
                 lastModified = config.lastModified,
                 versionName = versionName,
                 notifications = config.notifications,
-                reminderCount = reminders
+                reminderCount = reminders,
+                widgetOpacityPct = config.widgetOpacityPct
             ),
             interaction = ui
         )
@@ -114,6 +115,10 @@ class SettingsViewModel(
 
     fun onCycleDigestHour() = write {
         settings.setDigestHour(SettingsDocument.nextDigestHour(current().notifications.digestHour))
+    }
+
+    fun onCycleWidgetOpacity() = write {
+        settings.setWidgetOpacity(SettingsDocument.nextWidgetOpacity(current().widgetOpacityPct))
     }
 
     private suspend fun current(): ThabitSettings = settings.settings.first()

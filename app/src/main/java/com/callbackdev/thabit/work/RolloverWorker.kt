@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.callbackdev.thabit.notifications.DailyCommitNotifier
+import com.callbackdev.thabit.widget.ThabitWidgetUpdater
 
 /**
  * What happens at `day_ends` — and, far more importantly, what does not.
@@ -63,8 +64,19 @@ fun interface RolloverEffects {
         /** What a test installs when the day's close must have no side effect. */
         val None = RolloverEffects { }
 
-        /** The day that just closed, announced once (Fase 9). */
-        val Default = RolloverEffects { context -> DailyCommitNotifier.run(context) }
+        /**
+         * The day that just closed, announced once (Fase 9), and the widget
+         * repainted so it stops showing yesterday's suite (Fase 10).
+         *
+         * Both are repaints in the sense that matters: neither writes a row.
+         * The widget in particular must not stamp presence here — a rollover
+         * that did would turn every day with the phone switched on into a day
+         * that "ran" (VISION §7).
+         */
+        val Default = RolloverEffects { context ->
+            DailyCommitNotifier.run(context)
+            ThabitWidgetUpdater.updateAll(context)
+        }
 
         @Volatile
         var current: RolloverEffects = Default

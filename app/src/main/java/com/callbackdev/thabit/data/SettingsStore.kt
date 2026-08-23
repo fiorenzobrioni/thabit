@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -59,6 +60,9 @@ data class NotificationSettings(
     val digestHour: LocalTime = LocalTime.of(20, 0)
 )
 
+/** The stops the widget's opacity cycles through — the series' four. */
+val WidgetOpacities: List<Int> = listOf(100, 85, 70, 50)
+
 data class ThabitSettings(
     val dayEnds: LocalTime = LocalTime.MIDNIGHT,
     val weekStartsOn: DayOfWeek = DayOfWeek.MONDAY,
@@ -66,6 +70,12 @@ data class ThabitSettings(
     val showLineNumbers: Boolean = false,
     val wordWrap: Boolean = false,
     val notifications: NotificationSettings = NotificationSettings(),
+    /**
+     * Home-widget background opacity: alpha on the card fill only, the 1px
+     * border stays crisp (series behaviour). 100 means the terminal window sits
+     * on its own background; lower lets the wallpaper through.
+     */
+    val widgetOpacityPct: Int = 100,
     /**
      * Epoch millis of the first change the user ever made, or null while the
      * file is still exactly what shipped.
@@ -106,6 +116,8 @@ class SettingsStore(
                     ?: ThemeProfile.Obsidian,
                 showLineNumbers = prefs[Keys.LineNumbers] ?: false,
                 wordWrap = prefs[Keys.WordWrap] ?: false,
+                widgetOpacityPct = (prefs[Keys.WidgetOpacity] ?: 100)
+                    .takeIf { it in WidgetOpacities } ?: 100,
                 notifications = NotificationSettings(
                     dailyCommit = prefs[Keys.DailyCommit] ?: true,
                     pendingDigest = prefs[Keys.PendingDigest] ?: false,
@@ -132,6 +144,8 @@ class SettingsStore(
     suspend fun setPendingDigest(enabled: Boolean) = edit { it[Keys.PendingDigest] = enabled }
 
     suspend fun setDigestHour(time: LocalTime) = edit { it[Keys.DigestHour] = time.format(HHMM) }
+
+    suspend fun setWidgetOpacity(pct: Int) = edit { it[Keys.WidgetOpacity] = pct }
 
     /**
      * `$ git restore settings.config`.
@@ -171,6 +185,7 @@ class SettingsStore(
         val DailyCommit = booleanPreferencesKey("daily_commit")
         val PendingDigest = booleanPreferencesKey("pending_digest")
         val DigestHour = stringPreferencesKey("digest_hour")
+        val WidgetOpacity = intPreferencesKey("widget_bg_opacity_pct")
         val LastModified = longPreferencesKey("last_modified")
     }
 

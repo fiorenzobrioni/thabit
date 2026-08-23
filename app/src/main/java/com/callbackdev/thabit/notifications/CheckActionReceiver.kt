@@ -7,6 +7,7 @@ import com.callbackdev.thabit.MainActivity
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.WriteOutcome
 import com.callbackdev.thabit.di.ServiceLocator
+import com.callbackdev.thabit.widget.ThabitWidgetUpdater
 import kotlinx.coroutines.launch
 
 /**
@@ -41,6 +42,9 @@ class CheckActionReceiver : BroadcastReceiver() {
                 // The nudge has been answered: it goes away by itself, the way a
                 // notification with an action people actually use has to.
                 ThabitNotifier.cancelReminder(app, habitId)
+                // The tap may well have come FROM the widget, and a row that
+                // stays `[ ]` after being tapped reads as a tap that failed.
+                ThabitWidgetUpdater.updateAll(app)
             } finally {
                 pending.finish()
             }

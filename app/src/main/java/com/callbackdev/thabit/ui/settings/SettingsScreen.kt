@@ -246,6 +246,7 @@ data class SettingsActions(
     val onToggleDailyCommit: () -> Unit = {},
     val onTogglePendingDigest: () -> Unit = {},
     val onCycleDigestHour: () -> Unit = {},
+    val onCycleWidgetOpacity: () -> Unit = {},
     /** The dynamic `//` line, tappable only when it reports a missing grant. */
     val onNotifLine: () -> Unit = {},
     val onExport: (String) -> Unit = {},
@@ -261,6 +262,7 @@ data class SettingsActions(
         onToggleDailyCommit = viewModel::onToggleDailyCommit,
         onTogglePendingDigest = viewModel::onTogglePendingDigest,
         onCycleDigestHour = viewModel::onCycleDigestHour,
+        onCycleWidgetOpacity = viewModel::onCycleWidgetOpacity,
         onExport = viewModel::onExport,
         onRestore = viewModel::onRestore,
         onCancelRestore = viewModel::onCancelRestore
@@ -425,6 +427,23 @@ private fun settingsLines(
         syntax = syntax,
         onClickLabel = stringResource(R.string.cd_action_grant_notifications),
         onClick = actions.onNotifLine
+    )
+    lines += punctLine("},", 1, syntax)
+
+    // ---- widget ---------------------------------------------------------
+    lines += keyOpenLine("widget", 1, syntax)
+    lines += rawValueLine(
+        key = "bg_opacity_pct",
+        value = document.widgetOpacityPct.toString(),
+        comma = false,
+        syntax = syntax,
+        hint = SettingsDocument.WIDGET_OPACITY_HINT,
+        contentDescription = stringResource(
+            R.string.cd_setting_widget_opacity,
+            document.widgetOpacityPct
+        ),
+        onClickLabel = change,
+        onClick = actions.onCycleWidgetOpacity
     )
     lines += punctLine("},", 1, syntax)
 
