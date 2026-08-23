@@ -27,7 +27,9 @@ data class WidgetPalette(
     val string: Int,
     val number: Int,
     val comment: Int,
-    val alert: Int
+    val alert: Int,
+    /** A `[x]`: the same green the file gives a passed test. */
+    val pass: Int
 ) {
     val divider: Int get() = border
 
@@ -40,32 +42,41 @@ data class WidgetPalette(
         TokenRole.NUMBER -> number
         TokenRole.COMMENT -> comment
         TokenRole.ALERT -> alert
+        TokenRole.PASS -> pass
     }
 }
 
 fun widgetPalette(profileName: String): WidgetPalette = when (ThemeProfile.fromName(profileName)) {
-    ThemeProfile.Dracula ->
-        palette(DraculaColors.background, DraculaColors.onSurface, DraculaSyntax)
-    ThemeProfile.Monokai ->
-        palette(MonokaiColors.background, MonokaiColors.onSurface, MonokaiSyntax)
-    else -> palette(ObsidianColors.background, ObsidianColors.onSurface, ObsidianSyntax)
+    ThemeProfile.Dracula -> palette(
+        DraculaColors.background, DraculaColors.secondary, DraculaColors.onSurface, DraculaSyntax
+    )
+    ThemeProfile.Monokai -> palette(
+        MonokaiColors.background, MonokaiColors.secondary, MonokaiColors.onSurface, MonokaiSyntax
+    )
+    else -> palette(
+        ObsidianColors.background, ObsidianColors.secondary, ObsidianColors.onSurface, ObsidianSyntax
+    )
 }
 
 private fun palette(
     background: Color,
+    secondary: Color,
     onSurface: Color,
     syntax: SyntaxColors
 ) = WidgetPalette(
     background = background.toArgb(),
     border = syntax.border.toArgb(),
     title = onSurface.toArgb(),
-    // A `[x]` is green everywhere in this app, so it is green here too — the
-    // widget's rows are the same rows, not a second visual language.
-    prompt = syntax.diffAdd.toArgb(),
+    // The prompt's green is the series' green, so `you@thabit` matches
+    // `you@tsteps` and `you@tweather` on the same home screen.
+    prompt = secondary.toArgb(),
     plain = onSurface.toArgb(),
     key = syntax.key.toArgb(),
     string = syntax.string.toArgb(),
     number = syntax.number.toArgb(),
     comment = syntax.comment.toArgb(),
-    alert = syntax.diffDel.toArgb()
+    alert = syntax.diffDel.toArgb(),
+    // A `[x]` is green everywhere in this app, so it is that green here too:
+    // the widget's rows are the same rows, not a second visual language.
+    pass = syntax.diffAdd.toArgb()
 )

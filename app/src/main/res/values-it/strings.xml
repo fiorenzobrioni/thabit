@@ -255,6 +255,7 @@
     <string name="cd_widget_row_open">%1$s, %2$s. Tocca per aprirlo nell\'app</string>
     <string name="cd_widget_empty">Ancora nessun test. Tocca per aggiungere il primo</string>
     <string name="cd_widget_nothing_due">Oggi non è dovuto niente</string>
+    <string name="cd_widget_day">Mostra il %1$s</string>
     <string name="cd_widget_none_pending">Non è rimasto niente da fare oggi</string>
     <plurals name="cd_widget_pending">
         <item quantity="one">%1$d test ancora da fare</item>

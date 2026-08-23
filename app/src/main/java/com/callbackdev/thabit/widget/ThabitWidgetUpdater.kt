@@ -4,7 +4,9 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import com.callbackdev.thabit.di.ServiceLocator
 import com.callbackdev.thabit.domain.Verdicts
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 
 /**
  * Re-renders every widget instance from persisted state.
@@ -38,14 +40,20 @@ object ThabitWidgetUpdater {
         val palette = widgetPalette(settings.theme.name)
         val resources = context.resources
 
-        AppWidgetManager.getInstance(context).updateAppWidget(
-            ids,
+        // Off the caller's thread on purpose. The sizes map is one RemoteViews
+        // per rung, and every row of every rung registers its own PendingIntent
+        // with the system — dozens of IPCs. The app's own collector calls this
+        // on every check written, which is the main thread, and that is the one
+        // place a burst of IPC turns into a dropped frame under the very tap
+        // that caused it.
+        val views = withContext(Dispatchers.Default) {
             WidgetRenderer.sizeMap(
                 context,
                 content = { tier -> WidgetContentBuilder.build(data, tier, resources) },
                 palette = palette,
                 opacityPct = settings.widgetOpacityPct
             )
-        )
+        }
+        AppWidgetManager.getInstance(context).updateAppWidget(ids, views)
     }
 }

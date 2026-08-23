@@ -24,7 +24,7 @@ sealed interface WidgetTier {
 }
 
 /** Semantic color role of a token; the renderer maps roles to [WidgetPalette] ints. */
-enum class TokenRole { PROMPT, PLAIN, DIM, KEY, STRING, NUMBER, COMMENT, ALERT }
+enum class TokenRole { PROMPT, PLAIN, DIM, KEY, STRING, NUMBER, COMMENT, ALERT, PASS }
 
 data class WidgetToken(val text: String, val role: TokenRole)
 
@@ -153,20 +153,25 @@ object WidgetContentBuilder {
         // stale: nothing repaints between the rollover and the next look, so the
         // only honest defence against yesterday's suite posing as today's is to
         // say which day this is (VISION §4.6).
+        // `Suite: 3/6 ▓▓▓▓▓░░░░░` — the siblings' shape, and the reason it is
+        // theirs: every field on a t-series widget leads with its Capitalized
+        // name in key blue (`Steps:`, `Temp:`), so three widgets on one home
+        // screen read as one thing. The rows below need no name — they are
+        // `- [x] name` lines lifted straight out of `habits.test`, and a key in
+        // front of each would be a label nobody asked for.
         //
-        // The order is the priority order, because this line is the one that
-        // ellipsizes on a narrow widget: **the arithmetic first**, since a
-        // verdict that loses its numbers is the one thing §3.3.7 forbids; the
-        // bar next, which is only the fraction drawn; the date last, because it
-        // is the extra check and not the fact. A narrow-but-tall widget
-        // therefore keeps `3/6` and may drop the date — and the glanceable strip,
-        // which is what a narrow widget usually gets, states the date outright.
+        // The date moved off this line and onto the trailing comment, where the
+        // siblings keep their own timestamp (`# last_sync:`). It leads that
+        // comment so it is the half that survives an ellipsis: a widget cannot
+        // notice it has gone stale, and saying which day it is rendering is the
+        // only defence against yesterday's suite posing as today's (VISION §4.6).
         val suiteLine = WidgetLine(
             tokens = listOf(
+                WidgetToken("Suite", TokenRole.KEY),
+                WidgetToken(": ", TokenRole.PLAIN),
                 WidgetToken("${data.passed}/${data.graded}", TokenRole.NUMBER),
                 WidgetToken(" ", TokenRole.PLAIN),
-                WidgetToken(CodeFormat.bar(fraction(data), BAR_WIDTH), TokenRole.PROMPT),
-                WidgetToken("  ${CodeFormat.date(data.date)}", TokenRole.DIM)
+                WidgetToken(CodeFormat.bar(fraction(data), BAR_WIDTH), TokenRole.PROMPT)
             ),
             spoken = resources.getString(
                 R.string.cd_widget_suite,
@@ -200,7 +205,7 @@ object WidgetContentBuilder {
         val lines = buildList {
             add(suiteLine)
             addAll(shownRows)
-            if (trailing != null && size < budget) add(trailing)
+            if (size < budget) add(trailing)
         }
 
         return WidgetContent(
@@ -208,10 +213,11 @@ object WidgetContentBuilder {
             promptLine = prompt,
             bodyLines = lines.take(budget),
             emoji = EMOJI,
-            // The glanceable strip keeps the fraction and the date, and drops the
-            // bar: the bar *is* the fraction drawn, so it is the one thing here
-            // that repeats something already on screen, while the date repeats
-            // nothing and is what tells a stale widget from a fresh one.
+            // The glanceable strip keeps the fraction and the date and drops the
+            // bar: the bar *is* the fraction drawn, so on the one tier with room
+            // for two things it is the half that repeats something already on
+            // screen, while the date repeats nothing and is what tells a stale
+            // widget from a fresh one.
             smallValue = WidgetLine(
                 listOf(WidgetToken("${data.passed}/${data.graded}", TokenRole.NUMBER))
             ),
@@ -259,15 +265,35 @@ object WidgetContentBuilder {
         )
     }
 
-    private fun trailingComment(data: WidgetData, resources: Resources): WidgetLine? = when {
-        data.suiteSize == 0 || data.outcomes.isEmpty() -> null
-        data.pending > 0 -> comment(
-            "# ${data.pending} pending — tap to pass",
-            resources.getQuantityString(R.plurals.cd_widget_pending, data.pending, data.pending)
-        )
-        // Factual, never a congratulation: the day is still open, so there is no
-        // verdict to announce (VISION §3.3.4 — no theatrics either way).
-        else -> comment("# nothing pending", resources.getString(R.string.cd_widget_none_pending))
+    /**
+     * `# 2026-08-21 · 2 pending — tap to pass`.
+     *
+     * The date leads because it is the half that has to survive: an ellipsis
+     * eats the tail, and the pending count is a hint while the date is the
+     * staleness check. The hint itself is factual and never a congratulation —
+     * the day is still open, so there is no verdict to announce (VISION §3.3.4,
+     * no theatrics in either direction).
+     */
+    private fun trailingComment(data: WidgetData, resources: Resources): WidgetLine {
+        val date = CodeFormat.date(data.date)
+        val spokenDate = resources.getString(R.string.cd_widget_day, date)
+        if (data.suiteSize == 0 || data.outcomes.isEmpty()) {
+            return comment("# $date", spokenDate)
+        }
+        return if (data.pending > 0) {
+            comment(
+                "# $date · ${data.pending} pending — tap to pass",
+                spokenDate + ". " +
+                    resources.getQuantityString(
+                        R.plurals.cd_widget_pending, data.pending, data.pending
+                    )
+            )
+        } else {
+            comment(
+                "# $date · nothing pending",
+                spokenDate + ". " + resources.getString(R.string.cd_widget_none_pending)
+            )
+        }
     }
 
     /**
@@ -285,7 +311,7 @@ object WidgetContentBuilder {
     }
 
     private fun roleFor(state: TestState): TokenRole = when (state) {
-        TestState.PASS -> TokenRole.PROMPT
+        TestState.PASS -> TokenRole.PASS
         TestState.FAIL -> TokenRole.ALERT
         TestState.SKIP, TestState.HOLDING -> TokenRole.COMMENT
         TestState.PENDING -> TokenRole.PLAIN

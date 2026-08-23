@@ -64,33 +64,37 @@ class WidgetContentBuilderTest {
     // ---- the suite line ---------------------------------------------------
 
     @Test
-    fun `the first line states the day it is rendering, and the arithmetic`() {
+    fun `the first line leads with its field name, like every sibling widget`() {
         val content = build(fullDay())
-        // The arithmetic leads because it is the fact that may never be cut; the
-        // date is here at all because a widget cannot notice it has gone stale,
-        // and it is the only defence against yesterday's suite posing as today's.
-        assertEquals("1/3 ▓▓▓░░░░░░░  2026-08-21", content.bodyLines.first().text)
+        assertEquals("Suite: 1/3 ▓▓▓░░░░░░░", content.bodyLines.first().text)
+    }
+
+    @Test
+    fun `the day being rendered is stated, because a widget cannot notice it is stale`() {
+        // It leads the trailing comment, so it is the half that survives an
+        // ellipsis on a narrow widget.
+        assertTrue(build(fullDay()).bodyLines.last().text.startsWith("# 2026-08-21"))
     }
 
     @Test
     fun `a skip leaves the denominator, exactly as it does everywhere else`() {
         // Four tests on screen, three graded: `run 5k` was skipped.
         val content = build(fullDay())
-        assertTrue(content.bodyLines.first().text.startsWith("1/3 "))
+        assertTrue(content.bodyLines.first().text.startsWith("Suite: 1/3 "))
         assertTrue(content.bodyLines.any { it.text == "[~] run 5k" })
     }
 
     @Test
     fun `nothing graded yet draws an empty bar, never a full one`() {
         val content = build(data(listOf(TestOutcome(run5k, TestState.SKIP))))
-        assertTrue(content.bodyLines.first().text.startsWith("0/0 ░░░░░░░░░░"))
+        assertTrue(content.bodyLines.first().text.startsWith("Suite: 0/0 ░░░░░░░░░░"))
     }
 
     @Test
     fun `the smallest tier is the suite line alone`() {
         val content = WidgetContentBuilder.build(fullDay(), WidgetTier.Terminal(1), resources)
         assertEquals(1, content.bodyLines.size)
-        assertTrue(content.bodyLines.single().text.startsWith("1/3 "))
+        assertTrue(content.bodyLines.single().text.startsWith("Suite: 1/3 "))
     }
 
     // ---- the rows ---------------------------------------------------------
@@ -146,7 +150,7 @@ class WidgetContentBuilderTest {
         // Four rows, but only `read 20 pages` is genuinely pending: the holding
         // avoid test cannot be "tapped to pass", it passes by itself.
         val content = build(fullDay())
-        assertEquals("# 1 pending — tap to pass", content.bodyLines.last().text)
+        assertEquals("# 2026-08-21 · 1 pending — tap to pass", content.bodyLines.last().text)
     }
 
     @Test
@@ -160,13 +164,13 @@ class WidgetContentBuilderTest {
             )
         )
         // Same call the evening digest makes, for the same reason.
-        assertEquals("# nothing pending", content.bodyLines.last().text)
+        assertEquals("# 2026-08-21 · nothing pending", content.bodyLines.last().text)
     }
 
     @Test
     fun `a finished day states the fact, and does not congratulate anybody`() {
         val content = build(data(listOf(TestOutcome(meditate, TestState.PASS))))
-        assertEquals("# nothing pending", content.bodyLines.last().text)
+        assertEquals("# 2026-08-21 · nothing pending", content.bodyLines.last().text)
     }
 
     @Test
@@ -176,7 +180,7 @@ class WidgetContentBuilderTest {
         val content = build(fullDay(), lines = 4)
         assertEquals(4, content.bodyLines.size)
         assertFalse(content.bodyLines.any { it.text.startsWith("#") })
-        assertTrue(content.bodyLines.first().text.startsWith("1/3 "))
+        assertTrue(content.bodyLines.first().text.startsWith("Suite: 1/3 "))
     }
 
     // ---- the empty states -------------------------------------------------
@@ -240,7 +244,7 @@ class WidgetContentBuilderTest {
         val content = WidgetContentBuilder.build(fullDay(), WidgetTier.Terminal(6), italian)
         assertEquals("1 su 3 passati il 2026-08-21", content.bodyLines.first().spoken)
         // The transcript is source, and source is English everywhere.
-        assertEquals("# 1 pending — tap to pass", content.bodyLines.last().text)
+        assertEquals("# 2026-08-21 · 1 pending — tap to pass", content.bodyLines.last().text)
         assertEquals("thabit --status", content.headerTitle)
     }
 

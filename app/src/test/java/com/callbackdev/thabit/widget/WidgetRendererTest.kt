@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.view.Gravity
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.View
@@ -87,7 +88,7 @@ class WidgetRendererTest {
         val view = inflate(content(WidgetTier.Terminal(4)), WidgetTier.Terminal(4))
         assertEquals(WidgetContentBuilder.HEADER, view.text(R.id.widget_title))
         assertEquals("you@thabit:~$ cat habits.test", view.text(R.id.widget_prompt))
-        assertTrue(view.text(R.id.widget_line1).startsWith("1/8 "))
+        assertTrue(view.text(R.id.widget_line1).startsWith("Suite: 1/8 "))
         assertEquals("[x] meditate 10 min", view.text(R.id.widget_line2))
         assertEquals(View.VISIBLE, view.visibility(R.id.widget_line4))
     }
@@ -99,12 +100,30 @@ class WidgetRendererTest {
         // suite line + eight rows + the trailing comment fills all ten slots;
         // the holding avoid test is not counted as pending.
         assertEquals("[·] no sugar", view.text(R.id.widget_line5))
-        assertEquals("# 6 pending — tap to pass", view.text(R.id.widget_line10))
+        assertEquals("# 2026-08-21 · 6 pending — tap to pass", view.text(R.id.widget_line10))
 
         // ...and a shorter suite leaves the tail of the slots hidden.
         val short = WidgetData(date = today, outcomes = data().outcomes.take(2), suiteSize = 2)
         val small = inflate(content(tier, short), tier)
         assertEquals(View.GONE, small.visibility(R.id.widget_line5))
+    }
+
+    /**
+     * The siblings' title bar sits between two 48dp boxes — theirs is a refresh
+     * control, thabit's is empty — and that is what makes the title read
+     * centred. Dropping the box left the title against the left edge and the
+     * three widgets stopped looking like a set on one home screen.
+     */
+    @Test
+    fun theTitleIsCentredTheWayTheSiblingWidgetsCentreTheirs() {
+        val view = inflate(content(WidgetTier.Terminal(4)), WidgetTier.Terminal(4))
+        val title = view.findViewById<TextView>(R.id.widget_title)
+        assertTrue(
+            "the title is not centred: ${title.gravity}",
+            title.gravity and Gravity.CENTER_HORIZONTAL == Gravity.CENTER_HORIZONTAL
+        )
+        // Its left edge has to clear the balancing box, or "centred" is a lie.
+        assertTrue("nothing balances the emoji box", title.left >= 0)
     }
 
     @Test
@@ -119,13 +138,17 @@ class WidgetRendererTest {
     @Test
     fun everyTokenKeepsItsColorAcrossTheRemoteViewsBoundary() {
         val view = inflate(content(WidgetTier.Terminal(4)), WidgetTier.Terminal(4))
-        // `[x]` is green here for the same reason it is green in the file.
-        assertEquals(palette.prompt, view.tokenColorAt(R.id.widget_line2, 1))
+        // `[x]` wears the file's own green, which is NOT the prompt's green:
+        // the prompt is the series' secondary, so `you@thabit` matches
+        // `you@tsteps` on the same home screen.
+        assertEquals(palette.pass, view.tokenColorAt(R.id.widget_line2, 1))
+        assertNotEquals(palette.pass, palette.prompt)
+        assertEquals(palette.prompt, view.tokenColorAt(R.id.widget_prompt, 1))
         // the name is plain on-surface, whatever the state
         assertEquals(palette.plain, view.tokenColorAt(R.id.widget_line2, 5))
-        // the fraction leads and is a number; the bar is green after it
-        assertEquals(palette.number, view.tokenColorAt(R.id.widget_line1, 0))
-        assertEquals(palette.prompt, view.tokenColorAt(R.id.widget_line1, 5))
+        // the field name is key blue, like every sibling widget's fields
+        assertEquals(palette.key, view.tokenColorAt(R.id.widget_line1, 0))
+        assertEquals(palette.number, view.tokenColorAt(R.id.widget_line1, 7))
     }
 
     @Test

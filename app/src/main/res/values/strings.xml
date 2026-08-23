@@ -245,6 +245,7 @@
     <string name="cd_widget_row_open">%1$s, %2$s. Tap to open it in the app</string>
     <string name="cd_widget_empty">No tests yet. Tap to add the first one</string>
     <string name="cd_widget_nothing_due">Nothing is due today</string>
+    <string name="cd_widget_day">Showing %1$s</string>
     <string name="cd_widget_none_pending">Nothing left to do today</string>
     <plurals name="cd_widget_pending">
         <item quantity="one">%1$d test still to do</item>

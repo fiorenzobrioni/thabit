@@ -2,7 +2,14 @@
 <!-- Static widget-picker preview: the medium tier with sample data and Obsidian
      colors hardcoded (the picker never runs our RemoteViews binding, so the real
      layouts would show empty). Multicolor lines are split into TextView pairs
-     because static XML has no spans. -->
+     because static XML has no spans.
+
+     **Every rule the real widget layouts obey applies here too**, and forgetting
+     it is what made this preview come up nearly blank in the launcher's picker:
+     the host inflates `previewLayout` in the same restricted context it uses for
+     the widget itself, where a plain <View> is not a whitelisted type and the
+     whole inflation fails. Dividers and rules are ImageViews with a background,
+     exactly as in widget_thabit_medium.xml. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -16,14 +23,20 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:minHeight="34dp"
-        android:orientation="horizontal"
-        android:paddingStart="14dp">
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:minWidth="48dp" />
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:fontFamily="monospace"
+            android:gravity="center"
             android:singleLine="true"
             android:text="@string/widget_label"
             android:textColor="#DFE2EB"
@@ -39,10 +52,11 @@
             android:textSize="18sp" />
     </LinearLayout>
 
-    <View
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#30363D" />
+        android:background="#30363D"
+        android:importantForAccessibility="no" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -55,7 +69,7 @@
         <TextView
             style="@style/WidgetPreviewText"
             android:text="you@thabit"
-            android:textColor="#2EA043" />
+            android:textColor="#74DD7E" />
 
         <TextView
             style="@style/WidgetPreviewText"
@@ -71,71 +85,90 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="33dp"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
         android:paddingEnd="14dp"
         android:paddingBottom="12dp">
 
+        <ImageView
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="6dp"
+            android:background="#30363D"
+            android:importantForAccessibility="no" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="30dp"
-            android:orientation="horizontal">
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="30dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text="Suite"
+                    android:textColor="#79C0FF" />
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text=": "
+                    android:textColor="#DFE2EB" />
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text="3/6"
+                    android:textColor="#FFA657" />
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text=" ▓▓▓▓▓░░░░░"
+                    android:textColor="#74DD7E" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="30dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text="[x]"
+                    android:textColor="#2EA043" />
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text=" meditate 10 min"
+                    android:textColor="#DFE2EB" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="30dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text="[ ]"
+                    android:textColor="#DFE2EB" />
+
+                <TextView
+                    style="@style/WidgetPreviewText"
+                    android:text=" read 20 pages"
+                    android:textColor="#DFE2EB" />
+            </LinearLayout>
 
             <TextView
                 style="@style/WidgetPreviewText"
-                android:text="2026-08-21  "
+                android:minHeight="30dp"
+                android:text="# 2026-08-21 · 3 pending"
                 android:textColor="#8B949E" />
-
-            <TextView
-                style="@style/WidgetPreviewText"
-                android:text="▓▓▓▓▓░░░░░"
-                android:textColor="#2EA043" />
-
-            <TextView
-                style="@style/WidgetPreviewText"
-                android:text=" 3/6"
-                android:textColor="#FFA657" />
         </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="30dp"
-            android:orientation="horizontal">
-
-            <TextView
-                style="@style/WidgetPreviewText"
-                android:text="[x]"
-                android:textColor="#2EA043" />
-
-            <TextView
-                style="@style/WidgetPreviewText"
-                android:text=" meditate 10 min"
-                android:textColor="#DFE2EB" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="30dp"
-            android:orientation="horizontal">
-
-            <TextView
-                style="@style/WidgetPreviewText"
-                android:text="[ ]"
-                android:textColor="#DFE2EB" />
-
-            <TextView
-                style="@style/WidgetPreviewText"
-                android:text=" read 20 pages"
-                android:textColor="#DFE2EB" />
-        </LinearLayout>
-
-        <TextView
-            style="@style/WidgetPreviewText"
-            android:minHeight="30dp"
-            android:text="# 3 pending — tap to pass"
-            android:textColor="#8B949E" />
     </LinearLayout>
 </LinearLayout>

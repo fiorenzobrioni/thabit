@@ -44,8 +44,20 @@
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:minHeight="34dp"
-            android:orientation="horizontal"
-            android:paddingStart="14dp">
+            android:orientation="horizontal">
+
+            <!-- The siblings put their refresh control here, 48dp wide, and the
+                 title reads centred because of it. thabit has nothing to refresh
+                 (no network, no sensor), so the box stays and the glyph goes:
+                 dropping it outright left the title hanging off the left edge
+                 and the two widgets stopped looking like siblings on the same
+                 home screen. An empty TextView because RemoteViews whitelists
+                 few view types, and this is one of them. -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:importantForAccessibility="no"
+                android:minWidth="48dp" />
 
             <TextView
                 android:id="@+id/widget_title"
@@ -54,6 +66,7 @@
                 android:layout_weight="1"
                 android:ellipsize="end"
                 android:fontFamily="monospace"
+                android:gravity="center"
                 android:singleLine="true"
                 android:textStyle="bold"
                 android:textSize="15sp" />
