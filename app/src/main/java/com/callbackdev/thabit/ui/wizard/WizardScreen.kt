@@ -1,5 +1,8 @@
 package com.callbackdev.thabit.ui.wizard
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,9 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -28,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.model.HabitType
+import com.callbackdev.thabit.notifications.ThabitNotifier
 import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.CodeLine
@@ -43,6 +51,9 @@ import com.callbackdev.thabit.ui.format.CodeFormat
 import com.callbackdev.thabit.ui.theme.SyntaxColors
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import java.time.DayOfWeek
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -73,7 +84,32 @@ fun WizardScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(state.closeRequested) { if (state.closeRequested) onClose() }
-    WizardScreen(state = state, actions = WizardActions(viewModel), modifier = modifier)
+
+    // A reminder that cannot ring is a field that lies (VISION §1.1), so setting
+    // one here asks for the permission the same way flipping a switch does in
+    // `settings.config` — the series' gated-toggle rule, applied to the place
+    // where reminders are actually created.
+    val context = LocalContext.current
+    var permissionEpoch by remember { mutableIntStateOf(0) }
+    val hasPermission = remember(permissionEpoch) { ThabitNotifier.canPost(context) }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { permissionEpoch++ }
+    val justSet = state.draft.remindAt != null && state.draft.remindAt != state.baseline.remindAt
+    LaunchedEffect(state.draft.remindAt, hasPermission) {
+        // Only a reminder the reader has just set, and only once: reopening
+        // `[edit]` on a test that already had one must not throw a system dialog
+        // at somebody who came to change its name.
+        if (justSet && !hasPermission) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    WizardScreen(
+        state = state,
+        actions = WizardActions(viewModel),
+        modifier = modifier,
+        remindArmed = hasPermission,
+        onGrantNotifications = { launcher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+    )
 }
 
 /** The stateless half — what the previews and the UI tests drive. */
@@ -81,12 +117,19 @@ fun WizardScreen(
 fun WizardScreen(
     state: WizardUiState,
     actions: WizardActions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** False when a reminder would be set but nothing could post it. */
+    remindArmed: Boolean = true,
+    onGrantNotifications: () -> Unit = {}
 ) {
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
             CodeCanvas(
-                lines = if (state.loading) emptyList() else transcriptLines(state, actions),
+                lines = if (state.loading) {
+                    emptyList()
+                } else {
+                    transcriptLines(state, actions, remindArmed, onGrantNotifications)
+                },
                 state = rememberLazyListState(),
                 modifier = Modifier.fillMaxSize()
             )
@@ -111,6 +154,7 @@ class WizardActions(
     val onPromptSubmit: () -> Unit = {},
     val onPromptCancel: () -> Unit = {},
     val onClearEmoji: () -> Unit = {},
+    val onClearRemind: () -> Unit = {},
     val onMore: () -> Unit = {},
     val onDone: () -> Unit = {},
     val onAddAnother: () -> Unit = {},
@@ -128,6 +172,7 @@ class WizardActions(
         onPromptSubmit = viewModel::onPromptSubmit,
         onPromptCancel = viewModel::onPromptCancel,
         onClearEmoji = viewModel::onClearEmoji,
+        onClearRemind = viewModel::onClearRemind,
         onMore = viewModel::onMore,
         onDone = viewModel::onDone,
         onAddAnother = viewModel::onAddAnother,
@@ -138,7 +183,9 @@ class WizardActions(
 @Composable
 private fun transcriptLines(
     state: WizardUiState,
-    actions: WizardActions
+    actions: WizardActions,
+    remindArmed: Boolean,
+    onGrantNotifications: () -> Unit
 ): List<CanvasLine> {
     val syntax = ThabitTheme.syntax
     val draft = state.draft
@@ -169,15 +216,8 @@ private fun transcriptLines(
         if (state.isCounter) lines += assertLine(state, actions, syntax)
         lines += whenLines(draft, actions, syntax)
         lines += schemeDetailLines(draft, actions, syntax)
+        lines += remindLines(state, actions, syntax, remindArmed, onGrantNotifications)
         lines += emojiLine(state, actions, syntax)
-        // Reminders are a later phase. The row stays, so the transcript keeps
-        // its shape and nobody wonders where the reminder went — but it says so
-        // instead of offering a control that would not ring.
-        lines += commentLine(
-            "# remind: off — reminders arrive with their own phase",
-            syntax,
-            indent = 1
-        )
     }
 
     state.error?.let { lines += errorLine(it, syntax) }
@@ -477,6 +517,113 @@ private fun assertLine(
     }
 }
 
+/**
+ * `> remind: [07:00] [off]  # approximate — a nudge, not an alarm clock`.
+ *
+ * The approximation is **declared here**, where the reminder is set, and not
+ * only in the settings file: `setWindow` can be ten minutes late, and a user who
+ * discovers that at 07:09 without having been told has been lied to by omission
+ * (VISION §1.1, §6.7).
+ *
+ * It sits above `emoji:` on purpose. The emoji is the transcript's last, most
+ * decorative question, and a reminder is the one remaining answer that changes
+ * what the app will *do*.
+ */
+@Composable
+private fun remindLines(
+    state: WizardUiState,
+    actions: WizardActions,
+    syntax: SyntaxColors,
+    armed: Boolean,
+    onGrant: () -> Unit
+): List<CanvasLine> {
+    if (state.focus == WizardField.Remind) {
+        return listOf(
+            WidgetLine(indent = 1, measureText = "> remind: ______    ") {
+                TerminalInput(
+                    value = state.pending,
+                    onValueChange = actions.onPromptChange,
+                    prompt = "> remind:",
+                    placeholder = "07:00",
+                    autoFocus = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { actions.onPromptSubmit() })
+                )
+            },
+            commentLine("# empty to turn it off", syntax, indent = 2)
+        )
+    }
+
+    val remindAt = state.draft.remindAt
+    val lines = mutableListOf<CanvasLine>(
+        WidgetLine(indent = 1, measureText = "> remind: [07:00] [off]  # approximate   ") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "> remind:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = syntax.comment,
+                    modifier = Modifier.decorative()
+                )
+                TextControl(
+                    label = remindAt?.let { "[${CodeFormat.time(it)}]" } ?: "[off]",
+                    color = if (remindAt != null) syntax.string else syntax.comment,
+                    description = remindAt
+                        ?.let { stringResource(R.string.cd_wizard_remind, it.spoken()) }
+                        ?: stringResource(R.string.cd_wizard_remind_off),
+                    onClick = { actions.onOpenPrompt(WizardField.Remind) }
+                )
+                if (remindAt != null) {
+                    TextControl(
+                        label = "[off]",
+                        color = syntax.comment,
+                        description = stringResource(R.string.cd_wizard_remind_clear),
+                        onClick = actions.onClearRemind
+                    )
+                }
+                Text(
+                    text = if (remindAt != null) {
+                        "  # approximate — a nudge, not an alarm"
+                    } else {
+                        "  # optional — a nudge at a time you pick"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = syntax.comment.copy(alpha = 0.6f),
+                    modifier = Modifier.decorative()
+                )
+            }
+        }
+    )
+    // The reminder is set and nothing can post it. Said in the transcript rather
+    // than left to be discovered at seven the next morning.
+    //
+    // Two lines, and that is the point: the message and the way out shared a row
+    // at first, and on a narrow screen `[grant]` sat past the right edge — an
+    // affordance that exists only for whoever thinks to scroll sideways, which
+    // is the exact defect Fase 5 fixed in the `when:` options and Fase 4 in the
+    // restore confirm. **The way out gets its own line.**
+    if (remindAt != null && !armed) {
+        lines += CodeLine(
+            text = AnnotatedString(
+                "# not armed: notifications are off",
+                SpanStyle(color = syntax.diffDel)
+            ),
+            indent = 2
+        )
+        lines += WidgetLine(indent = 2, measureText = "[grant]    ") {
+            TextControl(
+                label = "[grant]",
+                color = syntax.diffDel,
+                description = stringResource(R.string.cd_action_grant_notifications),
+                onClick = onGrant
+            )
+        }
+    }
+    return lines
+}
+
 @Composable
 private fun emojiLine(
     state: WizardUiState,
@@ -683,6 +830,13 @@ private fun commandLine(command: String, syntax: SyntaxColors): CodeLine =
 @Composable
 private fun DayOfWeek.spoken(): String =
     getDisplayName(TextStyle.FULL, LocalConfiguration.current.locales[0])
+
+/** `07:00` is the file's spelling; *le 7:00* is what a screen reader should hear. */
+@Composable
+private fun LocalTime.spoken(): String {
+    val locale = LocalConfiguration.current.locales[0]
+    return format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))
+}
 
 @Preview(showBackground = true, backgroundColor = 0xFF10141A, heightDp = 420)
 @Composable

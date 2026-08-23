@@ -2,6 +2,7 @@ package com.callbackdev.thabit.di
 
 import android.content.Context
 import com.callbackdev.thabit.data.HabitRepository
+import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
 import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.db.ThabitDatabase
@@ -35,6 +36,9 @@ object ServiceLocator {
 
     fun workspace(context: Context): WorkspaceStore = graph(context).workspace
 
+    fun notificationState(context: Context): NotificationStateStore =
+        graph(context).notificationState
+
     /** Swaps the graph in a test, or restores the real one with null. */
     fun overrideForTests(replacement: AppGraph?) {
         synchronized(this) { graph = replacement }
@@ -47,6 +51,9 @@ interface AppGraph {
 
     /** Session state — which file the editor tab has open (Fase 7). */
     val workspace: WorkspaceStore
+
+    /** What the app has already announced, so it never announces it twice (Fase 9). */
+    val notificationState: NotificationStateStore
     val repository: HabitRepository
     val clock: Clock
 
@@ -69,6 +76,9 @@ private class DefaultAppGraph(private val context: Context) : AppGraph {
     override val database: ThabitDatabase by lazy { ThabitDatabase.build(context) }
     override val settings: SettingsStore by lazy { SettingsStore(context) }
     override val workspace: WorkspaceStore by lazy { WorkspaceStore.create(context) }
+    override val notificationState: NotificationStateStore by lazy {
+        NotificationStateStore.create(context)
+    }
     override val repository: HabitRepository by lazy {
         HabitRepository(
             habitDao = database.habitDao(),

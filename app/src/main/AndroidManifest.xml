@@ -2,8 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- thabit has no INTERNET permission at all: habit data is intimate data,
-         and it never leaves the device (VISION §3.1). POST_NOTIFICATIONS will be
-         declared in Fase 9; there is nothing to declare until then. -->
+         and it never leaves the device (VISION §3.1). -->
+
+    <!-- The three notifications of Fase 9. minSdk 33 = one runtime-request path,
+         and the grant IS the opt-in: every post is gated on it at the moment it
+         happens, so a revocation in the system settings is a silent no-op. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Alarms do not survive a reboot. This is what lets the reminders come
+         back without the user having to open the app first. Note what is NOT
+         here: SCHEDULE_EXACT_ALARM. Reminders are inexact by design
+         (`setWindow`, VISION §6.7) — a nudge, not an alarm clock. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -22,6 +31,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Where a test's reminder and the evening digest land. exported=false:
+             the system delivers our own alarms regardless, and it keeps these
+             actions private to the app. -->
+        <receiver
+            android:name=".notifications.ReminderReceiver"
+            android:exported="false" />
+
+        <!-- `[pass]` from the shade. Also private: nothing outside the app may
+             write a check row. -->
+        <receiver
+            android:name=".notifications.CheckActionReceiver"
+            android:exported="false" />
+
+        <!-- Re-arms every alarm after the events that silently invalidate them.
+             exported=true because these are system broadcasts. -->
+        <receiver
+            android:name=".notifications.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

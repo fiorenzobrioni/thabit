@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.settings
 
+import com.callbackdev.thabit.data.NotificationSettings
 import com.callbackdev.thabit.ui.format.CodeFormat
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import java.time.DayOfWeek
@@ -28,11 +29,39 @@ data class SettingsDocument(
     /** Epoch millis, or null while the file is still exactly what shipped. */
     val lastModified: Long?,
     val versionName: String,
-    /** False until Fase 9 wires them: the section says so instead of pretending. */
-    val notificationsWired: Boolean = NOTIFICATIONS_SHIPPED,
+    val notifications: NotificationSettings = NotificationSettings(),
+    /**
+     * How many live tests carry a reminder.
+     *
+     * Not a setting and not editable here — it is the `notifications` block
+     * telling the truth about itself. Per-test reminders live on the test
+     * (VISION §4.4), so this file would otherwise claim that turning everything
+     * here off means nothing will ever post, which is false the moment one test
+     * has an alarm. Stating the count and where it is set is how the block stays
+     * honest without becoming a second place to edit it.
+     */
+    val reminderCount: Int = 0,
     /** False until Fase 11: the export commands answer honestly meanwhile. */
     val exportWired: Boolean = EXPORT_SHIPPED
 ) {
+    val digestHourValue: String get() = CodeFormat.time(notifications.digestHour)
+
+    /** The next value a tap on `digest_hour` moves to. */
+    fun cycledDigestHour(): LocalTime = nextDigestHour(notifications.digestHour)
+
+    /** `// 2 tests carry a reminder — set on the test, in habits.test`. */
+    val remindersComment: String
+        get() = if (reminderCount == 0) {
+            "// no test carries a reminder yet — set one from a test's [edit]"
+        } else {
+            val noun = if (reminderCount == 1) "test carries" else "tests carry"
+            "// $reminderCount $noun a reminder — set on the test, in habits.test"
+        }
+
+    /** True when something in this app could actually post. */
+    val anyNotification: Boolean
+        get() = notifications.dailyCommit || notifications.pendingDigest || reminderCount > 0
+
     val dayEndsValue: String get() = CodeFormat.time(dayEnds)
 
     val weekStartsValue: String get() = weekStartsOn.name.lowercase(Locale.ROOT)
@@ -55,9 +84,6 @@ data class SettingsDocument(
 
     companion object {
         const val FILE_NAME: String = "settings.config"
-
-        /** Wired in Fase 9. Until then the section refuses to show switches that do nothing. */
-        const val NOTIFICATIONS_SHIPPED: Boolean = false
 
         /** Wired in Fase 11. */
         const val EXPORT_SHIPPED: Boolean = false
@@ -85,12 +111,32 @@ data class SettingsDocument(
         val WEEK_START_CYCLE: List<DayOfWeek> =
             listOf(DayOfWeek.MONDAY, DayOfWeek.SUNDAY, DayOfWeek.SATURDAY)
 
+        /**
+         * The stops `digest_hour` cycles through — the evening, hour by hour.
+         *
+         * A cycle for the same reason `day_ends` is one: no keyboard in the
+         * config file. The range is deliberately narrow because the setting is
+         * narrow — this is the hour of an **evening** summary of what is still
+         * open, and a digest at nine in the morning would be a to-do list
+         * notification, which is the thing VISION §3.3.4 refuses to build.
+         */
+        val DIGEST_HOUR_CYCLE: List<LocalTime> = listOf(
+            LocalTime.of(18, 0),
+            LocalTime.of(19, 0),
+            LocalTime.of(20, 0),
+            LocalTime.of(21, 0),
+            LocalTime.of(22, 0)
+        )
+
         // Hints are source, so they stay English (VISION §1.3).
         const val DAY_ENDS_HINT: String = "// the nightly build; \"03:00\" if your day ends late"
         const val WEEK_STARTS_HINT: String = "// where the heatmap and the week table start"
         const val ACTIVE_HINT: String = "// active"
-        const val NOTIFICATIONS_PLACEHOLDER: String =
-            "// not wired yet — reminders and the daily commit arrive with their own phase"
+        const val DAILY_COMMIT_HINT: String = "// the day's build result, silent, at commit"
+        const val PENDING_DIGEST_HINT: String = "// one evening summary — never one nag per test"
+        const val DIGEST_HOUR_HINT: String = "// when that summary goes out"
+        const val REMINDERS_HINT: String =
+            "// reminders are approximate — a nudge, not an alarm clock"
         const val EXPORT_PENDING: String =
             "// nothing to export yet — the writer arrives with its own phase"
         const val RESTORE_CONFIRM: String = "// tap the command to confirm"
@@ -112,6 +158,8 @@ data class SettingsDocument(
 
         fun nextWeekStart(current: DayOfWeek): DayOfWeek = WEEK_START_CYCLE.nextAfter(current)
 
+        fun nextDigestHour(current: LocalTime): LocalTime = DIGEST_HOUR_CYCLE.nextAfter(current)
+
         private fun <T : Comparable<T>> List<T>.nextAfter(current: T): T {
             val index = indexOf(current)
             if (index >= 0) return this[(index + 1) % size]
@@ -125,7 +173,9 @@ data class SettingsDocument(
             showLineNumbers: Boolean,
             wordWrap: Boolean,
             lastModified: Long?,
-            versionName: String
+            versionName: String,
+            notifications: NotificationSettings = NotificationSettings(),
+            reminderCount: Int = 0
         ) = SettingsDocument(
             dayEnds = dayEnds,
             weekStartsOn = weekStartsOn,
@@ -133,7 +183,9 @@ data class SettingsDocument(
             showLineNumbers = showLineNumbers,
             wordWrap = wordWrap,
             lastModified = lastModified,
-            versionName = versionName
+            versionName = versionName,
+            notifications = notifications,
+            reminderCount = reminderCount
         )
     }
 }

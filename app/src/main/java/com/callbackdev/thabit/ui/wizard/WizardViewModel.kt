@@ -93,6 +93,9 @@ class WizardViewModel(
 
     fun onClearEmoji() = edit { it.withEmoji(null) }
 
+    /** `[off]`: the reminder taken back, without going through the keyboard. */
+    fun onClearRemind() = edit { it.withRemind(null) }
+
     /** `[more]`: the remaining prompts, for whoever wants them. */
     fun onMore() = _state.update { ui ->
         commit(ui).let { it.copy(draft = it.draft.expand(), focus = null, error = null) }
@@ -108,6 +111,7 @@ class WizardViewModel(
                 WizardField.Unit -> ui.draft.unit
                 WizardField.Target -> CodeFormat.number(ui.draft.target)
                 WizardField.Emoji -> ui.draft.emoji.orEmpty()
+                WizardField.Remind -> ui.draft.remindAt?.let { CodeFormat.time(it) }.orEmpty()
             },
             error = null
         )
@@ -131,19 +135,29 @@ class WizardViewModel(
         // the settings file's restore follows: a confirm armed a minute ago must
         // not go off under an innocent tap.
         val focus = ui.focus ?: return ui.copy(error = null, discardConfirm = false)
+        val closed = ui.copy(focus = null, pending = "", error = null, discardConfirm = false)
         val draft = when (focus) {
             WizardField.Name -> ui.draft.withName(ui.pending)
             WizardField.Unit -> ui.draft.withUnit(ui.pending)
             WizardField.Target -> ui.draft.withTarget(ui.pending)
             WizardField.Emoji -> ui.draft.withEmoji(ui.pending)
+            WizardField.Remind -> {
+                val text = ui.pending.trim()
+                when {
+                    // An empty answer is the way out of a prompt this app opens
+                    // on values that are allowed not to exist — the same rule the
+                    // emoji prompt follows.
+                    text.isEmpty() -> ui.draft.withRemind(null)
+                    else -> WizardDraft.parseTime(text)
+                        ?.let { ui.draft.withRemind(it) }
+                        // Unreadable: the draft is left exactly as it was and the
+                        // transcript says why. Storing a guess would put a time in
+                        // the file that nobody typed.
+                        ?: return closed.copy(error = BAD_TIME)
+                }
+            }
         }
-        return ui.copy(
-            draft = draft,
-            focus = null,
-            pending = "",
-            error = null,
-            discardConfirm = false
-        )
+        return closed.copy(draft = draft)
     }
 
     fun onPromptCancel() =
@@ -223,6 +237,8 @@ class WizardViewModel(
     companion object {
         const val MISSING_TEST = "ERROR: that test is no longer in the suite"
 
+        const val BAD_TIME = "ERROR: a reminder is a time of day — 07:00"
+
         fun factory(
             repository: HabitRepository,
             editingId: Long?,
@@ -243,7 +259,7 @@ class WizardViewModel(
 }
 
 /** Which prompt is open — the ones that need a keyboard rather than a tap. */
-enum class WizardField { Name, Unit, Target, Emoji }
+enum class WizardField { Name, Unit, Target, Emoji, Remind }
 
 data class WizardUiState(
     val draft: WizardDraft = WizardDraft(),

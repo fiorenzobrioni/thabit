@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.callbackdev.thabit.data.NotificationSettings
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import org.junit.Assert.assertEquals
@@ -40,6 +41,9 @@ class SettingsScreenTest {
         showLineNumbers: Boolean = true,
         wordWrap: Boolean = false,
         lastModified: Long? = null,
+        notifications: NotificationSettings = NotificationSettings(),
+        reminderCount: Int = 0,
+        notifState: NotifLineState = NotifLineState.Armed,
         interaction: SettingsInteraction = SettingsInteraction()
     ) {
         compose.setContent {
@@ -53,11 +57,14 @@ class SettingsScreenTest {
                             showLineNumbers = showLineNumbers,
                             wordWrap = wordWrap,
                             lastModified = lastModified,
-                            versionName = "0.1.0"
+                            versionName = "0.1.0",
+                            notifications = notifications,
+                            reminderCount = reminderCount
                         ),
                         interaction = interaction
                     ),
-                    actions = actions
+                    actions = actions,
+                    notifState = notifState
                 )
             }
         }
@@ -122,14 +129,50 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `the sections that are not wired yet say so instead of showing dead switches`() {
-        show()
-        // The tab strip costs the file 48dp at the top (Fase 7), so the section
-        // that used to sit just inside the viewport now needs a scroll.
-        scrollTo(SettingsDocument.NOTIFICATIONS_PLACEHOLDER)
+    fun `the notifications block shows its two switches and the hour they use`() {
+        show(notifications = NotificationSettings(dailyCommit = true, pendingDigest = false))
+        // The tab strip costs the file 48dp at the top (Fase 7), so this section
+        // needs a scroll to reach.
+        scrollTo("\"daily_commit\": true,  ${SettingsDocument.DAILY_COMMIT_HINT}")
         compose.onNodeWithText("\"notifications\": {").assertIsDisplayed()
-        compose.onNodeWithText(SettingsDocument.NOTIFICATIONS_PLACEHOLDER).assertIsDisplayed()
-        compose.onNodeWithText("\"daily_commit\"", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("\"daily_commit\": true,", substring = true)
+            .assertIsDisplayed()
+            .assert(hasClickAction())
+        compose.onNodeWithText("\"pending_digest\": false,", substring = true)
+            .assertIsDisplayed()
+            .assert(hasClickAction())
+        compose.onNodeWithText("\"digest_hour\": \"20:00\"", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the block says how many reminders it does not own, and where they live`() {
+        show(reminderCount = 2)
+        scrollTo("// 2 tests carry a reminder — set on the test, in habits.test")
+        compose.onNodeWithText("// 2 tests carry a reminder — set on the test, in habits.test")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `a missing permission is stated in the file, and the line grants it`() {
+        var tapped = false
+        show(
+            notifState = NotifLineState.MissingPermission,
+            actions = SettingsActions(onNotifLine = { tapped = true })
+        )
+        scrollTo("// ERROR: notifications permission missing — tap to grant")
+        compose.onNodeWithText("// ERROR: notifications permission missing — tap to grant")
+            .assertIsDisplayed()
+            .performClick()
+        assertTrue(tapped)
+    }
+
+    @Test
+    fun `an armed block says so, and says nothing to tap`() {
+        show(notifState = NotifLineState.Armed)
+        scrollTo("// armed — posts at the boundary and at the times you set")
+        compose.onNodeWithText("// armed — posts at the boundary and at the times you set")
+            .assertIsDisplayed()
+            .assert(hasClickAction().not())
     }
 
     @Test

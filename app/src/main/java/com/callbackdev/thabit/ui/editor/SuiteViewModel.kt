@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
@@ -53,6 +55,30 @@ class SuiteViewModel(
      * showing a day that is over.
      */
     private val redraw = MutableStateFlow(0)
+
+    init {
+        // A reminder tapped from the shade names a test; the file opens on it.
+        // Collected here rather than in the screen because what "open on it"
+        // means depends on the test's kind, and the kind lives in the document
+        // this view model already builds.
+        viewModelScope.launch {
+            SuiteFocus.request.filterNotNull().collect { habitId ->
+                // The request arrives before the first frame — the activity
+                // reads it out of the intent. Waiting for the document rather
+                // than reading whatever is in `state` right now is the whole
+                // difference between opening the test and doing nothing at all.
+                val document = state.first { !it.loading }.document
+                val row = document?.rowFor(habitId)
+                when {
+                    row?.type == HabitType.COUNTER -> openValuePrompt(row)
+                    document?.knows(habitId) == true ->
+                        interaction.update { it.copy(expandedId = habitId) }
+                    else -> Unit
+                }
+                SuiteFocus.consume()
+            }
+        }
+    }
 
     val state: StateFlow<SuiteUiState> = combine(
         settings.settings,

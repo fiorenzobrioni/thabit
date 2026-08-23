@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.settings
 
+import com.callbackdev.thabit.data.NotificationSettings
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -21,7 +22,9 @@ class SettingsDocumentTest {
         theme: ThemeProfile = ThemeProfile.Obsidian,
         showLineNumbers: Boolean = false,
         wordWrap: Boolean = false,
-        lastModified: Long? = null
+        lastModified: Long? = null,
+        notifications: NotificationSettings = NotificationSettings(),
+        reminderCount: Int = 0
     ) = SettingsDocument(
         dayEnds = dayEnds,
         weekStartsOn = weekStartsOn,
@@ -29,7 +32,9 @@ class SettingsDocumentTest {
         showLineNumbers = showLineNumbers,
         wordWrap = wordWrap,
         lastModified = lastModified,
-        versionName = "0.1.0"
+        versionName = "0.1.0",
+        notifications = notifications,
+        reminderCount = reminderCount
     )
 
     @Test
@@ -78,9 +83,46 @@ class SettingsDocumentTest {
 
     @Test
     fun `the sections that are not wired yet say so instead of showing dead switches`() {
-        assertFalse(doc().notificationsWired)
         assertFalse(doc().exportWired)
-        assertTrue(SettingsDocument.NOTIFICATIONS_PLACEHOLDER.startsWith("//"))
+        assertTrue(SettingsDocument.EXPORT_PENDING.startsWith("//"))
+    }
+
+    @Test
+    fun `the notifications block states the reminders it does not own`() {
+        // Per-test reminders live on the test, so the block would otherwise
+        // imply that two `false`s mean silence.
+        assertTrue(doc().remindersComment.contains("no test carries a reminder"))
+        assertTrue(doc(reminderCount = 1).remindersComment.contains("1 test carries a reminder"))
+        assertTrue(doc(reminderCount = 3).remindersComment.contains("3 tests carry a reminder"))
+        assertTrue(doc(reminderCount = 3).remindersComment.contains("habits.test"))
+    }
+
+    @Test
+    fun `something can post when a switch is on, or when a test carries a reminder`() {
+        assertFalse(doc(notifications = NotificationSettings(dailyCommit = false)).anyNotification)
+        assertTrue(doc(notifications = NotificationSettings(dailyCommit = true)).anyNotification)
+        assertTrue(doc(notifications = NotificationSettings(pendingDigest = true, dailyCommit = false)).anyNotification)
+        // The case the file would otherwise get wrong.
+        assertTrue(
+            doc(notifications = NotificationSettings(dailyCommit = false), reminderCount = 1)
+                .anyNotification
+        )
+    }
+
+    @Test
+    fun `digest_hour cycles through the evening and wraps`() {
+        assertEquals(
+            LocalTime.of(21, 0),
+            doc(notifications = NotificationSettings(digestHour = LocalTime.of(20, 0)))
+                .cycledDigestHour()
+        )
+        assertEquals(
+            LocalTime.of(18, 0),
+            doc(notifications = NotificationSettings(digestHour = LocalTime.of(22, 0)))
+                .cycledDigestHour()
+        )
+        // A value from outside the cycle keeps its place instead of snapping back.
+        assertEquals(LocalTime.of(20, 0), SettingsDocument.nextDigestHour(LocalTime.of(19, 30)))
     }
 
     @Test
@@ -95,7 +137,11 @@ class SettingsDocumentTest {
             SettingsDocument.DAY_ENDS_HINT,
             SettingsDocument.WEEK_STARTS_HINT,
             SettingsDocument.ACTIVE_HINT,
-            SettingsDocument.NOTIFICATIONS_PLACEHOLDER,
+            SettingsDocument.DAILY_COMMIT_HINT,
+            SettingsDocument.PENDING_DIGEST_HINT,
+            SettingsDocument.DIGEST_HOUR_HINT,
+            SettingsDocument.REMINDERS_HINT,
+            SettingsDocument.EXPORT_PENDING,
             SettingsDocument.RESTORE_HINT
         ).forEach { assertTrue("'$it' is not a comment", it.startsWith("//")) }
     }

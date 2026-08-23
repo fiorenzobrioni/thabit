@@ -403,4 +403,46 @@ class SuiteViewModelTest {
         assertTrue(document.isEmpty)
         assertTrue(document.due.isEmpty())
     }
+
+    // ---- the jump a reminder asks for (Fase 9) ----------------------------
+
+    @Test
+    fun `a reminder tapped from the shade unfolds the test it was about`() = runUi {
+        val id = repository.addHabit("meditate 10 min")
+        file()
+
+        SuiteFocus.request(id)
+        runCurrent()
+        assertEquals(id, interaction().expandedId)
+        // Consumed, so the file does not reopen it on every redraw.
+        assertNull(SuiteFocus.request.value)
+        // And it never ticks the box for the reader: they were being asked, not
+        // answered for.
+        assertNull(db.checkDao().find(id, "2026-08-21"))
+    }
+
+    @Test
+    fun `a counter opens its prompt, because that is why the shade could not settle it`() =
+        runUi {
+            val id = repository.addHabit(
+                name = "read 20 pages",
+                type = HabitType.COUNTER,
+                assert = AssertSpec(20.0, "pages")
+            )
+            file()
+
+            SuiteFocus.request(id)
+            runCurrent()
+            assertEquals("pages", (interaction().prompt as SuitePrompt.Value).unit)
+        }
+
+    @Test
+    fun `a request for a test the file does not know is dropped, not acted on`() = runUi {
+        file()
+        SuiteFocus.request(404L)
+        runCurrent()
+        assertNull(interaction().expandedId)
+        assertNull(interaction().prompt)
+        assertNull(SuiteFocus.request.value)
+    }
 }

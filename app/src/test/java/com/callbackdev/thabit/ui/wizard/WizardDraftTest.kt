@@ -12,6 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 
 /**
  * The conversation as a value: what it defaults to, where each answer moves it,
@@ -229,5 +230,44 @@ class WizardDraftTest {
     fun `a counter needs something to count`() {
         val draft = WizardDraft().withName("read").withType(HabitType.COUNTER).withUnit("")
         assertEquals("ERROR: a counter needs a unit to count", draft.validationError())
+    }
+
+    // ---- the reminder -----------------------------------------------------
+
+    @Test
+    fun `a time of day is read the forgiving way a terminal reads one`() {
+        val seven = LocalTime.of(7, 0)
+        listOf("7", "07", "7:00", "07:00", "700", "0700", "7.00", "7h00").forEach {
+            assertEquals("'$it' should be 07:00", seven, WizardDraft.parseTime(it))
+        }
+        assertEquals(LocalTime.of(21, 30), WizardDraft.parseTime("21:30"))
+        assertEquals(LocalTime.of(21, 30), WizardDraft.parseTime("2130"))
+        assertEquals(LocalTime.of(0, 5), WizardDraft.parseTime("0:05"))
+    }
+
+    @Test
+    fun `what it cannot read it refuses, instead of guessing a time nobody typed`() {
+        listOf("", "  ", "abc", "25:00", "7:75", "123456", "7:8:9", "-3").forEach {
+            assertNull("'$it' should not parse", WizardDraft.parseTime(it))
+        }
+    }
+
+    @Test
+    fun `a reminder travels onto the test, and comes back off it`() {
+        val draft = WizardDraft().withName("meditate").withRemind(LocalTime.of(7, 0))
+        assertEquals(LocalTime.of(7, 0), draft.toHabit(today, 0).remindAt)
+
+        val habit = draft.toHabit(today, 0).copy(id = 7L)
+        assertEquals(LocalTime.of(7, 0), WizardDraft.of(habit).remindAt)
+        // And taken back off, without going near anything else on the test.
+        val cleared = WizardDraft.of(habit).withRemind(null).applyTo(habit)
+        assertNull(cleared.remindAt)
+        assertEquals("meditate", cleared.name)
+    }
+
+    @Test
+    fun `no reminder is the default, like everything else except the name`() {
+        assertNull(WizardDraft().remindAt)
+        assertNull(WizardDraft().withName("meditate").toHabit(today, 0).remindAt)
     }
 }

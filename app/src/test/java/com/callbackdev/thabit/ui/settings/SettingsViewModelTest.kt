@@ -1,6 +1,9 @@
 package com.callbackdev.thabit.ui.settings
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.test.core.app.ApplicationProvider
+import com.callbackdev.thabit.data.HabitRepository
+import com.callbackdev.thabit.data.db.ThabitDatabase
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.callbackdev.thabit.data.SettingsStore
@@ -9,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -61,6 +65,8 @@ class SettingsViewModelTest {
     private val dataStoreScope = CoroutineScope(dispatcher + SupervisorJob())
 
     private lateinit var settings: SettingsStore
+    private lateinit var database: ThabitDatabase
+    private lateinit var repository: HabitRepository
     private lateinit var store: ViewModelStore
     private lateinit var viewModel: SettingsViewModel
 
@@ -76,13 +82,26 @@ class SettingsViewModelTest {
         // A real ViewModelStore so the teardown can close `viewModelScope`
         // deterministically, before the main dispatcher is handed back.
         store = ViewModelStore()
-        viewModel = ViewModelProvider(store, SettingsViewModel.factory(settings, "0.1.0"))
-            .get(SettingsViewModel::class.java)
+        // Room on the same test dispatcher as everything else: the file now
+        // reads the suite for its reminder count, and a query answering on
+        // Room's own executor would leave the document null forever here.
+        database = ThabitDatabase.inMemory(
+            ApplicationProvider.getApplicationContext(),
+            executor = dispatcher.asExecutor()
+        )
+        repository = HabitRepository(
+            database.habitDao(), database.checkDao(), database.dayDao(), settings, clock
+        )
+        viewModel = ViewModelProvider(
+            store,
+            SettingsViewModel.factory(settings, repository, "0.1.0")
+        ).get(SettingsViewModel::class.java)
     }
 
     @After
     fun tearDown() {
         store.clear()
+        database.close()
         dataStoreScope.cancel()
         Dispatchers.resetMain()
     }
@@ -107,6 +126,42 @@ class SettingsViewModelTest {
     private fun TestScope.interaction(): SettingsInteraction {
         runCurrent()
         return viewModel.state.value.interaction
+    }
+
+    // ---- the notifications block -----------------------------------------
+
+    @Test
+    fun `the two switches flip, and the digest hour cycles through the evening`() = runUi {
+        assertTrue(file().notifications.dailyCommit)
+        viewModel.onToggleDailyCommit()
+        assertFalse(file().notifications.dailyCommit)
+
+        assertFalse(file().notifications.pendingDigest)
+        viewModel.onTogglePendingDigest()
+        assertTrue(file().notifications.pendingDigest)
+
+        assertEquals(LocalTime.of(20, 0), file().notifications.digestHour)
+        viewModel.onCycleDigestHour()
+        assertEquals(LocalTime.of(21, 0), file().notifications.digestHour)
+    }
+
+    @Test
+    fun `the block counts the reminders it does not own, so it cannot claim silence`() = runUi {
+        // Out of the box the block itself can post: `daily_commit` is on.
+        assertEquals(0, file().reminderCount)
+        assertTrue(file().anyNotification)
+
+        // Everything in the block off, but a test carries an alarm: the file has
+        // to keep saying that something can post.
+        viewModel.onToggleDailyCommit()
+        assertFalse(file().anyNotification)
+        repository.addHabit("meditate 10 min", remindAt = LocalTime.of(7, 0))
+        assertEquals(1, file().reminderCount)
+        assertTrue(file().anyNotification)
+
+        // And an archived test stops counting: `[rm]` takes the alarm with it.
+        repository.archiveHabit(repository.observeLiveSuite().first().single().id)
+        assertEquals(0, file().reminderCount)
     }
 
     // ---- the controls ----------------------------------------------------

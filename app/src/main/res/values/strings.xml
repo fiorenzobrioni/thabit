@@ -79,6 +79,10 @@
     <string name="cd_action_use_theme">Use this theme</string>
     <string name="cd_action_restore">Restore the settings file</string>
     <string name="cd_action_restore_confirm">Confirm: restore the settings file</string>
+    <string name="cd_setting_daily_commit">The day\'s result as a notification, %1$s</string>
+    <string name="cd_setting_pending_digest">Evening summary of what is left, %1$s</string>
+    <string name="cd_setting_digest_hour">The evening summary goes out at %1$s</string>
+    <string name="cd_action_grant_notifications">Allow notifications</string>
     <string name="cd_action_export_json">Export your data as JSON</string>
     <string name="cd_action_export_csv">Export your data as CSV</string>
     <string name="cd_last_modified">Settings last changed on %1$s</string>
@@ -108,6 +112,9 @@
     <string name="cd_wizard_target">How much counts as done: %1$s</string>
     <string name="cd_wizard_emoji">Emoji: %1$s</string>
     <string name="cd_wizard_emoji_none">no emoji</string>
+    <string name="cd_wizard_remind">Reminder at %1$s</string>
+    <string name="cd_wizard_remind_off">No reminder</string>
+    <string name="cd_wizard_remind_clear">Remove the reminder</string>
     <string name="cd_action_more">Show the remaining questions</string>
     <string name="cd_action_add_test">Add the test to the suite</string>
     <string name="cd_action_save_test">Save the changes</string>
@@ -202,4 +209,28 @@
         <item quantity="other">%1$s: %2$d days with something done</item>
     </plurals>
     <string name="cd_stats_open_commit">Open that day in the history</string>
+
+    <!-- Notifications. The one surface with no file around it: a lock screen
+         gives the reader a line of text and nothing to look up. So the TITLE is
+         prose in the reader's language and always carries the arithmetic
+         (VISION §3.3.7, §4.4) - never a bare `build unstable` - while the body
+         stays the file's own English, decorating facts the title already has.
+         Channel names are chrome and localize like every other label. -->
+    <string name="notif_channel_reminders">Reminders</string>
+    <string name="notif_channel_daily">Daily commit</string>
+    <string name="notif_channel_digest">Evening summary</string>
+    <plurals name="notif_commit_passed">
+        <item quantity="one">✓ The only test passed</item>
+        <item quantity="other">✓ All %1$d tests passed</item>
+    </plurals>
+    <string name="notif_commit_unstable">~ %1$d of %2$d tests passed</string>
+    <plurals name="notif_commit_failed">
+        <item quantity="one">✗ The only test did not pass</item>
+        <item quantity="other">✗ None of the %1$d tests passed</item>
+    </plurals>
+    <plurals name="notif_digest_title">
+        <item quantity="one">%1$d test still to do</item>
+        <item quantity="other">%1$d tests still to do</item>
+    </plurals>
+    <string name="notif_action_pass">Done</string>
 </resources>

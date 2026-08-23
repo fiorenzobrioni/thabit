@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.callbackdev.thabit.BuildConfig
+import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.SettingsStore
 import com.callbackdev.thabit.data.ThabitSettings
 import com.callbackdev.thabit.di.ServiceLocator
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,6 +34,17 @@ import kotlinx.coroutines.launch
  */
 class SettingsViewModel(
     private val settings: SettingsStore,
+    /**
+     * Only ever read, and only for one number: how many live tests carry a
+     * reminder.
+     *
+     * `settings.config` does not edit a test — reminders belong to the test
+     * (VISION §4.4). It reads the suite so the `notifications` block can stop
+     * short of claiming that everything is off when a test still has an alarm
+     * registered; a file that says "disabled" while the phone rings at seven is
+     * the exact failure §1.1 exists to prevent.
+     */
+    private val repository: HabitRepository,
     private val versionName: String = BuildConfig.VERSION_NAME
 ) : ViewModel() {
 
@@ -40,8 +53,9 @@ class SettingsViewModel(
 
     val state: StateFlow<SettingsUiState> = combine(
         settings.settings,
+        repository.observeLiveSuite().map { suite -> suite.count { it.remindAt != null } },
         interaction
-    ) { config, ui ->
+    ) { config, reminders, ui ->
         SettingsUiState(
             document = SettingsDocument.of(
                 dayEnds = config.dayEnds,
@@ -50,7 +64,9 @@ class SettingsViewModel(
                 showLineNumbers = config.showLineNumbers,
                 wordWrap = config.wordWrap,
                 lastModified = config.lastModified,
-                versionName = versionName
+                versionName = versionName,
+                notifications = config.notifications,
+                reminderCount = reminders
             ),
             interaction = ui
         )
@@ -81,6 +97,24 @@ class SettingsViewModel(
     }
 
     fun onSelectTheme(profile: ThemeProfile) = write { settings.setTheme(profile) }
+
+    fun onToggleDailyCommit() = write {
+        settings.setDailyCommit(!current().notifications.dailyCommit)
+    }
+
+    /**
+     * The one notification that is opt-in, and the one whose alarm has to move
+     * with it: switching it on registers the evening wake-up, switching it off
+     * takes it back. Doing that here rather than in the screen keeps it true for
+     * whoever flips the setting next — a widget, a future shortcut, a test.
+     */
+    fun onTogglePendingDigest() = write {
+        settings.setPendingDigest(!current().notifications.pendingDigest)
+    }
+
+    fun onCycleDigestHour() = write {
+        settings.setDigestHour(SettingsDocument.nextDigestHour(current().notifications.digestHour))
+    }
 
     private suspend fun current(): ThabitSettings = settings.settings.first()
 
@@ -127,16 +161,20 @@ class SettingsViewModel(
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as Application
-                SettingsViewModel(ServiceLocator.settings(app))
+                SettingsViewModel(ServiceLocator.settings(app), ServiceLocator.repository(app))
             }
         }
 
         /** For tests and previews. */
-        fun factory(settings: SettingsStore, versionName: String): ViewModelProvider.Factory =
+        fun factory(
+            settings: SettingsStore,
+            repository: HabitRepository,
+            versionName: String
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T =
-                    SettingsViewModel(settings, versionName) as T
+                    SettingsViewModel(settings, repository, versionName) as T
             }
     }
 }

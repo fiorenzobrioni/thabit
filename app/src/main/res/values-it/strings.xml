@@ -78,6 +78,10 @@
     <string name="cd_action_use_theme">Usa questo tema</string>
     <string name="cd_action_restore">Ripristina il file delle impostazioni</string>
     <string name="cd_action_restore_confirm">Conferma: ripristina il file delle impostazioni</string>
+    <string name="cd_setting_daily_commit">Risultato della giornata come notifica, %1$s</string>
+    <string name="cd_setting_pending_digest">Riepilogo serale di ciò che resta, %1$s</string>
+    <string name="cd_setting_digest_hour">Il riepilogo serale arriva alle %1$s</string>
+    <string name="cd_action_grant_notifications">Consenti le notifiche</string>
     <string name="cd_action_export_json">Esporta i tuoi dati in JSON</string>
     <string name="cd_action_export_csv">Esporta i tuoi dati in CSV</string>
     <string name="cd_last_modified">Impostazioni cambiate l\'ultima volta il %1$s</string>
@@ -110,6 +114,9 @@
     <string name="cd_wizard_target">Quanto conta come fatto: %1$s</string>
     <string name="cd_wizard_emoji">Emoji: %1$s</string>
     <string name="cd_wizard_emoji_none">nessuna emoji</string>
+    <string name="cd_wizard_remind">Promemoria alle %1$s</string>
+    <string name="cd_wizard_remind_off">Nessun promemoria</string>
+    <string name="cd_wizard_remind_clear">Togli il promemoria</string>
     <string name="cd_action_more">Mostra le domande rimaste</string>
     <string name="cd_action_add_test">Aggiungi il test alla suite</string>
     <string name="cd_action_save_test">Salva le modifiche</string>
@@ -210,4 +217,30 @@
         <item quantity="other">%1$s: %2$d giorni con qualcosa di fatto</item>
     </plurals>
     <string name="cd_stats_open_commit">Apri quel giorno nello storico</string>
+
+    <!-- Notifiche. È l'unica superficie senza un file intorno: sulla lockscreen
+         il lettore riceve una riga di testo e nulla da consultare. Quindi il
+         TITOLO è prosa nella sua lingua e porta sempre l'aritmetica (VISION
+         §3.3.7, §4.4) - mai un `build unstable` nudo - mentre il corpo resta
+         l'inglese del file e decora fatti che il titolo ha già detto. -->
+    <string name="notif_channel_reminders">Promemoria</string>
+    <string name="notif_channel_daily">Commit giornaliero</string>
+    <string name="notif_channel_digest">Riepilogo serale</string>
+    <plurals name="notif_commit_passed">
+        <item quantity="one">✓ L\'unico test è passato</item>
+        <item quantity="many">✓ Tutti e %1$d i test sono passati</item>
+        <item quantity="other">✓ Tutti e %1$d i test sono passati</item>
+    </plurals>
+    <string name="notif_commit_unstable">~ %1$d test su %2$d passati</string>
+    <plurals name="notif_commit_failed">
+        <item quantity="one">✗ L\'unico test non è passato</item>
+        <item quantity="many">✗ Nessuno dei %1$d test è passato</item>
+        <item quantity="other">✗ Nessuno dei %1$d test è passato</item>
+    </plurals>
+    <plurals name="notif_digest_title">
+        <item quantity="one">%1$d test ancora da fare</item>
+        <item quantity="many">%1$d test ancora da fare</item>
+        <item quantity="other">%1$d test ancora da fare</item>
+    </plurals>
+    <string name="notif_action_pass">Fatto</string>
 </resources>

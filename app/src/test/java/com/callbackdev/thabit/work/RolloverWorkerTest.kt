@@ -48,12 +48,16 @@ class RolloverWorkerTest {
 
     @After
     fun tearDown() {
-        RolloverEffects.install(RolloverEffects.None)
+        RolloverEffects.reset()
         db.close()
     }
 
     @Test
     fun `the rollover writes nothing at all`() = runTest {
+        // The default effect posts the day's commit against the app's own graph;
+        // this test is about the database in front of it, so the effect is
+        // silenced and the assertion is only about rows.
+        RolloverEffects.install(RolloverEffects.None)
         val id = repository.addHabit("meditate 10 min")
         repository.pass(id, LocalDate.now())
         val checksBefore = db.checkDao().all()

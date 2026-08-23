@@ -87,6 +87,13 @@ data class SuiteDocument(
             "logical day ${CodeFormat.date(logicalDate)} — ends ${CodeFormat.time(dayEnds)}"
         }
 
+    /** The row today has for a test, or null when today does not ask for it. */
+    fun rowFor(habitId: Long): TestRow? = due.firstOrNull { it.habitId == habitId }
+
+    /** Whether the file shows this test at all today, due or commented out. */
+    fun knows(habitId: Long): Boolean =
+        rowFor(habitId) != null || notDue.any { it.habitId == habitId }
+
     /** `2 tests not due today — [show]` / `[hide]`. */
     fun notDueComment(expanded: Boolean): String? {
         if (notDue.isEmpty()) return null
