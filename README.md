@@ -22,9 +22,9 @@ The extension is `.test` and not `.yaml` on purpose: `- [x] meditate 10 min` is 
 
 ## Status
 
-Under construction. The spec is complete (see `VISION.md`) and the plan is phased and public (see `PLANNING.md`). The app is usable end to end: `$ thabit add` builds your suite as a terminal conversation (one answer is enough, the rest have defaults), `habits.test` runs it a tap at a time, `habits_history.diff` is the git log of your days, `stats.md` draws the heatmap and the suite health, the `README.md` tab says the same things in plain prose, and `settings.config` is a JSON file whose values are the controls, theme included. Notifications, the home widget and the export have landed: a reminder per habit answerable from the shade, the day's build result at the boundary, an opt-in evening summary, `thabit --status` on the home screen with a habit ticked off straight from a row, and `$ thabit export` handing the whole history back as JSON or CSV. The domain underneath computes every verdict on read: schedules, the configurable day boundary, streaks, health, coverage, regressions, records. Every row speaks its state out loud to a screen reader, in English or Italian, terminal output included. 610+ JVM tests. The round of field polish is done (the first one on this app that came back without a defect), so what is left before v1.0.0 is the pre-release design pass and the release itself.
+The app is complete and runs on a phone. `$ thabit add` builds your suite as a terminal conversation (one answer is enough, the rest have defaults), `habits.test` runs it a tap at a time, `habits_history.diff` is the git log of your days, `stats.md` draws the heatmap and the suite health, the `README.md` tab says the same things in plain prose, and `settings.config` is a JSON file whose values are the controls, theme included. Notifications, the home widget and the export have landed: a reminder per habit answerable from the shade, the day's build result at the boundary, an opt-in evening summary, `thabit --status` on the home screen with a habit ticked off straight from a row, and `$ thabit export` handing the whole history back as JSON or CSV. The domain underneath computes every verdict on read: schedules, the configurable day boundary, streaks, health, coverage, regressions, records. Every row speaks its state out loud to a screen reader, in English or Italian, terminal output and the metrics included. 620+ JVM tests. The spec is in `VISION.md` and the phased plan, with every decision and why it was taken, is in `PLANNING.md`. What is left before the v1.0.0 tag is a pass of edge cases on a real phone.
 
-## What it will do
+## What it does
 
 - **One file, one glance**: every habit due today on one line, checked off with one tap.
 - **Honest mechanics**: measurable habits are assertions (`pages >= 20`), skips are neutral and never break a streak, and a health score (an exponential moving average) forgives the bad day a raw chain would not.
@@ -54,7 +54,13 @@ Everything is `Locale.ROOT` and canonical: ISO dates, 24-hour clocks, a full sto
 
 ## Install
 
-Not yet released. Once v1.0.0 is out, signed APKs will be published as GitHub Releases.
+The v1.0.0 tag has not been cut yet. When it is, a signed APK is published as a GitHub Release together with its R8 mapping file, built by CI from the tag. Until then you can build one yourself: `./gradlew :app:assembleDebug` puts a debug APK in `app/build/outputs/apk/debug/`.
+
+Debug builds install side by side with the release app: they carry their own application id and the launcher label `thabit (dev)`, so testing a build never touches the habits you actually keep.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

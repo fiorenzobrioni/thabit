@@ -109,6 +109,11 @@ fun yamlTestLine(
 /**
  * `when: daily` — a key/scalar line of a test's expanded spec. Quoted values keep
  * their quotes inside the string color (`remind: "07:00"`), like real YAML.
+ *
+ * [contentDescription] is not optional decoration on these rows: a YAML key read
+ * aloud is *"when colon daily"*, and `health:` draws its fact as a bar of block
+ * characters that says nothing at all out loud. The caller composes the sentence
+ * because these builders are pure and hold no Context (Fase 13, §3.3.7 audit).
  */
 fun yamlStringLine(
     key: String,
@@ -117,6 +122,7 @@ fun yamlStringLine(
     indent: Int = 0,
     comment: String? = null,
     quoted: Boolean = false,
+    contentDescription: String? = null,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null
 ): CodeLine = yamlKeyValueLine(
@@ -126,6 +132,7 @@ fun yamlStringLine(
     syntax = syntax,
     indent = indent,
     comment = comment,
+    contentDescription = contentDescription,
     onClick = onClick,
     onClickLabel = onClickLabel
 )
@@ -137,6 +144,7 @@ fun yamlNumberLine(
     syntax: SyntaxColors,
     indent: Int = 0,
     comment: String? = null,
+    contentDescription: String? = null,
     onClick: (() -> Unit)? = null,
     onClickLabel: String? = null
 ): CodeLine = yamlKeyValueLine(
@@ -146,6 +154,7 @@ fun yamlNumberLine(
     syntax = syntax,
     indent = indent,
     comment = comment,
+    contentDescription = contentDescription,
     onClick = onClick,
     onClickLabel = onClickLabel
 )
@@ -157,6 +166,7 @@ private fun yamlKeyValueLine(
     syntax: SyntaxColors,
     indent: Int,
     comment: String?,
+    contentDescription: String?,
     onClick: (() -> Unit)?,
     onClickLabel: String?
 ): CodeLine = CodeLine(
@@ -167,6 +177,7 @@ private fun yamlKeyValueLine(
         appendYamlComment(comment, syntax)
     },
     indent = indent,
+    contentDescription = contentDescription,
     onClick = onClick,
     onClickLabel = onClickLabel
 )

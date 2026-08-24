@@ -429,22 +429,67 @@ private fun specLines(
     syntax: SyntaxColors
 ): List<CanvasLine> {
     val lines = mutableListOf<CanvasLine>()
-    lines += yamlStringLine("when", spec.schedule, syntax, indent = 1)
-    spec.assertText?.let { lines += yamlStringLine("assert", it, syntax, indent = 1) }
-    spec.remind?.let { lines += yamlStringLine("remind", it, syntax, indent = 1, quoted = true) }
+    lines += yamlStringLine(
+        key = "when",
+        value = spec.schedule,
+        syntax = syntax,
+        indent = 1,
+        contentDescription = stringResource(R.string.cd_spec_when, spec.schedule)
+    )
+    spec.assertText?.let {
+        lines += yamlStringLine(
+            key = "assert",
+            value = it,
+            syntax = syntax,
+            indent = 1,
+            contentDescription = stringResource(R.string.cd_spec_assert, it)
+        )
+    }
+    spec.remind?.let {
+        lines += yamlStringLine(
+            key = "remind",
+            value = it,
+            syntax = syntax,
+            indent = 1,
+            quoted = true,
+            // The approximation travels with the reminder here too: it is stated
+            // in the wizard where the reminder is set, and a reader who only ever
+            // hears this row would otherwise never be told (VISION §6.7).
+            contentDescription = stringResource(R.string.cd_spec_remind, it)
+        )
+    }
     lines += yamlNumberLine(
         key = "streak",
         value = spec.streak.toString(),
         syntax = syntax,
         indent = 1,
-        comment = if (spec.streakUnit == StreakUnit.WEEKS) "weeks" else "days"
+        comment = if (spec.streakUnit == StreakUnit.WEEKS) "weeks" else "days",
+        contentDescription = if (spec.streak == 0) {
+            stringResource(R.string.cd_spec_streak_none)
+        } else {
+            pluralStringResource(
+                if (spec.streakUnit == StreakUnit.WEEKS) {
+                    R.plurals.cd_spec_streak_weeks
+                } else {
+                    R.plurals.cd_spec_streak_days
+                },
+                spec.streak,
+                spec.streak
+            )
+        }
     )
     lines += yamlStringLine(
         key = "health",
         value = "${CodeFormat.bar(spec.health)} ${CodeFormat.percent(spec.health)}",
         syntax = syntax,
         indent = 1,
-        comment = if (spec.health == null) "not enough runs yet" else null
+        comment = if (spec.health == null) "not enough runs yet" else null,
+        // The bar IS the fact on this row, and a bar cannot be heard: without
+        // this the only health a screen reader ever gets is `--%` read as
+        // punctuation. The percentage is the same number the bar draws.
+        contentDescription = spec.health
+            ?.let { stringResource(R.string.cd_spec_health, CodeFormat.percent(it)) }
+            ?: stringResource(R.string.cd_spec_health_unknown)
     )
 
     if (interaction.archiveConfirmId == habitId) {

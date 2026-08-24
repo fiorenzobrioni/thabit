@@ -96,6 +96,23 @@ object ReadmeDocument {
         add("## ${s(R.string.readme_h_week)}")
         addAll(weekTable(history, today, weekStartsOn, locale, resources))
 
+        // ---- ## Glossary ---------------------------------------------------
+        // Always here, never behind a toggle: a "beginner mode" would be two
+        // apps in one (VISION §6), and the reader who needs the sentence is the
+        // one least likely to go looking for the switch that reveals it. The
+        // terms stay English because that is what the files print; the sentences
+        // are the reader's language, like the rest of this tab.
+        add("")
+        add("## ${s(R.string.readme_h_glossary)}")
+        listOf(
+            R.string.readme_gloss_build,
+            R.string.readme_gloss_commit,
+            R.string.readme_gloss_health,
+            R.string.readme_gloss_coverage,
+            R.string.readme_gloss_flaky,
+            R.string.readme_gloss_regression
+        ).forEach { add("- ${s(it)}") }
+
         // ---- footer --------------------------------------------------------
         val commits = commitCount(history, today)
         add("")

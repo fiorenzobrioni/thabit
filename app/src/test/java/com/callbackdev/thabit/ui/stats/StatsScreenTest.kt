@@ -121,4 +121,27 @@ class StatsScreenTest {
         ).assertIsDisplayed()
         compose.onNodeWithText("## coverage").assertDoesNotExist()
     }
+
+    // ---- the spoken half of the metrics (Fase 13) -------------------------
+
+    @Test
+    fun `a health table row is heard as a sentence, not as pipes`() {
+        show(greenDays(20))
+        // The file keeps its padded markdown row — that is the file. Read out
+        // literally it is pipes and padding, so the row carries the same numbers
+        // as words (VISION §3.3.7, the section that reports the app's own
+        // metrics was the last place a fact lived only in a form nobody hears).
+        scrollTo(hasContentDescription("“meditate 10 min”: held about 100% of the time lately."))
+        compose.onNodeWithContentDescription(
+            "“meditate 10 min”: held about 100% of the time lately."
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `the table's header and separator are not spoken as data`() {
+        show(greenDays(20))
+        // Only the data rows get a sentence: a separator row read as a habit
+        // would be the screen inventing a test that does not exist.
+        compose.onNodeWithContentDescription("| test", substring = true).assertDoesNotExist()
+    }
 }

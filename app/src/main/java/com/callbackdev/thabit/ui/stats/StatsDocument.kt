@@ -2,6 +2,7 @@ package com.callbackdev.thabit.ui.stats
 
 import com.callbackdev.thabit.domain.Coverage
 import com.callbackdev.thabit.domain.CoverageReport
+import com.callbackdev.thabit.domain.FlakyTest
 import com.callbackdev.thabit.domain.FlakyTests
 import com.callbackdev.thabit.domain.Health
 import com.callbackdev.thabit.domain.Heatmap
@@ -9,6 +10,7 @@ import com.callbackdev.thabit.domain.HeatmapGrid
 import com.callbackdev.thabit.domain.Outcomes
 import com.callbackdev.thabit.domain.Record
 import com.callbackdev.thabit.domain.Records
+import com.callbackdev.thabit.domain.Regression
 import com.callbackdev.thabit.domain.Regressions
 import com.callbackdev.thabit.domain.StreakUnit
 import com.callbackdev.thabit.domain.Streaks
@@ -49,6 +51,17 @@ data class StatsDocument(
     val healthTable: List<String>,
     val flaky: List<String>,
     val regressions: List<String>,
+    /**
+     * The same three sections as facts rather than as rendered rows.
+     *
+     * They travel beside their markdown for the reason `tags` travels beside
+     * `tagTable`: a table row read aloud is pipes and padding, so the screen
+     * composes a sentence from the numbers instead — and it can only do that if
+     * it still has the numbers (VISION §3.3.7, audited in Fase 13).
+     */
+    val healthRows: List<HealthRow>,
+    val flakyRows: List<FlakyTest>,
+    val regressionRows: List<Regression>,
     /** The tag table's lines, and the commits its rows point at. */
     val tagTable: List<String>,
     val tags: List<TagRow>,
@@ -133,6 +146,7 @@ data class StatsDocument(
                 .sortedWith(compareByDescending<HealthRow> { it.health ?: -1.0 }.thenBy { it.name })
 
             val regressions = Regressions.detect(history, today)
+            val flaky = FlakyTests.detect(history, today, regressions)
             val tags = tagRows(history, today)
 
             return StatsDocument(
@@ -140,15 +154,18 @@ data class StatsDocument(
                 heatmap = Heatmap.build(history, today, weekStartsOn),
                 coverage = Coverage.lastDays(history, WINDOW_DAYS.toInt(), today),
                 healthTable = healthTable(healthRows),
-                flaky = FlakyTests.detect(history, today, regressions).map { flaky ->
-                    "${flaky.habit.name} — ${CodeFormat.percent(flaky.passRate)} pass rate " +
-                        "over $WINDOW_DAYS days (${flaky.fraction})"
+                flaky = flaky.map { test ->
+                    "${test.habit.name} — ${CodeFormat.percent(test.passRate)} pass rate " +
+                        "over $WINDOW_DAYS days (${test.fraction})"
                 },
                 regressions = regressions.map { regression ->
                     val unit = if (regression.unit == StreakUnit.WEEKS) "weeks" else "days"
                     "${regression.habit.name} — ${regression.greenRun} $unit green, " +
                         "${regression.recentFails} of the last ${regression.recentWindow} red"
                 },
+                healthRows = healthRows,
+                flakyRows = flaky,
+                regressionRows = regressions,
                 tagTable = tagTable(tags),
                 tags = tags,
                 isEmpty = healthRows.isEmpty()

@@ -46,6 +46,40 @@
     <string name="cd_action_clear_value">Cancella il numero di oggi per questo test</string>
     <string name="cd_not_due">non richiesto oggi</string>
 
+    <!-- La scheda espansa di un test, detta a parole. Il file mostra chiavi YAML
+         e una barra fatta di caratteri di blocco; nessuna delle due sopravvive
+         alla lettura ad alta voce, e `health:` è la peggiore perché lì la barra
+         È il fatto (VISION §3.3.7). Il valore tiene le parole del file dove sono
+         già piane (uno schedule, un assert); quello che cambia è che la riga
+         dice cosa è, nella lingua di chi legge, invece di "when due punti". -->
+    <string name="cd_spec_when">Quando: %1$s</string>
+    <string name="cd_spec_assert">Conta come fatto a: %1$s</string>
+    <string name="cd_spec_remind">Promemoria alle %1$s, più o meno qualche minuto.</string>
+    <string name="cd_spec_health">Ha tenuto circa il %1$s delle volte, ultimamente.</string>
+    <string name="cd_spec_health_unknown">Non ci sono ancora abbastanza giorni per dire come va.</string>
+    <plurals name="cd_spec_streak_days">
+        <item quantity="one">Una serie di %1$d giorno.</item>
+        <item quantity="many">Una serie di %1$d giorni.</item>
+        <item quantity="other">Una serie di %1$d giorni.</item>
+    </plurals>
+    <plurals name="cd_spec_streak_weeks">
+        <item quantity="one">Una serie di %1$d settimana.</item>
+        <item quantity="many">Una serie di %1$d settimane.</item>
+        <item quantity="other">Una serie di %1$d settimane.</item>
+    </plurals>
+    <string name="cd_spec_streak_none">Nessuna serie in corso adesso.</string>
+
+    <!-- Il file delle statistiche, detto a parole. Stesso problema della scheda:
+         una tabella di salute fatta di barre, e due sezioni le cui righe sono
+         markdown. -->
+    <string name="cd_stats_health_row">“%1$s”: ha tenuto circa il %2$s delle volte, ultimamente.</string>
+    <plurals name="cd_stats_flaky_row">
+        <item quantity="one">“%1$s”: fatto il %2$s delle volte nell\'ultimo %3$d giorno.</item>
+        <item quantity="many">“%1$s”: fatto il %2$s delle volte negli ultimi %3$d giorni.</item>
+        <item quantity="other">“%1$s”: fatto il %2$s delle volte negli ultimi %3$d giorni.</item>
+    </plurals>
+    <string name="cd_stats_regression_row">“%1$s”: teneva, e ultimamente non tiene più.</string>
+
     <!-- Output del terminale, detto a parole. Il file li stampa in inglese come
          ogni altro commento; all'orecchio arriva la lingua di chi legge, che è
          tutto il senso della terza superficie localizzata (VISION §3.3.7). -->
@@ -205,6 +239,19 @@
     </plurals>
     <string name="readme_health_low">“%1$s” ultimamente regge circa il %2$s delle volte.</string>
     <string name="readme_no_run">%1$s non hai aperto l\'app: quel giorno non conta come fallito, semplicemente non c\'è.</string>
+    <!-- Il glossario. VISION §3.3.7: nessun termine CI è l'unico posto in cui un
+         fatto esiste, e questa tab è dove vive la metà in lingua piana di ogni
+         termine a schermo. Il termine resta inglese perché è la parola stampata
+         nei file; la frase dopo è di chi legge. Aggiunto in Fase 13, quando
+         l'audit ha trovato `coverage`, `flaky` e `regressions` spiegati in
+         nessun posto che non fosse un commento inglese nel sorgente. -->
+    <string name="readme_h_glossary">Cosa vogliono dire le parole</string>
+    <string name="readme_gloss_build">**build**: una giornata. Passa se hai fatto tutto quello che era richiesto, è **unstable** se ne hai fatto una parte, fallisce se non ne hai fatto niente. I numeri stanno sempre accanto alla parola.</string>
+    <string name="readme_gloss_commit">**commit**: la voce che un giorno chiuso lascia nello storico. Un giorno in cui non hai aperto l\'app non ne lascia nessuna, perché di quel giorno non si sa niente.</string>
+    <string name="readme_gloss_health">**health**: quanto spesso un\'abitudine ha tenuto ultimamente, in percentuale. I giorni recenti contano più di quelli vecchi, e i giorni saltati o in cui non hai aperto l\'app non contano affatto.</string>
+    <string name="readme_gloss_coverage">**coverage**: quanti dei giorni che ti chiedevano qualcosa sono giorni in cui hai davvero aperto l\'app. Misura il presentarsi, non il riuscirci.</string>
+    <string name="readme_gloss_flaky">**flaky**: un\'abitudine che ti riesce circa una volta su due. Non è un rimprovero: di solito vuol dire che chiede troppo, o che chiede nei giorni sbagliati.</string>
+    <string name="readme_gloss_regression">**regression**: un\'abitudine che teneva e ultimamente non tiene più. Si dice una volta sola, senza consigli.</string>
     <string name="readme_col_day">Giorno</string>
     <string name="readme_col_passed">Fatti</string>
     <string name="readme_col_result">Com\'è andata</string>

@@ -48,6 +48,36 @@
     <string name="cd_action_clear_value">Clear today\'s number for this test</string>
     <string name="cd_not_due">not due today</string>
 
+    <!-- The expanded spec of a test, spoken. The file shows YAML keys and a bar
+         drawn out of block characters; neither survives being read aloud, and
+         `health:` is the worst of them because the bar IS the fact (VISION
+         §3.3.7). The value keeps the file's own words where they are already
+         plain (a schedule, an assert); what changes is that the row says what
+         it is, in the reader's language, instead of "when colon". -->
+    <string name="cd_spec_when">Scheduled: %1$s</string>
+    <string name="cd_spec_assert">Counts as done at: %1$s</string>
+    <string name="cd_spec_remind">Reminder at %1$s, give or take a few minutes.</string>
+    <string name="cd_spec_health">Held about %1$s of the time lately.</string>
+    <string name="cd_spec_health_unknown">Not enough runs yet to say how it is going.</string>
+    <plurals name="cd_spec_streak_days">
+        <item quantity="one">A run of %1$d day.</item>
+        <item quantity="other">A run of %1$d days.</item>
+    </plurals>
+    <plurals name="cd_spec_streak_weeks">
+        <item quantity="one">A run of %1$d week.</item>
+        <item quantity="other">A run of %1$d weeks.</item>
+    </plurals>
+    <string name="cd_spec_streak_none">No run going right now.</string>
+
+    <!-- The stats file, spoken. Same problem as the spec: a health table made of
+         bars, and two sections whose rows are markdown. -->
+    <string name="cd_stats_health_row">“%1$s”: held about %2$s of the time lately.</string>
+    <plurals name="cd_stats_flaky_row">
+        <item quantity="one">“%1$s”: done %2$s of the time over the last %3$d day.</item>
+        <item quantity="other">“%1$s”: done %2$s of the time over the last %3$d days.</item>
+    </plurals>
+    <string name="cd_stats_regression_row">“%1$s”: used to hold, and lately does not.</string>
+
     <!-- Terminal output, spoken. The file prints these in English like every
          other comment; the ear gets the reader's own language, which is the
          whole point of the third localized surface (VISION §3.3.7). -->
@@ -199,6 +229,19 @@
     <string name="readme_health_low">“%1$s” has held about %2$s of the time lately.</string>
     <!-- The `no run` gloss: the app is allowed to not know (3.3.8). -->
     <string name="readme_no_run">You did not open the app on %1$s: that day is not counted as failed, it simply is not there.</string>
+    <!-- The glossary. VISION §3.3.7: no CI term is ever the only place a fact
+         exists, and this tab is where the plain-language half of every term on
+         screen lives. The term itself stays in English because that is the word
+         printed in the files; the sentence after it is the reader's. Added in
+         Fase 13, when the audit found `coverage`, `flaky` and `regressions`
+         explained nowhere but in an English source comment. -->
+    <string name="readme_h_glossary">What the words mean</string>
+    <string name="readme_gloss_build">**build**: one day. It passes when everything due got done, it is **unstable** when some of it did, it fails when none of it did. The numbers are always printed beside the word.</string>
+    <string name="readme_gloss_commit">**commit**: the entry a closed day leaves in the history. A day you never opened the app leaves none, because nothing is known about it.</string>
+    <string name="readme_gloss_health">**health**: how often a habit has held lately, as a percentage. Recent days count for more than old ones, and days you skipped or never opened the app do not count at all.</string>
+    <string name="readme_gloss_coverage">**coverage**: how many of the days that asked something of you were days you actually opened the app. It measures you showing up, not you succeeding.</string>
+    <string name="readme_gloss_flaky">**flaky**: a habit you manage about half the time. It is not a scolding: usually it means the habit is asking for too much, or asking on the wrong days.</string>
+    <string name="readme_gloss_regression">**regression**: a habit that used to hold and lately does not. It is said once, without advice.</string>
     <string name="readme_col_day">Day</string>
     <string name="readme_col_passed">Done</string>
     <string name="readme_col_result">How it went</string>
