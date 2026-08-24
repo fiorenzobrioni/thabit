@@ -203,4 +203,37 @@ class ReadmeDocumentTest {
         assertTrue(text.contains("non ti chiede niente"))
         assertTrue(text.contains("Calcolato su questo dispositivo"))
     }
+
+    // ---- the glossary (Fase 13's §3.3.7 audit) ----------------------------
+
+    @Test
+    fun `every CI word on screen has its plain sentence here`() {
+        val text = prose(Fixture.history(listOf(meditate), emptyList(), setOf(today)))
+        // The audit found `coverage`, `flaky` and `regressions` explained
+        // nowhere but in an English source comment on stats.md. No CI term is
+        // ever the only place a fact exists (VISION §3.3.7).
+        assertTrue(text.contains("What the words mean"))
+        listOf("build", "commit", "health", "coverage", "flaky", "regression").forEach { term ->
+            assertTrue("no gloss for $term", text.contains("**$term**"))
+        }
+    }
+
+    @Test
+    fun `the glossary is there on the very first day, not once you have earned it`() {
+        // The reader who needs the sentence is the one least likely to go
+        // looking for a switch that reveals it, and a beginner mode would be two
+        // apps in one (VISION §6).
+        assertTrue(prose(SuiteHistory.Empty).contains("What the words mean"))
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the glossary explains in Italian and keeps the English term`() {
+        val text = prose(Fixture.history(listOf(meditate), emptyList(), setOf(today)))
+        assertTrue(text.contains("Cosa vogliono dire le parole"))
+        // The term is the word printed in the files, so it stays; the sentence
+        // after it is the reader's language (§1.3).
+        assertTrue(text.contains("**coverage**"))
+        assertTrue(text.contains("Misura il presentarsi, non il riuscirci."))
+    }
 }

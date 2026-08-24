@@ -32,6 +32,7 @@ import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
 import com.callbackdev.thabit.ui.components.TerminalStatusBar
 import com.callbackdev.thabit.ui.components.buildMarkdownLines
+import com.callbackdev.thabit.ui.format.CodeFormat
 import com.callbackdev.thabit.ui.theme.SyntaxColors
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import java.time.DayOfWeek
@@ -124,20 +125,53 @@ private fun statsLines(
     // ---- suite health ------------------------------------------------------
     if (document.healthTable.isNotEmpty()) {
         markdown("", StatsDocument.H_HEALTH, "")
-        markdown(*document.healthTable.toTypedArray())
+        lines += spokenRows(
+            rendered = document.healthTable,
+            // A table's first two lines are its header and its separator; the
+            // data rows follow, in the same order as the facts behind them.
+            skip = 2,
+            spoken = document.healthRows.map { row ->
+                stringResource(
+                    R.string.cd_stats_health_row,
+                    row.name,
+                    CodeFormat.percent(row.health)
+                )
+            },
+            syntax = syntax
+        )
     }
 
     // ---- flaky tests -------------------------------------------------------
     if (document.flaky.isNotEmpty()) {
         markdown("", StatsDocument.H_FLAKY, "")
-        markdown(*document.flaky.toTypedArray())
+        lines += spokenRows(
+            rendered = document.flaky,
+            skip = 0,
+            spoken = document.flakyRows.map { test ->
+                pluralStringResource(
+                    R.plurals.cd_stats_flaky_row,
+                    StatsDocument.WINDOW_DAYS.toInt(),
+                    test.habit.name,
+                    CodeFormat.percent(test.passRate),
+                    StatsDocument.WINDOW_DAYS.toInt()
+                )
+            },
+            syntax = syntax
+        )
         markdown(comment(StatsDocument.FLAKY_HINT))
     }
 
     // ---- regressions -------------------------------------------------------
     if (document.regressions.isNotEmpty()) {
         markdown("", StatsDocument.H_REGRESSIONS, "")
-        markdown(*document.regressions.toTypedArray())
+        lines += spokenRows(
+            rendered = document.regressions,
+            skip = 0,
+            spoken = document.regressionRows.map { regression ->
+                stringResource(R.string.cd_stats_regression_row, regression.habit.name)
+            },
+            syntax = syntax
+        )
         markdown(comment(StatsDocument.REGRESSION_HINT))
     }
 
@@ -199,6 +233,32 @@ private fun monthLine(grid: HeatmapGrid, syntax: SyntaxColors): CodeLine {
         text.append(month.label)
     }
     return CodeLine(AnnotatedString(text.toString(), SpanStyle(color = syntax.comment)))
+}
+
+/**
+ * Markdown rows, each carrying the sentence a screen reader gets instead.
+ *
+ * The rendered half stays exactly what the file shows — a padded table row, a
+ * line with an em dash — because that is the file and the file is the point. The
+ * spoken half is the same numbers as a sentence, in the reader's language: read
+ * literally, `| meditate | 82% | 18 | 24/28 |` is pipes and padding, and the
+ * three sections that report the app's own metrics were the last place where a
+ * fact lived only in a form nobody could hear (Fase 13's §3.3.7 audit).
+ *
+ * [skip] is how many leading lines are chrome rather than data — two for a
+ * markdown table (header and separator), none for a plain list of lines.
+ */
+@Composable
+private fun spokenRows(
+    rendered: List<String>,
+    skip: Int,
+    spoken: List<String>,
+    syntax: SyntaxColors
+): List<CanvasLine> = rendered.mapIndexed { index, line ->
+    val built = buildMarkdownLines(listOf(line), syntax).first()
+    spoken.getOrNull(index - skip)
+        ?.let { built.copy(contentDescription = it) }
+        ?: built
 }
 
 /** The tag table, with its data rows pointing at their commit. */

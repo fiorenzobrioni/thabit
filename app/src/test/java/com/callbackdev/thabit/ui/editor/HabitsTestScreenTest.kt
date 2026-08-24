@@ -153,6 +153,31 @@ class HabitsTestScreenTest {
     }
 
     @Test
+    fun `the expansion speaks its spec instead of reading YAML aloud`() {
+        show(suite(), interaction = SuiteInteraction(expandedId = 1L))
+        // The file keeps its keys; the ear gets sentences. `when: daily` read
+        // literally is "when colon daily", and `health:` draws its fact as a bar
+        // of block characters that says nothing at all (VISION §3.3.7).
+        compose.onNodeWithText("when: daily").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Scheduled: daily").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a health bar is heard as the number it draws`() {
+        show(suite(), interaction = SuiteInteraction(expandedId = 1L))
+        compose.onNodeWithContentDescription("Held about 100% of the time lately.")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the spec speaks Italian, streak plural included`() {
+        show(suite(), interaction = SuiteInteraction(expandedId = 1L))
+        compose.onNodeWithContentDescription("Quando: daily").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Una serie di 1 giorno.").assertIsDisplayed()
+    }
+
+    @Test
     fun `archiving asks for the second tap as a spelled-out command`() {
         show(suite(), interaction = SuiteInteraction(expandedId = 1L, archiveConfirmId = 1L))
         compose.onNodeWithText("$ thabit archive \"meditate 10 min\"").assertIsDisplayed()
