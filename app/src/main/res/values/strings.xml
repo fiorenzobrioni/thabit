@@ -45,7 +45,17 @@
     <string name="cd_action_show_not_due">Show the tests not due today</string>
     <string name="cd_action_hide_not_due">Hide the tests not due today</string>
     <string name="cd_action_skip_window">Change how long the skip lasts</string>
+    <string name="cd_action_clear_value">Clear today\'s number for this test</string>
     <string name="cd_not_due">not due today</string>
+
+    <!-- Terminal output, spoken. The file prints these in English like every
+         other comment; the ear gets the reader's own language, which is the
+         whole point of the third localized surface (VISION §3.3.7). -->
+    <string name="cd_note_suite_read_only">That day is history: only today and yesterday can still be written.</string>
+    <string name="cd_note_suite_unknown_test">That test is not in today\'s suite.</string>
+    <string name="cd_note_log_read_only">That day is history: the window for amending it has closed.</string>
+    <string name="cd_note_log_unknown_test">That test was not in the suite that day.</string>
+    <string name="cd_note_rolled_over">The day rolled over: this file is now %1$s.</string>
 
     <!-- Live detail, spoken. The comment channel says the same thing in English
          because a comment is source; this is the half that speaks the reader's

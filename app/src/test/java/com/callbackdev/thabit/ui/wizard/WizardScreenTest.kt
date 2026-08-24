@@ -1,5 +1,10 @@
 package com.callbackdev.thabit.ui.wizard
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
@@ -10,6 +15,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.Assert.assertEquals
@@ -36,6 +42,13 @@ class WizardScreenTest {
     @get:Rule
     val compose = createComposeRule()
 
+    /**
+     * A viewport shorter than an expanded transcript. Not a phone measurement:
+     * it only has to put the last row past the edge, which is the condition the
+     * keyboard creates on a real narrow screen.
+     */
+    private val TranscriptFold = 150.dp
+
     private fun show(
         state: WizardUiState = WizardUiState(),
         actions: WizardActions = WizardActions(),
@@ -52,6 +65,25 @@ class WizardScreenTest {
                 )
             }
         }
+    }
+
+    /**
+     * The same transcript in a viewport too short to hold it — the narrow screen
+     * with the keyboard up, which is where Fase 9 found `[save]` under the fold.
+     * The returned state is the session's own: writing to it is what a tap on a
+     * control does, and it is how these tests exercise a *transition* rather
+     * than a first frame.
+     */
+    private fun showShort(initial: WizardUiState): MutableState<WizardUiState> {
+        val session = mutableStateOf(initial)
+        compose.setContent {
+            ThabitTheme {
+                Box(Modifier.height(TranscriptFold)) {
+                    WizardScreen(state = session.value, actions = WizardActions())
+                }
+            }
+        }
+        return session
     }
 
     // ---- the session ------------------------------------------------------
@@ -343,5 +375,94 @@ class WizardScreenTest {
         compose.onNodeWithContentDescription("Scegli: qualcosa da cui stare alla larga")
             .assertIsDisplayed()
         compose.onNodeWithContentDescription("ogni 2 giorni, scelto").assertIsDisplayed()
+    }
+
+    // ---- the transcript follows the reader (Fase 12) -----------------------
+
+    @Test
+    fun `closing a prompt brings the controls back into view`() {
+        // An `[edit]` with a reminder: the transcript Fase 9 measured, on a
+        // screen that cannot show all of it at once.
+        val session = showShort(
+            WizardUiState(
+                draft = WizardDraft(
+                    editing = 7L,
+                    name = "read 20 pages",
+                    expanded = true,
+                    remindAt = LocalTime.of(7, 0)
+                ),
+                focus = WizardField.Remind,
+                pending = "07:00"
+            )
+        )
+        compose.onNodeWithText("[save]").assertDoesNotExist()
+
+        session.value = session.value.copy(focus = null, pending = "")
+        compose.waitForIdle()
+
+        compose.onNodeWithText("[save]").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an add session opens showing the command that started it`() {
+        // The first frame runs the effect before the canvas has been laid out:
+        // if a reveal fired there it would scroll `$ thabit add` off the top of
+        // the very first screen the app ever shows.
+        showShort(WizardUiState(focus = WizardField.Name))
+        compose.onNodeWithText("$ thabit add").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a session opens at its own head, not at its footer`() {
+        // Arriving is not a transition: an `[edit]` scrolled to the controls
+        // would hide the one row that says which test is being edited.
+        showShort(
+            WizardUiState(
+                draft = WizardDraft(
+                    editing = 7L,
+                    name = "read 20 pages",
+                    expanded = true,
+                    remindAt = LocalTime.of(7, 0)
+                ),
+                focus = null
+            )
+        )
+        compose.onNodeWithText("$ thabit edit \"read 20 pages\"").assertIsDisplayed()
+        compose.onNodeWithText("[save]").assertDoesNotExist()
+    }
+
+    @Test
+    fun `more leaves the reader at the rows it just revealed`() {
+        // `[more]` closes the name prompt, but it closes it by asking for *more
+        // file*: jumping to the footer would answer a question nobody asked.
+        val session = showShort(
+            WizardUiState(draft = WizardDraft(name = "read 20 pages"), focus = WizardField.Name)
+        )
+
+        session.value = WizardUiState(
+            draft = WizardDraft(name = "read 20 pages", expanded = true),
+            focus = null
+        )
+        compose.waitForIdle()
+
+        compose.onNodeWithText("> type:  # what kind of test is this?").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a prompt reopened below the fold is scrolled to, so it can take the keyboard`() {
+        // A lazy list does not compose the rows it cannot show, so a prompt
+        // opened off-screen is a prompt whose caret finds nothing to focus.
+        val session = showShort(
+            WizardUiState(
+                draft = WizardDraft(name = "read 20 pages", expanded = true),
+                focus = null
+            )
+        )
+        compose.onNodeWithText("> emoji:").assertDoesNotExist()
+
+        session.value = session.value.copy(focus = WizardField.Emoji, pending = "")
+        compose.waitForIdle()
+
+        compose.onNodeWithText("> emoji:").assertIsDisplayed()
     }
 }

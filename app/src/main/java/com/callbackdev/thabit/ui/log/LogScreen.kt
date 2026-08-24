@@ -279,7 +279,11 @@ private fun commitLines(
         }
     }
     interaction.transient?.takeIf { it.date == commit.date }?.let {
-        lines += commentLine("# ${it.text}", syntax)
+        lines += commentLine(
+            text = "# ${it.note.text}",
+            syntax = syntax,
+            contentDescription = it.note.spoken()
+        )
     }
     return lines
 }
@@ -484,6 +488,17 @@ private fun LogEntry.Week.spoken(): String = stringResource(
     week.week,
     rate?.let { CodeFormat.percent(it) } ?: "--%"
 )
+
+/**
+ * The note in the reader's own language. Exhaustive, like the suite's: a new
+ * [LogNote] does not compile until its spoken half exists (Fase 12).
+ */
+@Composable
+private fun LogNote.spoken(): String = when (this) {
+    LogNote.ReadOnly -> stringResource(R.string.cd_note_log_read_only)
+    LogNote.UnknownTest -> stringResource(R.string.cd_note_log_unknown_test)
+    is LogNote.RolledOver -> stringResource(R.string.cd_note_rolled_over, date.spokenDate())
+}
 
 /** A date said the way the reader's language says dates — chrome, so localized. */
 @Composable

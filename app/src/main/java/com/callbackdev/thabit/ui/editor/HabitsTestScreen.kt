@@ -152,6 +152,7 @@ data class SuiteActions(
     val onCycleSkipWindow: () -> Unit = {},
     val onSubmitPrompt: () -> Unit = {},
     val onCancelPrompt: () -> Unit = {},
+    val onClearPrompt: () -> Unit = {},
     val onAddTest: () -> Unit = {}
 ) {
     constructor(viewModel: SuiteViewModel) : this(
@@ -167,7 +168,8 @@ data class SuiteActions(
         onPromptChange = viewModel::onPromptChange,
         onCycleSkipWindow = viewModel::onCycleSkipWindow,
         onSubmitPrompt = viewModel::onSubmitPrompt,
-        onCancelPrompt = viewModel::onCancelPrompt
+        onCancelPrompt = viewModel::onCancelPrompt,
+        onClearPrompt = viewModel::onClearPrompt
     )
 }
 
@@ -262,7 +264,12 @@ private fun suiteLines(
         document.due.forEach { row ->
             lines += testLines(row, document, interaction, actions, syntax)
             if (row.habitId == inlineId && message != null) {
-                lines += commentLine("# ${message.text}", syntax, indent = 1)
+                lines += commentLine(
+                    text = "# ${message.note.text}",
+                    syntax = syntax,
+                    indent = 1,
+                    contentDescription = message.note.spoken()
+                )
             }
         }
 
@@ -287,7 +294,11 @@ private fun suiteLines(
 
     if (message != null && inlineId == null) {
         lines += commentLine("#", syntax)
-        lines += commentLine("# ${message.text}", syntax)
+        lines += commentLine(
+            text = "# ${message.note.text}",
+            syntax = syntax,
+            contentDescription = message.note.spoken()
+        )
     }
     return lines
 }
@@ -546,7 +557,17 @@ private fun promptLines(
         }
     )
 
-    lines += WidgetLine(indent = 1, measureText = "# window: [today]   [ok]  [esc]     ") {
+    // The row declares what it will actually render: `# window:` belongs to a
+    // skip and `[clear]` to a counter, never both, and a measure text claiming
+    // both would hand the whole canvas a horizontal scroll nothing needs.
+    val controlsWidth = buildString {
+        if (prompt is SuitePrompt.Skip) append("# window: ${prompt.window.token}   ")
+        append("[ok]  [esc]")
+        if (prompt is SuitePrompt.Value && prompt.written) append("  [clear]")
+        append("     ")
+    }
+
+    lines += WidgetLine(indent = 1, measureText = controlsWidth) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (prompt is SuitePrompt.Skip) {
                 TextControl(
@@ -568,6 +589,20 @@ private fun promptLines(
                 description = stringResource(R.string.cd_action_cancel),
                 onClick = actions.onCancelPrompt
             )
+            // Last on the row, and only when there is a number to take back.
+            // `[ok]` keeps the place the thumb already knows, and the one
+            // control that erases sits as far from it as the row allows — the
+            // same reasoning that put `[esc]` at the end of the wizard's row.
+            // No red: this is the counter's version of tapping an `[x]` back to
+            // `[ ]`, and that gesture wears no warning either.
+            if (prompt is SuitePrompt.Value && prompt.written) {
+                TextControl(
+                    label = "[clear]",
+                    color = syntax.comment,
+                    description = stringResource(R.string.cd_action_clear_value),
+                    onClick = actions.onClearPrompt
+                )
+            }
         }
     }
     return lines
@@ -613,6 +648,20 @@ private fun TestRow.detailSentence(): String? = when (val detail = detail) {
     ).joinToString(", ").ifBlank { null }
     is RowDetail.Quota -> stringResource(R.string.cd_detail_quota, detail.done, detail.target)
     RowDetail.Holding, RowDetail.Pending -> null
+}
+
+/**
+ * The note in the reader's own language, beside the English the file prints.
+ *
+ * Exhaustive on purpose: a note added to [SuiteNote] tomorrow will not compile
+ * until somebody writes the words that will be spoken for it. That is the whole
+ * reason the notes stopped being String constants in Fase 12.
+ */
+@Composable
+private fun SuiteNote.spoken(): String = when (this) {
+    SuiteNote.ReadOnly -> stringResource(R.string.cd_note_suite_read_only)
+    SuiteNote.UnknownTest -> stringResource(R.string.cd_note_suite_unknown_test)
+    is SuiteNote.RolledOver -> stringResource(R.string.cd_note_rolled_over, date.spoken())
 }
 
 /** A date said the way the reader's language says dates — chrome, so localized. */

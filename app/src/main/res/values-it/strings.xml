@@ -43,7 +43,17 @@
     <string name="cd_action_show_not_due">Mostra i test non richiesti oggi</string>
     <string name="cd_action_hide_not_due">Nascondi i test non richiesti oggi</string>
     <string name="cd_action_skip_window">Cambia quanto dura il salto</string>
+    <string name="cd_action_clear_value">Cancella il numero di oggi per questo test</string>
     <string name="cd_not_due">non richiesto oggi</string>
+
+    <!-- Output del terminale, detto a parole. Il file li stampa in inglese come
+         ogni altro commento; all'orecchio arriva la lingua di chi legge, che è
+         tutto il senso della terza superficie localizzata (VISION §3.3.7). -->
+    <string name="cd_note_suite_read_only">Quel giorno è storia: si possono ancora scrivere solo oggi e ieri.</string>
+    <string name="cd_note_suite_unknown_test">Quel test non è nella suite di oggi.</string>
+    <string name="cd_note_log_read_only">Quel giorno è storia: la finestra per correggerlo è chiusa.</string>
+    <string name="cd_note_log_unknown_test">Quel test non era nella suite di quel giorno.</string>
+    <string name="cd_note_rolled_over">Il giorno è cambiato: questo file adesso è %1$s.</string>
 
     <!-- Il dettaglio vivo, detto a parole. Il canale commenti dice la stessa
          cosa in inglese perché è sorgente; questa è la metà che parla la lingua
