@@ -212,8 +212,8 @@ class LogViewModelTest {
         assertEquals(0, db.checkDao().all().size)
         assertEquals(LocalDate.of(2026, 8, 22), file().today)
         assertEquals(
-            LogViewModel.rolledOver(LocalDate.of(2026, 8, 22)),
-            interaction().transient?.text
+            LogNote.RolledOver(LocalDate.of(2026, 8, 22)),
+            interaction().transient?.note
         )
     }
 

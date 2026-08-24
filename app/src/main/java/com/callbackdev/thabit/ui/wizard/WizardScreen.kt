@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -122,15 +124,19 @@ fun WizardScreen(
     remindArmed: Boolean = true,
     onGrantNotifications: () -> Unit = {}
 ) {
+    val transcript = if (state.loading) {
+        Transcript.Empty
+    } else {
+        transcript(state, actions, remindArmed, onGrantNotifications)
+    }
+    val canvas = rememberLazyListState()
+    FollowTheReader(state, transcript, canvas)
+
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
             CodeCanvas(
-                lines = if (state.loading) {
-                    emptyList()
-                } else {
-                    transcriptLines(state, actions, remindArmed, onGrantNotifications)
-                },
-                state = rememberLazyListState(),
+                lines = transcript.lines,
+                state = canvas,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -180,16 +186,126 @@ class WizardActions(
     )
 }
 
+// ---- the transcript follows the reader -----------------------------------
+
+/**
+ * The transcript, and the two rows the screen has to be able to reach.
+ *
+ * The index of the open prompt travels with the lines because only the builder
+ * knows where it landed: a `remind:` row appears or does not, an error pushes
+ * everything down by one, and a session that has already added two tests opens
+ * two receipts lower.
+ */
+@Immutable
+private data class Transcript(
+    val lines: List<CanvasLine>,
+    /** Where the open prompt is, or null when the transcript waits for a tap. */
+    val openPrompt: Int?
+) {
+    /** `[save]`/`[esc]` — always the last row, the way out of the session. */
+    val controls: Int get() = lines.lastIndex
+
+    companion object {
+        /** What an `[edit]` shows while it is still reading the test. */
+        val Empty = Transcript(emptyList(), openPrompt = null)
+    }
+}
+
+/**
+ * How the transcript was last drawn — where the reader was, and how much file
+ * they had asked for. Deliberately off the snapshot: it is read and written only
+ * inside the effect below, and making it observable would buy a recomposition to
+ * remember something nothing draws.
+ */
+private class TranscriptMemo(var focus: WizardField?, var expanded: Boolean)
+
+/**
+ * The transcript follows the reader instead of asking them to go and find it.
+ *
+ * `[edit]` on a test that has a reminder is one row taller than a narrow screen
+ * has to spare once the keyboard is up, and the row that goes under the fold is
+ * `[save]` — the verb of the whole session (Fase 9's field note, answered here
+ * in Fase 12). Nothing is pinned and no bar is added: a file scrolls, and this
+ * one is longer than the screen the same way `settings.config` is. What changes
+ * is only *when* it scrolls — opening a prompt brings that prompt up, closing
+ * one brings the controls back — and it never scrolls for a row already in view.
+ *
+ * Revealing the open prompt is not only comfort: a lazy list does not compose
+ * the rows it cannot show, so a prompt opened off-screen is a prompt whose
+ * `autoFocus` finds nothing to focus and whose keyboard never arrives. That is
+ * the `[+ another]` case, where two receipts push `> name:` down past the fold.
+ */
 @Composable
-private fun transcriptLines(
+private fun FollowTheReader(
+    state: WizardUiState,
+    transcript: Transcript,
+    canvas: LazyListState
+) {
+    val memo = remember { TranscriptMemo(state.focus, state.draft.expanded) }
+    LaunchedEffect(
+        state.focus,
+        state.draft.expanded,
+        transcript.openPrompt,
+        transcript.controls
+    ) {
+        val previousFocus = memo.focus
+        val justExpanded = state.draft.expanded && !memo.expanded
+        memo.focus = state.focus
+        memo.expanded = state.draft.expanded
+
+        when {
+            state.focus != null -> transcript.openPrompt?.let { canvas.reveal(it) }
+            // A prompt just closed, so the controls come back. A session that has
+            // only just opened has no previous prompt, which is what keeps an
+            // `[edit]` from arriving at its own footer with the name of the test
+            // it is editing already scrolled off the top.
+            //
+            // `[more]` closes the prompt too, but it closes it by asking for
+            // *more file*: the reader wants the rows that just appeared, not the
+            // footer underneath them.
+            previousFocus != null && !justExpanded -> canvas.reveal(transcript.controls)
+        }
+    }
+}
+
+/**
+ * Brings a row into view, and only when it is not already there.
+ *
+ * "Already there" is the ordinary case — most prompts sit two rows from the
+ * controls — and a canvas that jumps under a finger that changed nothing on
+ * screen is worse than one that never moves at all.
+ */
+private suspend fun LazyListState.reveal(index: Int) {
+    if (index < 0) return
+    val info = layoutInfo
+    // Nothing laid out yet: this is the session's first frame, the canvas is at
+    // the top, and scrolling it would move a file nobody has read a line of.
+    if (info.visibleItemsInfo.isEmpty()) return
+    val row = info.visibleItemsInfo.firstOrNull { it.index == index }
+    val onScreen = row != null &&
+        row.offset >= info.viewportStartOffset &&
+        row.offset + row.size <= info.viewportEndOffset
+    if (onScreen) return
+    animateScrollToItem(index)
+}
+
+@Composable
+private fun transcript(
     state: WizardUiState,
     actions: WizardActions,
     remindArmed: Boolean,
     onGrantNotifications: () -> Unit
-): List<CanvasLine> {
+): Transcript {
     val syntax = ThabitTheme.syntax
     val draft = state.draft
     val lines = mutableListOf<CanvasLine>()
+    // The row the reader is answering, recorded as the file is written rather
+    // than searched for afterwards: a prompt is a `WidgetLine` like any other,
+    // and the only thing that tells it apart is the question it was built for.
+    var openPrompt: Int? = null
+    fun answering(vararg fields: WizardField) {
+        if (state.focus in fields) openPrompt = lines.size
+    }
 
     // What was already added in this session stays on screen: the receipts of a
     // conversation, and the reason a second test costs one tap rather than a trip.
@@ -206,6 +322,7 @@ private fun transcriptLines(
         syntax
     )
 
+    answering(WizardField.Name)
     lines += nameLine(state, actions, syntax)
     if (!draft.expanded) {
         lines += commentLine("# what do you want to call it?", syntax, indent = 1)
@@ -213,10 +330,15 @@ private fun transcriptLines(
 
     if (draft.expanded) {
         lines += typeLines(draft, actions, syntax)
-        if (state.isCounter) lines += assertLine(state, actions, syntax)
+        if (state.isCounter) {
+            answering(WizardField.Unit, WizardField.Target)
+            lines += assertLine(state, actions, syntax)
+        }
         lines += whenLines(draft, actions, syntax)
         lines += schemeDetailLines(draft, actions, syntax)
+        answering(WizardField.Remind)
         lines += remindLines(state, actions, syntax, remindArmed, onGrantNotifications)
+        answering(WizardField.Emoji)
         lines += emojiLine(state, actions, syntax)
     }
 
@@ -228,7 +350,7 @@ private fun transcriptLines(
     // disarms it (Fase 4's lesson, and Fase 3's before that).
     if (state.discardConfirm) lines += commentLine("# $DISCARD_CONFIRM", syntax)
     lines += controlsLine(state, actions, syntax)
-    return lines
+    return Transcript(lines.toList(), openPrompt)
 }
 
 /**

@@ -236,13 +236,13 @@ class HabitsTestScreenTest {
         show(
             suite(),
             interaction = SuiteInteraction(
-                transient = SuiteMessage(SuiteViewModel.UNKNOWN_TEST, habitId = 1L)
+                transient = SuiteMessage(SuiteNote.UnknownTest, habitId = 1L)
             )
         )
         // A message is always the answer to a tap, and the thumb that tapped is
         // still on that line — so it is printed there, not at the foot of a file
         // that may be longer than the screen.
-        val message = compose.onNodeWithText("# " + SuiteViewModel.UNKNOWN_TEST)
+        val message = compose.onNodeWithText("# " + SuiteNote.UnknownTest.text)
             .getUnclippedBoundsInRoot()
         val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
         assertTrue(message.top < lastRow.top)
@@ -252,9 +252,9 @@ class HabitsTestScreenTest {
     fun `terminal output with no row of its own falls to the foot of the file`() {
         show(
             suite(),
-            interaction = SuiteInteraction(transient = SuiteMessage(SuiteViewModel.UNKNOWN_TEST))
+            interaction = SuiteInteraction(transient = SuiteMessage(SuiteNote.UnknownTest))
         )
-        val message = compose.onNodeWithText("# " + SuiteViewModel.UNKNOWN_TEST)
+        val message = compose.onNodeWithText("# " + SuiteNote.UnknownTest.text)
             .getUnclippedBoundsInRoot()
         val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
         assertTrue(message.top > lastRow.top)
@@ -298,5 +298,80 @@ class HabitsTestScreenTest {
         show(suite())
         compose.onNodeWithContentDescription("3 tests in the suite").assertIsDisplayed()
         compose.onNodeWithContentDescription("1 of 3 passed").assertIsDisplayed()
+    }
+
+    @Test
+    fun `terminal output says the same thing to the ear, in the reader's language`() {
+        show(
+            suite(),
+            interaction = SuiteInteraction(
+                transient = SuiteMessage(SuiteNote.UnknownTest, habitId = 1L)
+            )
+        )
+        // The file keeps its English (it is a comment, §1.3); the ear gets words
+        // it can actually use, which is what the third localized surface is for.
+        compose.onNodeWithText("# " + SuiteNote.UnknownTest.text).assertIsDisplayed()
+        compose.onNodeWithContentDescription("That test is not in today's suite.")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `terminal output is spoken in Italian too, date included`() {
+        show(
+            suite(),
+            interaction = SuiteInteraction(
+                transient = SuiteMessage(SuiteNote.RolledOver(d.plusDays(1)), habitId = 1L)
+            )
+        )
+        compose.onNodeWithContentDescription(
+            "Il giorno è cambiato: questo file adesso è 2 agosto 2026."
+        ).assertIsDisplayed()
+    }
+
+    // ---- the counter's undo (Fase 12) -------------------------------------
+
+    @Test
+    fun `a counter with a number offers to take it back in one gesture`() {
+        var cleared = false
+        show(
+            suite(),
+            actions = SuiteActions(onClearPrompt = { cleared = true }),
+            interaction = SuiteInteraction(
+                prompt = SuitePrompt.Value(
+                    habitId = 2L,
+                    unit = "reps",
+                    text = "12",
+                    written = true
+                )
+            )
+        )
+        compose.onNodeWithText("[clear]").assertIsDisplayed().performClick()
+        assertTrue(cleared)
+    }
+
+    @Test
+    fun `a counter with nothing written is not offered a clear`() {
+        // `[clear]` would be offering to undo something that is not there, and
+        // a control that does nothing is the file saying something untrue.
+        show(
+            suite(),
+            interaction = SuiteInteraction(
+                prompt = SuitePrompt.Value(habitId = 2L, unit = "reps", text = "")
+            )
+        )
+        compose.onNodeWithText("[ok]").assertIsDisplayed()
+        compose.onNodeWithText("[clear]").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a skip prompt has nothing to clear`() {
+        show(
+            suite(),
+            interaction = SuiteInteraction(
+                prompt = SuitePrompt.Skip(habitId = 1L, note = "", window = SkipWindow.Today)
+            )
+        )
+        compose.onNodeWithText("[clear]").assertDoesNotExist()
     }
 }

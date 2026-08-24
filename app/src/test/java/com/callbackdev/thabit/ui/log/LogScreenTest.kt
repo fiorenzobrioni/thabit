@@ -187,4 +187,20 @@ class LogScreenTest {
         compose.onNodeWithContentDescription("Puoi ancora cambiare questo giorno fino alle 03:00")
             .assertIsDisplayed()
     }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `terminal output keeps its English and is spoken in Italian`() {
+        show(
+            interaction = LogInteraction(
+                transient = LogMessage(LogNote.ReadOnly, date = before)
+            )
+        )
+        // The file is a file: its comments stay English (§1.3). The ear gets the
+        // reader's own words, which is the whole job of the spoken surface.
+        compose.onNodeWithText("# " + LogNote.ReadOnly.text).assertIsDisplayed()
+        compose.onNodeWithContentDescription(
+            "Quel giorno è storia: la finestra per correggerlo è chiusa."
+        ).assertIsDisplayed()
+    }
 }

@@ -1,6 +1,7 @@
 package com.callbackdev.thabit.ui.editor
 
 import android.app.Application
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -208,7 +209,8 @@ class SuiteViewModel(
                 prompt = SuitePrompt.Value(
                     habitId = row.habitId,
                     unit = row.unit.orEmpty(),
-                    text = current?.let { value -> CodeFormat.number(value) }.orEmpty()
+                    text = current?.let { value -> CodeFormat.number(value) }.orEmpty(),
+                    written = current != null
                 ),
                 archiveConfirmId = null
             )
@@ -232,6 +234,27 @@ class SuiteViewModel(
     }
 
     fun onCancelPrompt() = interaction.update { it.copy(prompt = null) }
+
+    /**
+     * `[clear]`: today's number taken back in one gesture.
+     *
+     * A boolean is undone by tapping its box again — one tap. A counter needed
+     * three (open the prompt, empty the field, `[ok]`), which made taking back a
+     * number harder than writing one, and the file's own rule is that a mistake
+     * costs what the thing it undoes cost (Fase 5.1's field note, answered in
+     * Fase 12). No two-tap confirm: this deletes a *result*, exactly as
+     * recoverable as retyping it, and the `$` command form belongs to the things
+     * that leave the file for good. It goes through the same [write] as every
+     * other tap, so a rolled-over day still refuses it and says so.
+     */
+    fun onClearPrompt() {
+        // Only a counter has a number to take back: a skip is undone by
+        // `[~ unskip]`, which says what it is undoing, and an avoid's note is
+        // not a result at all.
+        val prompt = interaction.value.prompt as? SuitePrompt.Value ?: return
+        interaction.update { it.copy(prompt = null) }
+        write(prompt.habitId) { date -> repository.clear(prompt.habitId, date) }
+    }
 
     fun onSubmitPrompt() {
         val prompt = interaction.value.prompt ?: return
@@ -283,13 +306,13 @@ class SuiteViewModel(
             val shown = state.value.document?.logicalDate
             if (shown != null && shown != date) {
                 redraw.update { it + 1 }
-                say(rolledOver(date), habitId)
+                say(SuiteNote.RolledOver(date), habitId)
                 return@launch
             }
             when (block(date)) {
                 WriteOutcome.WRITTEN -> Unit
-                WriteOutcome.READ_ONLY_DAY -> say(READ_ONLY, habitId)
-                WriteOutcome.UNKNOWN_TEST -> say(UNKNOWN_TEST, habitId)
+                WriteOutcome.READ_ONLY_DAY -> say(SuiteNote.ReadOnly, habitId)
+                WriteOutcome.UNKNOWN_TEST -> say(SuiteNote.UnknownTest, habitId)
             }
         }
     }
@@ -304,9 +327,9 @@ class SuiteViewModel(
      * and practically invisible. Only a message with no row to belong to — or
      * about a test today no longer asks for — falls back to the foot.
      */
-    private fun say(message: String, habitId: Long? = null) {
+    private fun say(note: SuiteNote, habitId: Long? = null) {
         val token = ++transientToken
-        interaction.update { it.copy(transient = SuiteMessage(message, habitId)) }
+        interaction.update { it.copy(transient = SuiteMessage(note, habitId)) }
         viewModelScope.launch {
             delay(TRANSIENT_MILLIS)
             if (token == transientToken) interaction.update { it.copy(transient = null) }
@@ -315,18 +338,6 @@ class SuiteViewModel(
 
     companion object {
         private const val TRANSIENT_MILLIS = 4_000L
-
-        // Terminal output: English, like every other comment in the file.
-        const val READ_ONLY = "ERROR: that day is history — only today and yesterday are writable"
-        const val UNKNOWN_TEST = "ERROR: that test is not in today's suite"
-
-        /**
-         * Not an `ERROR:` — nothing went wrong, the day simply ended while the
-         * file was open. It states the new date, because the whole problem was
-         * a screen quietly showing the wrong one.
-         */
-        fun rolledOver(date: LocalDate): String =
-            "the day rolled over — this file is ${CodeFormat.date(date)} now"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -357,12 +368,51 @@ data class SuiteUiState(
 )
 
 /**
- * One line of terminal output, and the row it is about.
+ * A line of terminal output the file prints for a moment, in **both** its halves.
+ *
+ * [text] is the file's own: English, like every other comment in it (§1.3). The
+ * reader's language lives in the resource each note is spoken with, resolved
+ * where the line is drawn — only the locale about to read a date can spell it.
+ *
+ * One type instead of three String constants (Fase 12), for one reason: the
+ * `when` that speaks these is exhaustive, so a note added tomorrow cannot ship
+ * with only the half you can see. Until now they shipped with exactly that half,
+ * and a screen reader was handed the English out loud in an Italian voice —
+ * which is the one thing §3.3.7 asks the spoken surface never to do.
+ */
+@Immutable
+sealed interface SuiteNote {
+    /** What the file prints, after its `# `. */
+    val text: String
+
+    /** The tap landed on a day this file can no longer write. */
+    data object ReadOnly : SuiteNote {
+        override val text =
+            "ERROR: that day is history — only today and yesterday are writable"
+    }
+
+    /** The tap named a test today's suite does not have. */
+    data object UnknownTest : SuiteNote {
+        override val text = "ERROR: that test is not in today's suite"
+    }
+
+    /**
+     * Not an `ERROR:` — nothing went wrong, the day simply ended while the file
+     * was open. It states the new date, because the whole problem was a screen
+     * quietly showing the wrong one.
+     */
+    data class RolledOver(val date: LocalDate) : SuiteNote {
+        override val text = "the day rolled over — this file is ${CodeFormat.date(date)} now"
+    }
+}
+
+/**
+ * One [SuiteNote], and the row it is about.
  *
  * [habitId] is where it gets printed: under that test's line if the file still
  * has one for it, at the foot of the file otherwise.
  */
-data class SuiteMessage(val text: String, val habitId: Long? = null)
+data class SuiteMessage(val note: SuiteNote, val habitId: Long? = null)
 
 /** What the reader has opened, typed or is about to confirm. */
 data class SuiteInteraction(
@@ -377,8 +427,20 @@ data class SuiteInteraction(
 sealed interface SuitePrompt {
     val habitId: Long
 
-    /** `> pages: _` — a counter's value. */
-    data class Value(override val habitId: Long, val unit: String, val text: String) : SuitePrompt
+    /**
+     * `> pages: _` — a counter's value.
+     *
+     * [written] is whether the row had a number when the prompt opened, and it
+     * does not move while the reader types: it is what decides whether `[clear]`
+     * is offered at all, and a control that appears the instant you empty a
+     * field would be offering to undo something that is no longer there.
+     */
+    data class Value(
+        override val habitId: Long,
+        val unit: String,
+        val text: String,
+        val written: Boolean = false
+    ) : SuitePrompt
 
     /** `> skip: _` plus the window token. */
     data class Skip(

@@ -219,6 +219,38 @@ class SuiteViewModelTest {
     }
 
     @Test
+    fun `a counter takes its number back in one gesture`() = runUi {
+        val test = addHabit("read", HabitType.COUNTER, AssertSpec(20.0, "pages", 1.0))
+
+        viewModel.onCheckbox(test)
+        viewModel.onPromptChange("12")
+        viewModel.onSubmitPrompt()
+        assertEquals("12/20 pages", row().comment)
+
+        // A boolean is undone by tapping its box again. `[clear]` is the same
+        // one gesture for a counter, instead of open-empty-confirm (Fase 12).
+        viewModel.onCheckbox(row())
+        assertTrue((interaction().prompt as SuitePrompt.Value).written)
+        viewModel.onClearPrompt()
+
+        assertEquals("0/20 pages", row().comment)
+        assertEquals(TestState.PENDING, row().state)
+        assertTrue(db.checkDao().all().isEmpty())
+        assertNull(interaction().prompt)
+    }
+
+    @Test
+    fun `a counter with nothing written has nothing to clear`() = runUi {
+        val test = addHabit("read", HabitType.COUNTER, AssertSpec(20.0, "pages", 1.0))
+
+        viewModel.onCheckbox(test)
+        // The control is not offered at all, and the flag is what decides it:
+        // an undo for a number nobody wrote would be the file making a promise
+        // it cannot keep.
+        assertFalse((interaction().prompt as SuitePrompt.Value).written)
+    }
+
+    @Test
     fun `a decimal comma is read the way the user typed it`() = runUi {
         val test = addHabit("water", HabitType.COUNTER, AssertSpec(2.0, "l", 0.5))
 
@@ -335,7 +367,7 @@ class SuiteViewModelTest {
         assertEquals(0, db.checkDao().all().size)
         assertEquals(LocalDate.of(2026, 8, 22), file().logicalDate)
         val message = interaction().transient!!
-        assertEquals(SuiteViewModel.rolledOver(LocalDate.of(2026, 8, 22)), message.text)
+        assertEquals(SuiteNote.RolledOver(LocalDate.of(2026, 8, 22)), message.note)
         // Printed under the row that was tapped, where the thumb still is.
         assertEquals(test.habitId, message.habitId)
 

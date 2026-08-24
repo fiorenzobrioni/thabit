@@ -1,6 +1,7 @@
 package com.callbackdev.thabit.ui.log
 
 import android.app.Application
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -141,21 +142,21 @@ class LogViewModel(
             val today = repository.today()
             if (state.value.document?.today != today) {
                 redraw.update { it + 1 }
-                say(rolledOver(today))
+                say(LogNote.RolledOver(today))
                 return@launch
             }
             when (block()) {
                 WriteOutcome.WRITTEN -> Unit
-                WriteOutcome.READ_ONLY_DAY -> say(READ_ONLY)
-                WriteOutcome.UNKNOWN_TEST -> say(UNKNOWN_TEST)
+                WriteOutcome.READ_ONLY_DAY -> say(LogNote.ReadOnly)
+                WriteOutcome.UNKNOWN_TEST -> say(LogNote.UnknownTest)
             }
         }
     }
 
     /** A transient comment printed under the commit it answers. */
-    private fun say(message: String, date: LocalDate? = null) {
+    private fun say(note: LogNote, date: LocalDate? = null) {
         val token = ++transientToken
-        interaction.update { it.copy(transient = LogMessage(message, date)) }
+        interaction.update { it.copy(transient = LogMessage(note, date)) }
         viewModelScope.launch {
             delay(TRANSIENT_MILLIS)
             if (token == transientToken) interaction.update { it.copy(transient = null) }
@@ -164,13 +165,6 @@ class LogViewModel(
 
     companion object {
         private const val TRANSIENT_MILLIS = 4_000L
-
-        // Terminal output: English, like every other comment in the file.
-        const val READ_ONLY = "ERROR: that day is history — the amend window has closed"
-        const val UNKNOWN_TEST = "ERROR: that test was not in the suite that day"
-
-        fun rolledOver(date: LocalDate): String =
-            "the day rolled over — this file is ${CodeFormat.date(date)} now"
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
@@ -213,5 +207,33 @@ data class LogPrompt(
     val text: String
 )
 
-/** One line of terminal output, and the commit it belongs under. */
-data class LogMessage(val text: String, val date: LocalDate? = null)
+/**
+ * The log's own transient output, in both halves — the same type as the suite's
+ * [com.callbackdev.thabit.ui.editor.SuiteNote] and deliberately not shared with
+ * it: each file answers from where its reader is standing, so `--amend` refuses
+ * with the amend window and `habits.test` refuses with today and yesterday.
+ * What they do share is the rule: no note without the words that speak it.
+ */
+@Immutable
+sealed interface LogNote {
+    /** What the file prints, after its `# `. English: it is a comment (§1.3). */
+    val text: String
+
+    /** The amend window has closed on the day the tap landed on. */
+    data object ReadOnly : LogNote {
+        override val text = "ERROR: that day is history — the amend window has closed"
+    }
+
+    /** The tap named a test that day's suite did not have. */
+    data object UnknownTest : LogNote {
+        override val text = "ERROR: that test was not in the suite that day"
+    }
+
+    /** The day ended while the log was open, and the file says which day it is now. */
+    data class RolledOver(val date: LocalDate) : LogNote {
+        override val text = "the day rolled over — this file is ${CodeFormat.date(date)} now"
+    }
+}
+
+/** One [LogNote], and the commit it belongs under. */
+data class LogMessage(val note: LogNote, val date: LocalDate? = null)
