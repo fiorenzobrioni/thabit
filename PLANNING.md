@@ -378,6 +378,7 @@ Fase cuscinetto deliberata: la serie ha imparato che il device del committente r
 - [x] **Le transienti hanno la metà parlata localizzata** (rimandato dalla Fase 5.1): `SuiteNote` e `LogNote` al posto di sei costanti `String`, ciascuna col testo inglese del file **e** la risorsa con cui si dice a voce
 - [x] **`[clear]` sul prompt di un counter** (rimandato dalla Fase 5.1): disfare un numero costa un gesto come disfare un boolean, invece di tre
 - [x] Le feature parcheggiate **restano parcheggiate**, con la regola che le teneva ferme applicata invece che aggirata: runner guidato `$ thabit run` col FAB `▶` (§6.9), profili di suite come branch (§6.10), gruppi per momento della giornata, riordino manuale, `$ thabit watch` (§6.2)
+- [x] **Le tre correzioni riprovate sul device (ago 2026): CI verde, APK installato, nessun difetto.** Conta come secondo giro e non come lo stesso: la tornata che apre questa fase ha guardato un'app in cui l'auto-scroll di `[edit]`, `[clear]` e le transienti parlate non esistevano ancora, quindi il loro passaggio sul telefono era ancora da fare. Adesso è fatto, e la fase si chiude con entrambe le metà verificate — quella che ha posto le domande e quella che ha risposto
 - [x] Test: **13 nuovi** (613 totali, verdi), lint pulito
 
 ### Decisioni prese in Fase 12
