@@ -3,7 +3,7 @@
      Rule of the fake-editor design (series-wide): "code" (YAML/JSON keys, filenames,
      terminal errors, comments) stays English everywhere; only chrome, accessibility
      text and user-facing DATA values are localized. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">thabit</string>
 
     <!-- Bottom navigation -->
@@ -307,4 +307,65 @@
     <string name="cd_setting_widget_opacity">Widget background opacity, %1$d percent</string>
     <string name="cd_export_wrote">Written to your Downloads folder as %1$s</string>
     <string name="cd_export_failed">The export failed: %1$s</string>
+
+    <!-- `$ thabit init` (Fase 14). Prose for somebody seeing the app for the
+         first time, so LOCALIZED - the same exception the README.md tab makes.
+         The command and the file names are code and stay as they are. The word
+         "test" is deliberately in the NOTE and not in the choice: the plain word
+         goes first and the app's own word is introduced beside it (VISION
+         3.3.7). -->
+    <string name="init_intro">thabit keeps your habits as a checklist you tick off, one day at a time.</string>
+    <string name="init_privacy">No network, no account, no sensors: nothing ever leaves the phone.</string>
+    <string name="init_option_add">add your first habit</string>
+    <string name="init_option_add_note">the app calls it a test, and lists them in habits.test</string>
+    <string name="init_option_skip">skip</string>
+    <string name="init_option_skip_note">look around first: the + button adds one whenever you want</string>
+
+    <!-- The one-shot pointer at the head of habits.test (Fase 14), localized for
+         the same reason as the init screen. The file name is a file name. -->
+    <string name="help_hint">new here? open HELP.md</string>
+
+    <!-- HELP.md (Fase 14): the second file behind the Settings tab bar. Prose,
+         so FULLY localized, headings included. One item per rendered line: the
+         document is markdown SOURCE, and Android collapses a real newline into a
+         space. It explains the SHAPE of the app; the words that stand next to a
+         number (build, health, coverage, flaky, regression) are glossed in the
+         README.md tab, where those numbers are, and the vocabulary section here
+         points at it instead of restating them: two truths to keep aligned is
+         one too many. -->
+    <!-- The `amend` entry names a git flag whose two hyphens are part of the
+         command: an em dash there would be a command that does not exist. -->
+    <string-array name="help_md" tools:ignore="TypographyDashes">
+        <item># thabit</item>
+        <item></item>
+        <item>A habit tracker that presents itself as a code editor and a test suite: your habits are a checklist, a day is a run of it, and the past is a history you can read. If the words below mean nothing to you, this page is for you.</item>
+        <item></item>
+        <item>## The four tabs</item>
+        <item></item>
+        <item>- **Editor** - `habits.test` and `README.md`: today. The first is the checklist you tick off; the second is the same day told in words.</item>
+        <item>- **Log** - `habits_history.diff`: one entry per closed day, saying what you did and what you did not.</item>
+        <item>- **Stats** - `stats.md`: the coloured grid of the last weeks (one square per day) and a table with a row per habit.</item>
+        <item>- **Settings** - `settings.config` and this file. Options change by tapping the value itself. There is no switch to hunt for.</item>
+        <item></item>
+        <item>## The borrowed words</item>
+        <item></item>
+        <item>- **test** - one habit. The app calls it a test because a habit, like a test, is something that either held that day or did not.</item>
+        <item>- **suite** - all of them together, which is what `habits.test` lists.</item>
+        <item>- **assert** - what a habit asks of you: twenty pages, ten minutes, or simply that you did it.</item>
+        <item>- **the boxes** - `[ ]` still to do, `[x]` done, `[·]` a habit you are avoiding, still holding, `[~]` skipped on purpose, `[!]` failed. Tapping the box is how you answer.</item>
+        <item>- **commit** - a day, closed and filed when the day ends. A committed day stops changing.</item>
+        <item>- **`--amend`** - correcting yesterday, which is the one closed day still open to you. The history says where it happened.</item>
+        <item>- **diff** - what a day contained, written as changes: `+` for what held, `-` for what did not.</item>
+        <item>- **branch** (`⎇`) - what you are looking at.</item>
+        <item></item>
+        <item>The other words the app prints - `build`, `health`, `coverage`, `flaky`, `regression` - are explained in the `README.md` tab, next to the numbers they are about.</item>
+        <item></item>
+        <item>## Where the numbers come from</item>
+        <item></item>
+        <item>From the boxes you tick, and from nothing else. thabit has no network permission at all, no account and no sensors: nothing can leave the phone, because there is nowhere for it to go. Every figure is worked out from your own answers at the moment it is shown, never stored, so correcting a day corrects everything that day was part of. And a day you never opened the app is not counted as a failure: it stays blank, because the app does not know what happened, and it says so.</item>
+        <item></item>
+        <item>## Why it looks like this</item>
+        <item></item>
+        <item>Because a file can be read all at once, and because we like it this way. And if a word up there stayed obscure, never mind: the boxes work all the same.</item>
+    </string-array>
 </resources>

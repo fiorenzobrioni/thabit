@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.SettingsStore
+import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.WriteOutcome
 import com.callbackdev.thabit.di.ServiceLocator
 import com.callbackdev.thabit.domain.TestState
@@ -22,6 +23,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.delay
@@ -41,7 +44,14 @@ import java.time.LocalDate
 class SuiteViewModel(
     private val repository: HabitRepository,
     private val settings: SettingsStore,
-    private val clock: Clock
+    private val clock: Clock,
+    /**
+     * Session state, read for one line: the `HELP.md` pointer at the head of
+     * the file. Nullable because previews and half the tests build this view
+     * model without a workspace, and a missing store means no hint — never a
+     * crash on a screen whose job is showing the suite.
+     */
+    private val workspace: WorkspaceStore? = null
 ) : ViewModel() {
 
     private val interaction = MutableStateFlow(SuiteInteraction())
@@ -56,6 +66,24 @@ class SuiteViewModel(
      * showing a day that is over.
      */
     private val redraw = MutableStateFlow(0)
+
+    /**
+     * The one-shot `HELP.md` pointer (Fase 14), until it is used or the file has
+     * been opened from somewhere else.
+     *
+     * Eagerly, and not `WhileSubscribed`: a hint that arrives a frame after the
+     * file reads as a glitch, and this one is the first thing a brand new reader
+     * sees. No store means no hint, which is the safe half of the guess.
+     */
+    val showHelpHint: StateFlow<Boolean> =
+        (workspace?.helpHintDismissed ?: flowOf(true))
+            .map { dismissed -> !dismissed }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** The reader took the hint (or dismissed it by taking it): stop offering it. */
+    fun onHelpHintUsed() {
+        viewModelScope.launch { workspace?.dismissHelpHint() }
+    }
 
     val state: StateFlow<SuiteUiState> = combine(
         settings.settings,
@@ -343,7 +371,7 @@ class SuiteViewModel(
             initializer {
                 val app = this[APPLICATION_KEY] as Application
                 val graph = ServiceLocator.graph(app)
-                SuiteViewModel(graph.repository, graph.settings, graph.clock)
+                SuiteViewModel(graph.repository, graph.settings, graph.clock, graph.workspace)
             }
         }
 
@@ -351,11 +379,12 @@ class SuiteViewModel(
         fun factory(
             repository: HabitRepository,
             settings: SettingsStore,
-            clock: Clock
+            clock: Clock,
+            workspace: WorkspaceStore? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T =
-                SuiteViewModel(repository, settings, clock) as T
+                SuiteViewModel(repository, settings, clock, workspace) as T
         }
     }
 }

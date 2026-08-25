@@ -37,6 +37,7 @@ import com.callbackdev.thabit.ui.components.GlowFab
 fun EditorScreen(
     onAddTest: () -> Unit,
     onEditTest: (Long) -> Unit,
+    onOpenHelp: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EditorViewModel = viewModel(factory = EditorViewModel.Factory)
 ) {
@@ -59,6 +60,7 @@ fun EditorScreen(
             EditorFile.TEST -> HabitsTestScreen(
                 onAddTest = onAddTest,
                 onEditTest = onEditTest,
+                onOpenHelp = onOpenHelp,
                 listState = testScroll
             )
             EditorFile.README -> ReadmeScreen(

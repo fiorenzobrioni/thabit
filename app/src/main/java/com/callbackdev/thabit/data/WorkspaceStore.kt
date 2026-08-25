@@ -3,6 +3,7 @@ package com.callbackdev.thabit.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -46,8 +47,29 @@ class WorkspaceStore(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[ActiveFile] = file.name }
     }
 
+    /**
+     * The one-shot `HELP.md` pointer at the head of `habits.test` (Fase 14),
+     * shown until it is used or the file has been opened by any other route.
+     *
+     * Workspace state, and deliberately **not** a `settings.config` toggle: a
+     * switch for something that happens once would spend the rest of the app's
+     * life sitting on `false` in a file the user reads, and
+     * `$ git restore settings.config` would put the hint back in front of
+     * somebody who has been using thabit for a year. The way to see the help
+     * again is the file itself, which never goes anywhere.
+     */
+    val helpHintDismissed: Flow<Boolean> = dataStore.data
+        .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
+        .map { it[HelpHintDismissed] ?: false }
+        .distinctUntilChanged()
+
+    suspend fun dismissHelpHint() {
+        dataStore.edit { it[HelpHintDismissed] = true }
+    }
+
     companion object {
         private val ActiveFile = stringPreferencesKey("editor_active_file")
+        private val HelpHintDismissed = booleanPreferencesKey("help_hint_dismissed")
 
         fun create(context: Context) = WorkspaceStore(context.workspaceDataStore)
     }

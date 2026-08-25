@@ -130,6 +130,18 @@ class HabitRepository(
     suspend fun nextPosition(): Int = habitDao.nextPosition()
 
     /**
+     * Has this install ever been written to? Read once, by the first-run check
+     * (Fase 14), to tell an upgrade from a fresh install.
+     *
+     * A test — archived ones included — or a single check row is somebody
+     * having used the app. Presence rows are deliberately left out: they say
+     * the app was opened, which a fresh install is doing right now. See
+     * [com.callbackdev.thabit.data.FirstRunStore.migrate].
+     */
+    suspend fun everUsed(): Boolean =
+        habitDao.anyExists() || checkDao.earliestDate() != null
+
+    /**
      * Inserts a test built elsewhere — the wizard composes the whole [Habit], so
      * the repository does not need a parameter per field and cannot silently
      * drop one the day the wizard learns to ask for something new.

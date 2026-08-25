@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +70,18 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
+ * The files open in the Settings tab bar: one until Fase 14, two since.
+ *
+ * `HELP.md` lands here rather than in the editor because the editor's two files
+ * are about *the day* and this one is about *the app* — and because Settings is
+ * where somebody goes when a product has confused them.
+ */
+internal val SETTINGS_FILES: List<String> = listOf(SettingsDocument.FILE_NAME, "HELP.md")
+
+/** Index of `HELP.md` in [SETTINGS_FILES] — the target of the editor's hint. */
+internal const val HELP_FILE_INDEX: Int = 1
+
+/**
  * `settings.config` — the series' JSON with comments, where the values are the
  * controls.
  *
@@ -79,11 +92,38 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    /** Set by the editor's hint: open `HELP.md` rather than the config file. */
+    openHelp: Boolean = false,
+    onHelpOpened: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = LocalActivity.current
+
+    // Two files behind one strip since Fase 14, each keeping its own scroll.
+    var activeFile by rememberSaveable { mutableIntStateOf(0) }
+    val helpScroll = rememberLazyListState()
+
+    // The hint asks for a *file*, not just for this tab: the nav graph restores
+    // whichever tab was last open, so the request has to survive the switch.
+    LaunchedEffect(openHelp) {
+        if (openHelp) {
+            activeFile = HELP_FILE_INDEX
+            onHelpOpened()
+        }
+    }
+    if (activeFile == HELP_FILE_INDEX) {
+        // Seen is seen: the hint stops pointing at a file the reader has opened,
+        // however they got here.
+        LaunchedEffect(Unit) { viewModel.onHelpOpened() }
+        HelpScreen(
+            onSelectFile = { activeFile = it },
+            modifier = modifier,
+            listState = helpScroll
+        )
+        return
+    }
 
     // POST_NOTIFICATIONS — the series' state machine, ported from tsteps.
     //
@@ -154,6 +194,7 @@ fun SettingsScreen(
 
     SettingsScreen(
         state = state,
+        onSelectFile = { activeFile = it },
         actions = SettingsActions(viewModel).copy(
             // Only the switch going ON needs the grant; turning one off must
             // never open a permission dialog.
@@ -207,15 +248,17 @@ fun SettingsScreen(
     state: SettingsUiState,
     actions: SettingsActions,
     modifier: Modifier = Modifier,
-    notifState: NotifLineState = NotifLineState.Disabled
+    notifState: NotifLineState = NotifLineState.Disabled,
+    onSelectFile: (Int) -> Unit = {}
 ) {
     val document = state.document
     Column(modifier.fillMaxSize()) {
-        // A one-element strip and not a plainer bar of its own: this was the
-        // sibling's pre-v1 lesson — the single-file screens were the only places
-        // where the open file had no indicator under it, and that read as a
-        // different kind of chrome on every switch into them.
-        EditorTabs(fileNames = listOf(SettingsDocument.FILE_NAME), activeIndex = 0, onSelect = {})
+        // A strip and not a plainer bar of its own: this was the sibling's
+        // pre-v1 lesson — the single-file screens were the only places where the
+        // open file had no indicator under it, and that read as a different kind
+        // of chrome on every switch into them. It carried one name until Fase 14
+        // put `HELP.md` behind it.
+        EditorTabs(fileNames = SETTINGS_FILES, activeIndex = 0, onSelect = onSelectFile)
         Box(Modifier.weight(1f)) {
             CodeCanvas(
                 lines = if (document == null) emptyList() else settingsLines(

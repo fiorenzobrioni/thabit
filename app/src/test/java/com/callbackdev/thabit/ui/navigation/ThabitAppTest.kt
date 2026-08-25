@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
+import com.callbackdev.thabit.data.FirstRunStore
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
@@ -33,6 +34,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import java.time.Clock
 
 /**
@@ -48,6 +50,7 @@ class ThabitAppTest {
     val folder = TemporaryFolder()
 
     private lateinit var db: ThabitDatabase
+    private lateinit var firstRun: FirstRunStore
     private val writeScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Before
@@ -69,10 +72,14 @@ class ThabitAppTest {
         val notificationState = NotificationStateStore(
             PreferenceDataStoreFactory.create { folder.newFile("notif.preferences_pb") }
         )
+        firstRun = FirstRunStore(
+            PreferenceDataStoreFactory.create { folder.newFile("first-run.preferences_pb") }
+        )
         ServiceLocator.overrideForTests(object : AppGraph {
             override val database = db
             override val settings = settings
             override val workspace = workspace
+            override val firstRun = this@ThabitAppTest.firstRun
             override val notificationState = notificationState
             override val repository = repository
             override val clock: Clock = Clock.systemDefaultZone()
@@ -87,7 +94,15 @@ class ThabitAppTest {
         db.close()
     }
 
-    private fun show() = compose.setContent { ThabitTheme { ThabitApp() } }
+    /**
+     * Opens the workspace: the first-run check decides once per install, and
+     * these tests are about what happens after it, so they answer it as an
+     * install carrying somebody's tests would (Fase 14).
+     */
+    private fun show() {
+        runBlocking { firstRun.migrate(used = true) }
+        compose.setContent { ThabitTheme { ThabitApp() } }
+    }
 
     /**
      * Waits for the file to catch up with a write.
@@ -290,4 +305,96 @@ class ThabitAppTest {
         compose.onNodeWithText("meditate 10 min").assertIsDisplayed()
     }
 
+    // ---- the first run, and the pointer it leaves behind (Fase 14) ---------
+
+    /** The shell has to be able to open ON `$ thabit init`, not only past it. */
+    private fun showFirstRun() {
+        runBlocking { firstRun.migrate(used = false) }
+        compose.setContent { ThabitTheme { ThabitApp() } }
+    }
+
+    @Test
+    fun `a fresh install opens on the init session, not on the empty file`() {
+        showFirstRun()
+        awaitText("$ thabit init")
+
+        compose.onNodeWithText("$ thabit init").assertIsDisplayed()
+        compose.onNodeWithText("habits.test").assertDoesNotExist()
+    }
+
+    @Test
+    fun `skipping init lands on the workspace`() {
+        showFirstRun()
+        awaitText("> skip")
+
+        compose.onNodeWithText("> skip").performClick()
+
+        awaitText("# no tests in the suite yet")
+        compose.onNodeWithText("# no tests in the suite yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `answering with the first habit lands in the wizard, not beside it`() {
+        showFirstRun()
+        awaitText("> add your first habit")
+
+        compose.onNodeWithText("> add your first habit").performClick()
+
+        // `$ thabit add` is the wizard's own prompt: the reader is IN it.
+        awaitText("$ thabit add")
+        compose.onNodeWithText("$ thabit add").assertIsDisplayed()
+    }
+
+    /**
+     * A returning install is never asked again — and this is the branch that
+     * would be most expensive to get wrong, because it fires on every launch.
+     */
+    @Test
+    fun `an install that has answered opens straight on the suite`() {
+        show()
+        awaitText("habits.test")
+
+        compose.onNodeWithText("$ thabit init").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the hint carries the reader from the suite to HELP md`() {
+        show()
+        awaitText("# new here? open HELP.md")
+
+        compose.onNodeWithText("# new here? open HELP.md").performClick()
+
+        // A file on another tab: the request has to survive the tab switch.
+        awaitText("## The four tabs")
+        compose.onNodeWithText("## The four tabs").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a hint that has been taken does not come back`() {
+        show()
+        awaitText("# new here? open HELP.md")
+        compose.onNodeWithText("# new here? open HELP.md").performClick()
+        awaitText("## The four tabs")
+
+        compose.onNodeWithText("Editor").performClick()
+
+        awaitText("# no tests in the suite yet")
+        compose.onNodeWithText("# new here? open HELP.md").assertDoesNotExist()
+    }
+
+    /** Opening the file any other way spends the hint too: seen is seen. */
+    @Test
+    fun `reaching HELP md from the tab strip spends the hint`() {
+        show()
+        awaitText("# new here? open HELP.md")
+
+        compose.onNodeWithText("Settings").performClick()
+        awaitText("HELP.md")
+        compose.onNodeWithText("HELP.md").performClick()
+        awaitText("## The four tabs")
+        compose.onNodeWithText("Editor").performClick()
+
+        awaitText("# no tests in the suite yet")
+        compose.onNodeWithText("# new here? open HELP.md").assertDoesNotExist()
+    }
 }
