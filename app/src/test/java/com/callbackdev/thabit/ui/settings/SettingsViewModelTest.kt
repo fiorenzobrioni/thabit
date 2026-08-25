@@ -12,6 +12,7 @@ import com.callbackdev.thabit.export.ExportSink
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.callbackdev.thabit.data.SettingsStore
+import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +71,7 @@ class SettingsViewModelTest {
     private val dataStoreScope = CoroutineScope(dispatcher + SupervisorJob())
 
     private lateinit var settings: SettingsStore
+    private lateinit var workspace: WorkspaceStore
     private lateinit var database: ThabitDatabase
     private lateinit var repository: HabitRepository
     private lateinit var store: ViewModelStore
@@ -88,6 +90,11 @@ class SettingsViewModelTest {
                 folder.newFile("settings.preferences_pb")
             },
             clock
+        )
+        workspace = WorkspaceStore(
+            PreferenceDataStoreFactory.create(scope = dataStoreScope) {
+                folder.newFile("workspace.preferences_pb")
+            }
         )
         // A real ViewModelStore so the teardown can close `viewModelScope`
         // deterministically, before the main dispatcher is handed back.
@@ -111,6 +118,7 @@ class SettingsViewModelTest {
                 repository = repository,
                 exporter = { exporter },
                 exportScope = exportScope,
+                workspace = workspace,
                 versionName = "0.1.0"
             )
         ).get(SettingsViewModel::class.java)

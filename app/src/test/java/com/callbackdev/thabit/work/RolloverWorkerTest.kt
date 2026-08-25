@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
+import com.callbackdev.thabit.data.FirstRunStore
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
@@ -39,6 +40,9 @@ private class TestGraph(
     )
     override val workspace = WorkspaceStore(
         PreferenceDataStoreFactory.create { folder.newFile("graph-workspace.preferences_pb") }
+    )
+    override val firstRun = FirstRunStore(
+        PreferenceDataStoreFactory.create { folder.newFile("graph-first-run.preferences_pb") }
     )
     override val notificationState = NotificationStateStore(
         PreferenceDataStoreFactory.create { folder.newFile("graph-notif.preferences_pb") }

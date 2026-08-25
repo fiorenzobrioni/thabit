@@ -19,6 +19,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.Lifecycle
@@ -32,6 +34,7 @@ import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.ui.components.CanvasLine
 import com.callbackdev.thabit.ui.components.CheckboxState
 import com.callbackdev.thabit.ui.components.CodeCanvas
+import com.callbackdev.thabit.ui.components.CodeLine
 import com.callbackdev.thabit.ui.components.StatusBarDivider
 import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
@@ -72,11 +75,13 @@ import java.time.format.FormatStyle
 fun HabitsTestScreen(
     onAddTest: () -> Unit,
     onEditTest: (Long) -> Unit,
+    onOpenHelp: () -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     viewModel: SuiteViewModel = viewModel(factory = SuiteViewModel.Factory)
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val showHelpHint by viewModel.showHelpHint.collectAsStateWithLifecycle()
     // A file left on screen at half past eleven and looked at again after
     // midnight has to be the new day's before anything is tapped: coming back to
     // the front is the moment to read the clock again (the view model does not
@@ -90,8 +95,13 @@ fun HabitsTestScreen(
         // gets them back with a test in the suite.
         actions = SuiteActions(viewModel).copy(
             onAddTest = onAddTest,
-            onEdit = onEditTest
+            onEdit = onEditTest,
+            onOpenHelp = {
+                viewModel.onHelpHintUsed()
+                onOpenHelp()
+            }
         ),
+        showHelpHint = showHelpHint,
         modifier = modifier
     )
 }
@@ -102,9 +112,11 @@ fun HabitsTestScreen(
     state: SuiteUiState,
     actions: SuiteActions,
     modifier: Modifier = Modifier,
-    listState: LazyListState = rememberLazyListState()
+    listState: LazyListState = rememberLazyListState(),
+    showHelpHint: Boolean = false
 ) {
     val document = state.document
+    val hint = if (showHelpHint) stringResource(R.string.help_hint) else null
 
     Column(modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
@@ -112,7 +124,10 @@ fun HabitsTestScreen(
             // the shell provides from `settings.config` for every file at once:
             // they are properties of the editor, not of this screen.
             CodeCanvas(
-                lines = if (document == null) loadingLines() else suiteLines(
+                lines = if (document == null) loadingLines() else helpHintLines(
+                    hint = hint,
+                    onOpenHelp = actions.onOpenHelp
+                ) + suiteLines(
                     document = document,
                     interaction = state.interaction,
                     actions = actions
@@ -153,7 +168,8 @@ data class SuiteActions(
     val onSubmitPrompt: () -> Unit = {},
     val onCancelPrompt: () -> Unit = {},
     val onClearPrompt: () -> Unit = {},
-    val onAddTest: () -> Unit = {}
+    val onAddTest: () -> Unit = {},
+    val onOpenHelp: () -> Unit = {}
 ) {
     constructor(viewModel: SuiteViewModel) : this(
         onCheckbox = viewModel::onCheckbox,
@@ -230,6 +246,37 @@ private fun Modifier.spokenAs(label: String): Modifier =
  * local database.
  */
 private fun loadingLines(): List<CanvasLine> = emptyList()
+
+/**
+ * `# new here? open HELP.md` — the head of the file, once (Fase 14).
+ *
+ * A `#` and not a `//`: the comment channel wears the host file's syntax, and
+ * `habits.test` is the YAML-flavored one (VISION §1.1). The siblings' hint is a
+ * `//` for exactly the same reason, because the file it heads is JSON.
+ *
+ * It heads `habits.test` and not the `README.md` tab beside it: a "new here?"
+ * pointer on the plain-language surface would be pointing away from the very
+ * thing it is standing on. The suite is where the metaphor is thickest, and it
+ * is the first file the app ever opens.
+ *
+ * Not part of [SuiteDocument]: the document is the suite, and this line is not
+ * a fact about it. It also does not belong in the empty state — a hint that
+ * disappeared the moment the first test was written would be gone by the time
+ * the words it explains had anything to attach to.
+ */
+@Composable
+private fun helpHintLines(hint: String?, onOpenHelp: () -> Unit): List<CanvasLine> {
+    if (hint == null) return emptyList()
+    val syntax = ThabitTheme.syntax
+    return listOf(
+        CodeLine(
+            AnnotatedString("# $hint", SpanStyle(color = syntax.key)),
+            onClick = onOpenHelp,
+            onClickLabel = hint,
+            contentDescription = hint
+        )
+    )
+}
 
 /**
  * The document, rendered line by line.

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Italian chrome. Series l10n rule: "code" (YAML keys, filenames, terminal
      output, comments) stays English; only chrome and data values localize. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Bottom navigation. "Editor" and "Log" are the same word in Italian;
          "Stats" stays English — "Statistiche" does not fit label-sm without
          truncating (tsteps' recorded decision, inherited). -->
@@ -322,4 +322,56 @@
     <string name="cd_setting_widget_opacity">Opacità dello sfondo del widget, %1$d per cento</string>
     <string name="cd_export_wrote">Scritto nella cartella Download come %1$s</string>
     <string name="cd_export_failed">L\'esportazione non è riuscita: %1$s</string>
+
+    <!-- `$ thabit init` (Fase 14): prosa per chi vede l\'app per la prima volta -->
+    <string name="init_intro">thabit tiene le tue abitudini come una lista da spuntare, un giorno alla volta.</string>
+    <string name="init_privacy">Niente rete, niente account, niente sensori: dal telefono non esce niente.</string>
+    <string name="init_option_add">aggiungi la prima abitudine</string>
+    <string name="init_option_add_note">l\'app la chiama test, e le elenca in habits.test</string>
+    <string name="init_option_skip">salta</string>
+    <string name="init_option_skip_note">prima dai un\'occhiata: il pulsante + ne aggiunge una quando vuoi</string>
+
+    <!-- Il puntatore una tantum in testa a habits.test (Fase 14) -->
+    <string name="help_hint">prima volta? apri HELP.md</string>
+
+    <!-- HELP.md (Fase 14): prosa, quindi interamente localizzata. Spiega la
+         FORMA dell\'app; le parole che stanno accanto a un numero (build,
+         health, coverage, flaky, regression) sono spiegate nella tab README.md,
+         dove quei numeri stanno, e qui la sezione del vocabolario rimanda lì
+         invece di ripeterle. -->
+    <!-- The `amend` entry names a git flag whose two hyphens are part of the
+         command: an em dash there would be a command that does not exist. -->
+    <string-array name="help_md" tools:ignore="TypographyDashes">
+        <item># thabit</item>
+        <item></item>
+        <item>Un tracker di abitudini che si presenta come un editor di codice e una suite di test: le tue abitudini sono una lista da spuntare, un giorno è una sua esecuzione, e il passato è una storia che puoi rileggere. Se le parole qui sotto non ti dicono niente, questa pagina è per te.</item>
+        <item></item>
+        <item>## Le quattro schede</item>
+        <item></item>
+        <item>- **Editor** - `habits.test` e `README.md`: oggi. Il primo è la lista da spuntare; il secondo è la stessa giornata raccontata a parole.</item>
+        <item>- **Log** - `habits_history.diff`: una voce per ogni giorno chiuso, con quello che hai fatto e quello che non hai fatto.</item>
+        <item>- **Stats** - `stats.md`: la griglia colorata delle ultime settimane (un quadretto per giorno) e una tabella con una riga per abitudine.</item>
+        <item>- **Impostazioni** - `settings.config` e questo file. Le opzioni si cambiano toccando il valore. Non c\'è nessun interruttore da cercare.</item>
+        <item></item>
+        <item>## Le parole prese in prestito</item>
+        <item></item>
+        <item>- **test** - un\'abitudine. L\'app la chiama test perché un\'abitudine, come un test, quel giorno ha tenuto oppure no.</item>
+        <item>- **suite** - tutte insieme, cioè quello che `habits.test` elenca.</item>
+        <item>- **assert** - quello che l\'abitudine ti chiede: venti pagine, dieci minuti, o semplicemente di averlo fatto.</item>
+        <item>- **le caselle** - `[ ]` ancora da fare, `[x]` fatto, `[·]` un\'abitudine che stai evitando e che sta tenendo, `[~]` saltata apposta, `[!]` fallita. Si risponde toccando la casella.</item>
+        <item>- **commit** - un giorno, chiuso e archiviato quando il giorno finisce. Un giorno committato non cambia più.</item>
+        <item>- **`--amend`** - correggere ieri, l\'unico giorno chiuso ancora aperto a te. Lo storico dice dove è successo.</item>
+        <item>- **diff** - quello che un giorno conteneva, scritto come cambiamenti: `+` per quello che ha tenuto, `-` per quello che no.</item>
+        <item>- **branch** (`⎇`) - quello che stai guardando.</item>
+        <item></item>
+        <item>Le altre parole che l\'app stampa - `build`, `health`, `coverage`, `flaky`, `regression` - sono spiegate nella tab `README.md`, accanto ai numeri di cui parlano.</item>
+        <item></item>
+        <item>## Da dove arrivano i numeri</item>
+        <item></item>
+        <item>Dalle caselle che spunti, e da nient\'altro. thabit non ha nemmeno il permesso di rete, non ha account e non ha sensori: dal telefono non può uscire niente, perché non c\'è nessun posto dove andare. Ogni cifra è ricalcolata dalle tue risposte nel momento in cui viene mostrata, mai salvata, quindi correggere un giorno corregge tutto quello di cui quel giorno faceva parte. E un giorno in cui non hai aperto l\'app non conta come fallito: resta vuoto, perché l\'app non sa cosa è successo, e lo dice.</item>
+        <item></item>
+        <item>## Perché ha questo aspetto</item>
+        <item></item>
+        <item>Perché un file si legge tutto insieme, e perché ci piace così. E se qualche parola qui sopra resta oscura, non importa: le caselle funzionano lo stesso.</item>
+    </string-array>
 </resources>

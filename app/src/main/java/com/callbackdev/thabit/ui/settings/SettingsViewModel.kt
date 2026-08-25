@@ -12,6 +12,7 @@ import com.callbackdev.thabit.BuildConfig
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.SettingsStore
 import com.callbackdev.thabit.data.ThabitSettings
+import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.di.ServiceLocator
 import com.callbackdev.thabit.export.DataExporter
 import com.callbackdev.thabit.export.ExportFormat
@@ -52,8 +53,21 @@ class SettingsViewModel(
     private val exporter: () -> DataExporter,
     /** Survives this destination, so `[esc]` mid-write cannot cancel the write. */
     private val exportScope: CoroutineScope,
+    /** Session state, written to for one thing only: see [onHelpOpened]. */
+    private val workspace: WorkspaceStore,
     private val versionName: String = BuildConfig.VERSION_NAME
 ) : ViewModel() {
+
+    /**
+     * `HELP.md` is on screen, so the editor stops pointing at it (Fase 14).
+     *
+     * Called however the file was reached — the hint, the tab strip, or the tab
+     * the app happened to reopen on. A pointer to something the reader has now
+     * read is the kind of chrome that turns into furniture.
+     */
+    fun onHelpOpened() {
+        viewModelScope.launch { workspace.dismissHelpHint() }
+    }
 
     private val interaction = MutableStateFlow(SettingsInteraction())
     private val _export = MutableStateFlow<ExportState>(ExportState.Idle)
@@ -183,7 +197,8 @@ class SettingsViewModel(
                     settings = graph.settings,
                     repository = graph.repository,
                     exporter = { ServiceLocator.exporter(app) },
-                    exportScope = graph.appScope
+                    exportScope = graph.appScope,
+                    workspace = graph.workspace
                 )
             }
         }
@@ -194,13 +209,14 @@ class SettingsViewModel(
             repository: HabitRepository,
             exporter: () -> DataExporter,
             exportScope: CoroutineScope,
+            workspace: WorkspaceStore,
             versionName: String
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T =
                     SettingsViewModel(
-                        settings, repository, exporter, exportScope, versionName
+                        settings, repository, exporter, exportScope, workspace, versionName
                     ) as T
             }
     }

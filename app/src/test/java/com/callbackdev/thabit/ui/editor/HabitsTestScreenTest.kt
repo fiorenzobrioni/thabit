@@ -52,7 +52,8 @@ class HabitsTestScreenTest {
     private fun show(
         history: SuiteHistory,
         actions: SuiteActions = SuiteActions(),
-        interaction: SuiteInteraction = SuiteInteraction()
+        interaction: SuiteInteraction = SuiteInteraction(),
+        showHelpHint: Boolean = false
     ) {
         val document = SuiteDocument.of(history, d, d)
         compose.setContent {
@@ -63,7 +64,8 @@ class HabitsTestScreenTest {
                         interaction = interaction,
                         loading = false
                     ),
-                    actions = actions
+                    actions = actions,
+                    showHelpHint = showHelpHint
                 )
             }
         }
@@ -398,5 +400,49 @@ class HabitsTestScreenTest {
             )
         )
         compose.onNodeWithText("[clear]").assertDoesNotExist()
+    }
+
+    // ---- the HELP.md pointer (Fase 14) -------------------------------------
+
+    @Test
+    fun `the hint heads the file, in the file's own comment channel`() {
+        show(suite(), showHelpHint = true)
+
+        // `#` and not `//`: the comment wears the syntax of the file it is in,
+        // which here is the YAML-flavored one (VISION §1.1).
+        compose.onNodeWithText("# new here? open HELP.md").assertIsDisplayed()
+    }
+
+    @Test
+    fun `the hint is gone once it has been dealt with`() {
+        show(suite(), showHelpHint = false)
+
+        compose.onNodeWithText("# new here? open HELP.md").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping the hint asks for the file`() {
+        var opened = 0
+        show(suite(), actions = SuiteActions(onOpenHelp = { opened++ }), showHelpHint = true)
+
+        compose.onNodeWithText("# new here? open HELP.md").performClick()
+
+        assertEquals(1, opened)
+    }
+
+    /** A `#` and a filename read as punctuation; the sentence is the meaning. */
+    @Test
+    fun `the hint speaks its sentence to a screen reader`() {
+        show(suite(), showHelpHint = true)
+
+        compose.onNodeWithContentDescription("new here? open HELP.md").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the hint is localized, like the two other surfaces addressed to a reader`() {
+        show(suite(), showHelpHint = true)
+
+        compose.onNodeWithText("# prima volta? apri HELP.md").assertIsDisplayed()
     }
 }

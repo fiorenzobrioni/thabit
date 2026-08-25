@@ -369,4 +369,42 @@ class HabitRepositoryTest {
         settings.setDayEnds(LocalTime.of(3, 0))
         assertEquals(LocalTime.of(3, 0), repository.boundary().dayEnds)
     }
+
+    // ---- what the first-run check reads (Fase 14) --------------------------
+
+    @Test
+    fun `a fresh install has never been used`() = runTest {
+        assertFalse(repository.everUsed())
+    }
+
+    @Test
+    fun `one test is enough to count as used`() = runTest {
+        repository.addHabit("meditate 10 min")
+
+        assertTrue(repository.everUsed())
+    }
+
+    /**
+     * `[rm]` archives, it never deletes — and an archived test was still written
+     * by somebody. An update must not greet them with a setup screen.
+     */
+    @Test
+    fun `an archived test still counts`() = runTest {
+        val id = repository.addHabit("meditate 10 min")
+        repository.archiveHabit(id)
+
+        assertTrue(repository.everUsed())
+    }
+
+    /**
+     * Opening the app is not using it: `markPresent` fires from `onStart`, one
+     * step after the check runs, so a presence row that counted would let a
+     * fresh install race itself past its own first run.
+     */
+    @Test
+    fun `opening the app is not what makes an install used`() = runTest {
+        repository.markPresent()
+
+        assertFalse(repository.everUsed())
+    }
 }

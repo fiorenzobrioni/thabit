@@ -35,6 +35,13 @@ interface HabitDao {
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM habit")
     suspend fun nextPosition(): Int
+
+    /**
+     * Has anybody ever written a test here? Archived ones count: they were
+     * written by somebody. Read once per install, by the first-run check.
+     */
+    @Query("SELECT EXISTS(SELECT 1 FROM habit)")
+    suspend fun anyExists(): Boolean
 }
 
 @Dao

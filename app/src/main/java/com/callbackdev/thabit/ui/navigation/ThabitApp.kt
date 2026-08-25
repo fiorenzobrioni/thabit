@@ -9,10 +9,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.callbackdev.thabit.data.FirstRun
+import com.callbackdev.thabit.data.FirstRunStore
+import com.callbackdev.thabit.di.ServiceLocator
+import com.callbackdev.thabit.ui.init.InitScreen
 import com.callbackdev.thabit.ui.theme.ThabitTheme
+import kotlinx.coroutines.launch
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -37,7 +50,63 @@ import com.callbackdev.thabit.ui.settings.SettingsScreen
 import com.callbackdev.thabit.ui.wizard.WizardScreen
 
 /**
- * The shell: four files behind the editor's bottom bar.
+ * The shell: `$ thabit init` until it has been answered, and the workspace after.
+ *
+ * The [FirstRun.Unknown] branch draws an empty surface on purpose (Fase 14): the
+ * legacy check is one DataStore read away, and guessing "pending" for that frame
+ * would flash a setup screen at somebody who has been using the app for months.
+ */
+@Composable
+fun ThabitApp(
+    editorOptions: EditorOptions = EditorOptions(),
+    navController: NavHostController = rememberNavController()
+) {
+    val context = LocalContext.current
+    val firstRunStore = remember(context) { ServiceLocator.firstRun(context) }
+    val firstRun by remember(firstRunStore) { firstRunStore.state }
+        .collectAsStateWithLifecycle(initialValue = FirstRun.Unknown)
+
+    // Answering `> add your first habit` means landing IN the wizard, not beside
+    // it: the flag rides across the swap of the whole shell, which is why it is
+    // held out here and consumed by the workspace.
+    var openWizard by rememberSaveable { mutableStateOf(false) }
+
+    when (firstRun) {
+        FirstRun.Unknown -> Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {}
+        FirstRun.Pending -> FirstRunSetup(
+            firstRunStore = firstRunStore,
+            onWizardRequested = { openWizard = true }
+        )
+        FirstRun.Done -> Workspace(
+            editorOptions = editorOptions,
+            navController = navController,
+            openWizard = openWizard,
+            onWizardOpened = { openWizard = false }
+        )
+    }
+}
+
+/** The two answers `$ thabit init` takes, and what each of them writes. */
+@Composable
+private fun FirstRunSetup(firstRunStore: FirstRunStore, onWizardRequested: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    InitScreen(
+        onAddFirstTest = {
+            onWizardRequested()
+            scope.launch { firstRunStore.markInitDone() }
+        },
+        // Skipping is an answer: the empty `habits.test` behind this screen
+        // already says what to tap, and it says it to somebody who chose to be
+        // there.
+        onSkip = { scope.launch { firstRunStore.markInitDone() } }
+    )
+}
+
+/**
+ * Four files behind the editor's bottom bar.
  *
  * Navigation Compose with one destination per tab and the series' tab behaviour —
  * `saveState`/`restoreState` around the start destination, so switching to Stats
@@ -55,12 +124,27 @@ import com.callbackdev.thabit.ui.wizard.WizardScreen
  * file: line numbers and word wrap are properties of the editor, not of a screen.
  */
 @Composable
-fun ThabitApp(
-    editorOptions: EditorOptions = EditorOptions(),
-    navController: NavHostController = rememberNavController()
+private fun Workspace(
+    editorOptions: EditorOptions,
+    navController: NavHostController,
+    openWizard: Boolean,
+    onWizardOpened: () -> Unit
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
+
+    // `$ thabit init` asked for the wizard: open it over the editor's stack, so
+    // `[esc]` lands on the suite the reader has just been promised.
+    LaunchedEffect(openWizard) {
+        if (openWizard) {
+            onWizardOpened()
+            navController.navigate(EditorRoutes.WIZARD)
+        }
+    }
+
+    // The editor's hint asks for a file on another tab: the flag rides across
+    // the tab switch and the Settings screen consumes it (Fase 14).
+    var openHelp by rememberSaveable { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -91,6 +175,13 @@ fun ThabitApp(
                                     onAddTest = { navController.navigate(EditorRoutes.WIZARD) },
                                     onEditTest = { habitId ->
                                         navController.navigate(EditorRoutes.wizardFor(habitId))
+                                    },
+                                    onOpenHelp = {
+                                        openHelp = true
+                                        navController.openTab(
+                                            EditorNavItems.Settings,
+                                            destination
+                                        )
                                     }
                                 )
                             }
@@ -124,7 +215,12 @@ fun ThabitApp(
                                 }
                             )
                         }
-                        composable(EditorNavItems.Settings.route) { SettingsScreen() }
+                        composable(EditorNavItems.Settings.route) {
+                            SettingsScreen(
+                                openHelp = openHelp,
+                                onHelpOpened = { openHelp = false }
+                            )
+                        }
                     }
                 }
             }

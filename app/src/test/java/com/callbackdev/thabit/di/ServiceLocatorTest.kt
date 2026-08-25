@@ -2,6 +2,7 @@ package com.callbackdev.thabit.di
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
+import com.callbackdev.thabit.data.FirstRunStore
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
@@ -63,6 +64,9 @@ class ServiceLocatorTest {
         )
         override val workspace: WorkspaceStore = WorkspaceStore(
             PreferenceDataStoreFactory.create { folder.newFile("fake.workspace_pb") }
+        )
+        override val firstRun: FirstRunStore = FirstRunStore(
+            PreferenceDataStoreFactory.create { folder.newFile("fake.first_run_pb") }
         )
         override val notificationState: NotificationStateStore = NotificationStateStore(
             PreferenceDataStoreFactory.create { folder.newFile("fake.notif_pb") }

@@ -1,6 +1,7 @@
 package com.callbackdev.thabit.di
 
 import android.content.Context
+import com.callbackdev.thabit.data.FirstRunStore
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.data.NotificationStateStore
 import com.callbackdev.thabit.data.SettingsStore
@@ -38,6 +39,8 @@ object ServiceLocator {
 
     fun workspace(context: Context): WorkspaceStore = graph(context).workspace
 
+    fun firstRun(context: Context): FirstRunStore = graph(context).firstRun
+
     fun notificationState(context: Context): NotificationStateStore =
         graph(context).notificationState
 
@@ -63,6 +66,9 @@ interface AppGraph {
     /** Session state — which file the editor tab has open (Fase 7). */
     val workspace: WorkspaceStore
 
+    /** Whether `$ thabit init` still owes an answer (Fase 14). */
+    val firstRun: FirstRunStore
+
     /** What the app has already announced, so it never announces it twice (Fase 9). */
     val notificationState: NotificationStateStore
     val repository: HabitRepository
@@ -87,6 +93,7 @@ private class DefaultAppGraph(private val context: Context) : AppGraph {
     override val database: ThabitDatabase by lazy { ThabitDatabase.build(context) }
     override val settings: SettingsStore by lazy { SettingsStore(context) }
     override val workspace: WorkspaceStore by lazy { WorkspaceStore.create(context) }
+    override val firstRun: FirstRunStore by lazy { FirstRunStore.create(context) }
     override val notificationState: NotificationStateStore by lazy {
         NotificationStateStore.create(context)
     }

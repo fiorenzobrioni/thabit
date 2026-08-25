@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
         readFocus(intent)
         watchAlarms()
         watchWidget()
+        decideFirstRun()
         // The app is dark-only (see ThabitTheme), so the system bars must always
         // draw their icons light. enableEdgeToEdge()'s default is SystemBarStyle.auto,
         // which picks the appearance from the *system* dark-mode setting: on a phone
@@ -60,6 +61,26 @@ class MainActivity : ComponentActivity() {
                     )
                 )
             }
+        }
+    }
+
+    /**
+     * Decides once, per install, whether this is a first run (Fase 14).
+     *
+     * It has to land before the shell can tell a fresh install from a returning
+     * reader, which is why it runs from `onCreate` and why the shell draws
+     * nothing until it has: an install carrying tests would otherwise get a
+     * frame of `$ thabit init` on every cold start.
+     *
+     * It reads what the *user* wrote — a test, archived ones included, or a
+     * single check row. Deliberately not the presence rows: `markPresent()`
+     * fires from `onStart`, one step after this, so a fresh install would beat
+     * itself to "already used" on its very first launch.
+     */
+    private fun decideFirstRun() {
+        val app = applicationContext
+        lifecycleScope.launch {
+            ServiceLocator.firstRun(app).migrate(ServiceLocator.repository(app).everUsed())
         }
     }
 

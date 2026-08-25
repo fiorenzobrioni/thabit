@@ -7,6 +7,29 @@ All notable changes to thabit are recorded here. The format follows
 The phase-by-phase record, with every decision and the reason behind it, lives in
 `PLANNING.md`; this file is the short version.
 
+## [Unreleased]
+
+### Added
+
+- **`$ thabit init`** — the first run as a terminal session rather than a
+  carousel: one screen, two answers (write the first habit, which opens the
+  wizard, or skip). thabit has no mandatory permission to ask for, so the one
+  thing it cannot start without is a suite. An install that already holds a test
+  or a check is never asked, and the shell draws nothing until that check has
+  landed, so a returning reader never sees a flash of setup.
+- **`HELP.md`** — the second file behind the Settings tab bar: the app explained
+  to somebody who does not read `git` for a living. The four tabs, the borrowed
+  words (`test`, `suite`, `assert`, the boxes, `commit`, `--amend`, `diff`,
+  `branch`), where the numbers come from, and one paragraph on why it looks like
+  this. It does not restate the `README.md` tab's glossary; one line hands the
+  reader there, where those words stand next to the numbers they are about.
+- **A one-shot pointer** — `# new here? open HELP.md` at the head of
+  `habits.test`, spent by the tap or by opening the file any other way. A `#`
+  and not a `//`, because the comment channel wears the host file's syntax.
+
+Both new surfaces are localized, like the `README.md` tab: they are the ones
+addressed to somebody who cannot read the app yet.
+
 ## [1.0.0] - 2026-08-24
 
 The first release. thabit is an offline Android habit tracker whose interface is

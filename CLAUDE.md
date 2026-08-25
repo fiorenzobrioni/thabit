@@ -43,6 +43,14 @@ Stack: Kotlin 2.2 + Compose (Material 3), Gradle 9.1 / AGP 8.13, version catalog
 
 **No em dashes (`—`) or en dashes (`–`) in the root `README.md`.** Rewrite the sentence rather than swapping in a hyphen: use a colon when the clause explains, a full stop when the thoughts are separate, parentheses for an aside. Same house style as the siblings, deliberately scoped to that one file — every other file keeps normal punctuation.
 
+## First run, tips and `HELP.md` (Fase 14)
+
+A fresh install opens on `$ thabit init`: one screen, two answers (write the first habit, which lands in the wizard, or skip), deliberately not a carousel. thabit has no mandatory permission to ask for — `POST_NOTIFICATIONS` belongs in `settings.config`, where the switch that needs it lives — so what the app cannot start without is a **suite**. `FirstRunStore.migrate(used)` runs once from `onCreate` and never asks an install that already holds a test (archived ones count) or a check row; presence rows are deliberately not part of `used`, because `markPresent()` fires one lifecycle step later and a fresh install would race itself. `FirstRun.Unknown` draws nothing until that check lands, so a returning reader never sees a flash of setup.
+
+`HELP.md` is the second file behind the **Settings** tab bar: the app explained to somebody who does not read `git` for a living (the four tabs, the borrowed words, where the numbers come from, one paragraph on why it looks like this). It explains the *shape* of the app and deliberately does **not** restate the `README.md` tab's glossary (`build`, `health`, `coverage`, `flaky`, `regression` — Fase 13 put those next to the numbers they are about): one line hands the reader there instead, and that line is the one sentence of the file a test freezes. It is pointed at once by a `# new here? open HELP.md` line at the head of `habits.test` — a `#` and not the siblings' `//`, because the comment channel wears the host file's syntax — whose dismissed state lives in the `workspace` DataStore, never a `settings.config` toggle (`$ git restore settings.config` would bring a one-time hint back). The hint is spent by the tap **or** by opening the file any other way.
+
+Both surfaces are **localized**, the same exception the `README.md` day tab makes: they are the only ones addressed to somebody who cannot read the app yet. On the init screen the plain word goes in the choice and the app's own word is introduced in the `#` note beside it (VISION §3.3.7).
+
 ## Domain notes
 
 - **Verdicts are computed on read, never persisted**: streaks, health (EMA), build results and records all derive from the `check` rows whenever asked. The midnight rollover worker only notifies and repaints — it never writes data. `--amend` recomputes everything for free.
