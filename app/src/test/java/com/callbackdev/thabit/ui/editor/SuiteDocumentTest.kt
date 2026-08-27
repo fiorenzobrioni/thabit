@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.editor
 
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.Fixture
 import com.callbackdev.thabit.domain.StreakUnit
 import com.callbackdev.thabit.domain.SuiteHistory
@@ -10,6 +11,7 @@ import com.callbackdev.thabit.domain.model.CheckState
 import com.callbackdev.thabit.domain.model.HabitType
 import com.callbackdev.thabit.domain.model.Schedule
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -226,8 +228,11 @@ class SuiteDocumentTest {
         val document = doc(Fixture.history(listOf(mondays), emptyList(), setOf(d)))
         assertTrue(document.due.isEmpty())
         assertEquals("when: mon", document.notDue.single().reason)
-        assertEquals("1 test not due today — [show]", document.notDueComment(expanded = false))
-        assertEquals("1 test not due today — [hide]", document.notDueComment(expanded = true))
+        // The sentence beside it is a plural resource, asserted in both
+        // languages in HabitsTestScreenTest; the control is a control.
+        assertEquals(1, document.notDue.size)
+        assertEquals("[show]", document.notDueControl(expanded = false))
+        assertEquals("[hide]", document.notDueControl(expanded = true))
     }
 
     @Test
@@ -245,17 +250,18 @@ class SuiteDocumentTest {
     }
 
     @Test
-    fun `the collapsed line counts in the plural when it should`() {
+    fun `the collapsed line counts what it is collapsing`() {
         val a = Fixture.habit(7L, "a", schedule = Schedule.Weekdays(setOf(DayOfWeek.MONDAY)), createdAt = d)
         val b = Fixture.habit(8L, "b", schedule = Schedule.Weekdays(setOf(DayOfWeek.MONDAY)), createdAt = d)
         val document = doc(Fixture.history(listOf(a, b), emptyList(), setOf(d)))
-        assertEquals("2 tests not due today — [show]", document.notDueComment(expanded = false))
+        assertEquals(2, document.notDue.size)
+        assertEquals("[show]", document.notDueControl(expanded = false))
     }
 
     @Test
     fun `nothing to collapse means no line at all`() {
         val document = doc(Fixture.history(listOf(meditate), emptyList(), setOf(d)))
-        assertNull(document.notDueComment(expanded = false))
+        assertNull(document.notDueControl(expanded = false))
     }
 
     // ---- the expansion ---------------------------------------------------
@@ -301,14 +307,24 @@ class SuiteDocumentTest {
         val document = doc(SuiteHistory.Empty)
         assertTrue(document.isEmpty)
         assertTrue(document.due.isEmpty())
-        assertEquals("no tests in the suite yet", SuiteDocument.emptyHints().first())
-        assertTrue(SuiteDocument.emptyHints().any { it.contains("tap +") })
+        // The words are resources now (Fase 15) and are asserted in both
+        // languages in HabitsTestScreenTest. What belongs here is the shape the
+        // document decides: which lines, in which order, and the blank between.
+        assertEquals(
+            listOf(
+                R.string.suite_empty_none,
+                SuiteDocument.BLANK_LINE,
+                R.string.suite_empty_add,
+                R.string.suite_empty_readme
+            ),
+            SuiteDocument.emptyHints()
+        )
     }
 
     @Test
     fun `the empty state points at the README tab only once that tab exists`() {
-        assertTrue(SuiteDocument.emptyHints(readmeTab = false).none { it.contains("README") })
-        assertTrue(SuiteDocument.emptyHints(readmeTab = true).any { it.contains("README") })
+        assertFalse(SuiteDocument.emptyHints(readmeTab = false).contains(R.string.suite_empty_readme))
+        assertTrue(SuiteDocument.emptyHints(readmeTab = true).contains(R.string.suite_empty_readme))
     }
 
     @Test

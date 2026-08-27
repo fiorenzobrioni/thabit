@@ -237,15 +237,28 @@ class WidgetContentBuilderTest {
         )
     }
 
+    /**
+     * The register rule on the smallest surface there is (Fase 15).
+     *
+     * The line is deliberately **both** languages at once, and that is the whole
+     * shape of the rule: the date and `1 pending` are readouts, so they read the
+     * same everywhere; the affordance is a sentence, so it is the reader's. The
+     * command in the header and the `#` marker are code and never move.
+     */
     @Test
     @Config(qualifiers = "it")
-    fun `the spoken half is the reader's language, the transcript stays English`() {
+    fun `the widget keeps its readouts and speaks its affordance`() {
         val italian = ApplicationProvider.getApplicationContext<android.content.Context>().resources
         val content = WidgetContentBuilder.build(fullDay(), WidgetTier.Terminal(6), italian)
         assertEquals("1 su 3 passati il 2026-08-21", content.bodyLines.first().spoken)
-        // The transcript is source, and source is English everywhere.
-        assertEquals("# 2026-08-21 · 1 pending — tap to pass", content.bodyLines.last().text)
+        assertEquals("# 2026-08-21 · 1 pending — tocca per passare", content.bodyLines.last().text)
         assertEquals("thabit --status", content.headerTitle)
+    }
+
+    @Test
+    fun `the same line in English is the same line`() {
+        val content = build(fullDay())
+        assertEquals("# 2026-08-21 · 1 pending — tap to pass", content.bodyLines.last().text)
     }
 
     @Test

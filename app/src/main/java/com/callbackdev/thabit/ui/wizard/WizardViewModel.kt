@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.wizard
 
+import androidx.annotation.StringRes
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.data.HabitRepository
 import com.callbackdev.thabit.di.AppGraph
 import com.callbackdev.thabit.di.ServiceLocator
@@ -235,9 +237,9 @@ class WizardViewModel(
         _state.update { ui -> commit(ui).let { it.copy(draft = block(it.draft)) } }
 
     companion object {
-        const val MISSING_TEST = "ERROR: that test is no longer in the suite"
+        @StringRes val MISSING_TEST: Int = R.string.wiz_err_missing
 
-        const val BAD_TIME = "ERROR: a reminder is a time of day — 07:00"
+        @StringRes val BAD_TIME: Int = R.string.wiz_err_time
 
         fun factory(
             repository: HabitRepository,
@@ -274,8 +276,12 @@ data class WizardUiState(
     /** The open prompt, or null when the transcript is waiting for a tap. */
     val focus: WizardField? = WizardField.Name,
     val pending: String = "",
-    /** Compiler-style refusal, in the file's own English. */
-    val error: String? = null,
+    /**
+     * Compiler-style refusal, named rather than spelled (Fase 15): the `ERROR:`
+     * level is the renderer's and never moves, the sentence after it is the
+     * reader's.
+     */
+    @StringRes val error: Int? = null,
     /** Names added in this session, oldest first — the transcript's receipts. */
     val added: List<String> = emptyList(),
     val closeRequested: Boolean = false,

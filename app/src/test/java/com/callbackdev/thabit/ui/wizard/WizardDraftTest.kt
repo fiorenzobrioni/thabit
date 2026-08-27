@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.wizard
 
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.model.AssertSpec
 import com.callbackdev.thabit.domain.model.Habit
 import com.callbackdev.thabit.domain.model.HabitType
@@ -36,7 +37,7 @@ class WizardDraftTest {
 
     @Test
     fun `a name is the only thing a test cannot be added without`() {
-        assertEquals("ERROR: a test needs a name", WizardDraft().validationError())
+        assertEquals(R.string.wiz_err_name, WizardDraft().validationError())
         assertTrue(WizardDraft().withName("meditate 10 min").isValid)
     }
 
@@ -229,7 +230,7 @@ class WizardDraftTest {
     @Test
     fun `a counter needs something to count`() {
         val draft = WizardDraft().withName("read").withType(HabitType.COUNTER).withUnit("")
-        assertEquals("ERROR: a counter needs a unit to count", draft.validationError())
+        assertEquals(R.string.wiz_err_unit, draft.validationError())
     }
 
     // ---- the reminder -----------------------------------------------------

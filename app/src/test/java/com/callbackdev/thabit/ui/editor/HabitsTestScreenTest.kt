@@ -116,6 +116,20 @@ class HabitsTestScreenTest {
         compose.onNodeWithText("# the README tab says what a test is here").assertIsDisplayed()
     }
 
+    /**
+     * The register rule where it costs the most to get wrong (Fase 15): this is
+     * the first sentence the app ever says, and a reader who cannot read it has
+     * nothing else on the screen to fall back on.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the empty suite speaks Italian, and the marker does not`() {
+        show(SuiteHistory.Empty)
+        compose.onNodeWithText("# nessun test nella suite").assertIsDisplayed()
+        compose.onNodeWithText("# tocca + per aggiungere il primo test").assertIsDisplayed()
+        compose.onNodeWithText("# la scheda README dice cos\'è un test qui").assertIsDisplayed()
+    }
+
     @Test
     fun `the status bar shows the branch and the live score`() {
         show(suite())
@@ -189,6 +203,20 @@ class HabitsTestScreenTest {
         compose.onNodeWithText("[rm]").assertDoesNotExist()
     }
 
+    /**
+     * One line, both registers. The command is a command and the `[esc]` is a
+     * control, so neither moves; the sentence telling the reader what the second
+     * tap will do is the only thing on the line that exists to be understood.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the confirm asks in Italian and the command stays a command`() {
+        show(suite(), interaction = SuiteInteraction(expandedId = 1L, archiveConfirmId = 1L))
+        compose.onNodeWithText("$ thabit archive \"meditate 10 min\"").assertIsDisplayed()
+        compose.onNodeWithText("# tocca il comando per confermare").assertIsDisplayed()
+        compose.onNodeWithText("[esc]").assertIsDisplayed()
+    }
+
     @Test
     fun `a prompt opens inside the file, with its window token and its exits`() {
         show(
@@ -218,6 +246,42 @@ class HabitsTestScreenTest {
         compose.onNodeWithText("# deep work  — when: mon")
             .assertIsDisplayed()
             .assert(hasClickAction())
+    }
+
+    /**
+     * The seam, drawn on two adjacent lines. The summary is a sentence and moves;
+     * `[hide]` is a control and does not; and the row under it is live detail —
+     * the test's own name and its schedule — so it stays exactly as it was. A
+     * translated `when: mon` would be a schedule nobody could type back.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the not-due summary speaks, its control and its rows do not`() {
+        val mondays = Fixture.habit(
+            4L, "deep work",
+            schedule = com.callbackdev.thabit.domain.model.Schedule.Weekdays(
+                setOf(java.time.DayOfWeek.MONDAY)
+            ),
+            createdAt = d
+        )
+        val history = Fixture.history(listOf(meditate, mondays), emptyList(), setOf(d))
+        show(history, interaction = SuiteInteraction(notDueExpanded = true))
+        compose.onNodeWithText("# 1 test non previsto oggi — [hide]").assertIsDisplayed()
+        compose.onNodeWithText("# deep work  — when: mon").assertIsDisplayed()
+    }
+
+    /**
+     * The row comments are readouts, so they are the same line in every
+     * language: a time, a fraction and its unit. This is the half of the rule
+     * that keeps the column from going bilingual.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the row comments are readouts and stay put`() {
+        show(suite())
+        compose.onNodeWithText("# 07:12", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("# 12/30 reps", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("# suite 2026-08-01 — 1 passed · 2 pending").assertIsDisplayed()
     }
 
     @Test
@@ -269,7 +333,7 @@ class HabitsTestScreenTest {
         // A message is always the answer to a tap, and the thumb that tapped is
         // still on that line — so it is printed there, not at the foot of a file
         // that may be longer than the screen.
-        val message = compose.onNodeWithText("# " + SuiteNote.UnknownTest.text)
+        val message = compose.onNodeWithText("# ERROR: that test is not in today's suite")
             .getUnclippedBoundsInRoot()
         val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
         assertTrue(message.top < lastRow.top)
@@ -281,7 +345,7 @@ class HabitsTestScreenTest {
             suite(),
             interaction = SuiteInteraction(transient = SuiteMessage(SuiteNote.UnknownTest))
         )
-        val message = compose.onNodeWithText("# " + SuiteNote.UnknownTest.text)
+        val message = compose.onNodeWithText("# ERROR: that test is not in today's suite")
             .getUnclippedBoundsInRoot()
         val lastRow = compose.onNodeWithText("no sugar").getUnclippedBoundsInRoot()
         assertTrue(message.top > lastRow.top)
@@ -337,7 +401,7 @@ class HabitsTestScreenTest {
         )
         // The file keeps its English (it is a comment, §1.3); the ear gets words
         // it can actually use, which is what the third localized surface is for.
-        compose.onNodeWithText("# " + SuiteNote.UnknownTest.text).assertIsDisplayed()
+        compose.onNodeWithText("# ERROR: that test is not in today's suite").assertIsDisplayed()
         compose.onNodeWithContentDescription("That test is not in today's suite.")
             .assertIsDisplayed()
     }

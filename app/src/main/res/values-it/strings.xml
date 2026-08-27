@@ -15,8 +15,11 @@
      Una riga può contenere due registri: si tengono i token e si traduce intorno.
      Il canale dei commenti veste la sintassi del file ospite: cambia la lingua, il
      # non diventa //. Non salda il debito della VISION 3.3.7 (un commento tradotto
-     è cortesia, non glossa). Decisa, NON ancora implementata: i commenti sono
-     ancora inglesi hardcoded nei sorgenti. -->
+     è cortesia, non glossa).
+
+     Implementata nella Fase 15. La prosa che un documento decide viaggia come id
+     di stringa e la parla il renderer: i documenti restano valori puri e le
+     schermate restano l'unico posto in cui si legge un locale. -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Bottom navigation. "Editor" and "Log" are the same word in Italian;
          "Stats" stays English — "Statistiche" does not fit label-sm without
@@ -96,18 +99,20 @@
     </plurals>
     <string name="cd_stats_regression_row">“%1$s”: teneva, e ultimamente non tiene più.</string>
 
-    <!-- Output del terminale, detto a parole. Il file li stampa in inglese come
-         ogni altro commento; all'orecchio arriva la lingua di chi legge, che è
-         tutto il senso della terza superficie localizzata (VISION §3.3.7). -->
+    <!-- Output del terminale, detto a parole. Dalla Fase 15 anche la riga
+         stampata è nella lingua di chi legge, ma queste restano parole diverse
+         apposta: l'occhio riceve la frase del file (`amend` compreso, perché il
+         file può stampare un flag di git), l'orecchio una che lo spiega. -->
     <string name="cd_note_suite_read_only">Quel giorno è storia: si possono ancora scrivere solo oggi e ieri.</string>
     <string name="cd_note_suite_unknown_test">Quel test non è nella suite di oggi.</string>
     <string name="cd_note_log_read_only">Quel giorno è storia: la finestra per correggerlo è chiusa.</string>
     <string name="cd_note_log_unknown_test">Quel test non era nella suite di quel giorno.</string>
     <string name="cd_note_rolled_over">Il giorno è cambiato: questo file adesso è %1$s.</string>
 
-    <!-- Il dettaglio vivo, detto a parole. Il canale commenti dice la stessa
-         cosa in inglese perché è sorgente; questa è la metà che parla la lingua
-         di chi legge, e nessun fatto vive in una sola delle due. -->
+    <!-- Il dettaglio vivo, detto a parole. I commenti di riga restano inglesi
+         perché sono letture — un orario, una frazione, il nome di uno stato — e
+         una colonna metà in una lingua sarebbe peggio di una colonna nell'altra.
+         Questa è la metà che parla: nessun fatto vive in una sola delle due. -->
     <string name="cd_detail_at">alle %1$s</string>
     <string name="cd_detail_counter">%1$s di %2$s %3$s</string>
     <string name="cd_detail_counter_done">%1$s %2$s</string>
@@ -123,8 +128,10 @@
     </plurals>
     <string name="cd_status_passed">%1$d su %2$d passati</string>
 
-    <!-- settings.config. Il file è sorgente e resta inglese; queste sono le
-         frasi che un lettore di schermo sente al posto di `"day_ends": "03:00"`. -->
+    <!-- settings.config, detto a parole. Chiavi e valori restano inglesi perché
+         sono il file; queste sono le frasi che un lettore di schermo sente al
+         posto di `"day_ends": "03:00"`. Le note accanto a quelle chiavi stanno
+         più sotto, nella sezione del canale commenti. -->
     <string name="cd_setting_day_ends">Il giorno finisce alle %1$s</string>
     <string name="cd_setting_week_starts">La settimana comincia di %1$s</string>
     <string name="cd_setting_line_numbers">Numeri di riga, %1$s</string>
@@ -338,6 +345,128 @@
     <string name="cd_setting_widget_opacity">Opacità dello sfondo del widget, %1$d per cento</string>
     <string name="cd_export_wrote">Scritto nella cartella Download come %1$s</string>
     <string name="cd_export_failed">L\'esportazione non è riuscita: %1$s</string>
+
+    <!-- IL CANALE DEI COMMENTI (Fase 15). Regola dei registri: una riga di
+         commento che è una FRASE rivolta al lettore è prosa e si localizza; un
+         commento che è una lettura (un conteggio, un orario, il nome di uno
+         stato, una schedule) o un marcatore è codice e resta inglese, ovunque
+         stia. I token dentro una riga localizzata sopravvivono: nomi di file,
+         [edit], [show], ERROR:, commit, pending. Restano inglesi apposta: i
+         commenti di riga di habits.test (sono dettaglio vivo, e una riga
+         tradotta renderebbe bilingue la colonna), // active, // Last modified:,
+         i totali dell'export, ogni check line, verdetto e assert. -->
+
+    <!-- habits.test. La suite vuota è la prima frase che l'app dice in assoluto. -->
+    <string name="suite_empty_none">nessun test nella suite</string>
+    <string name="suite_empty_add">tocca + per aggiungere il primo test</string>
+    <string name="suite_empty_readme">la scheda README dice cos\'è un test qui</string>
+    <plurals name="suite_not_due">
+        <item quantity="one">%1$d test non previsto oggi</item>
+        <item quantity="many">%1$d test non previsti oggi</item>
+        <item quantity="other">%1$d test non previsti oggi</item>
+    </plurals>
+
+    <!-- La conferma a due tocchi, condivisa fra habits.test e settings.config -->
+    <string name="confirm_command">tocca il comando per confermare</string>
+
+    <!-- habits_history.diff. La riga del branch è una frase di git, e git la
+         traduce: "Sul branch main" tiene branch, main e commit. -->
+    <string name="log_branch">Sul branch main — modifiche non ancora committate (oggi)</string>
+    <string name="log_empty_none">nessun commit</string>
+    <string name="log_empty_suite">la giornata di oggi viene committata quando finisce</string>
+    <string name="log_empty_no_suite">una giornata viene committata quando finisce — la suite è ancora vuota</string>
+    <string name="log_amend_window">ancora modificabile fino alle %1$s</string>
+
+    <!-- settings.config. Gli hint spiegano un'impostazione, quindi sono prosa;
+         i valori, le chiavi e // active sono il file e restano dove sono. -->
+    <string name="cfg_day_ends">la build notturna; \"03:00\" se la tua giornata finisce tardi</string>
+    <string name="cfg_week_starts">da dove partono la heatmap e la tabella della settimana</string>
+    <string name="cfg_daily_commit">il risultato della build del giorno, in silenzio, al commit</string>
+    <string name="cfg_pending_digest">un riepilogo la sera — mai un assillo per ogni test</string>
+    <string name="cfg_digest_hour">a che ora parte quel riepilogo</string>
+    <string name="cfg_reminders">i promemoria sono approssimativi — una spinta, non una sveglia</string>
+    <string name="cfg_reminders_none">nessun test ha un promemoria — se ne imposta uno da [edit] del test</string>
+    <plurals name="cfg_reminders_count">
+        <item quantity="one">%1$d test ha un promemoria — si imposta sul test, in habits.test</item>
+        <item quantity="many">%1$d test hanno un promemoria — si impostano sul test, in habits.test</item>
+        <item quantity="other">%1$d test hanno un promemoria — si impostano sul test, in habits.test</item>
+    </plurals>
+    <string name="cfg_restore_hint">azzera solo questo file — la suite e la sua storia restano intatte</string>
+    <string name="cfg_export_pending">non c\'è ancora niente da esportare</string>
+    <string name="cfg_export_writing">scrivo…</string>
+    <string name="cfg_export_wrote">scritto in Downloads/%1$s</string>
+
+    <!-- La riga viva del blocco notifications. ERROR: è un livello e resta
+         fuori dalla stringa, esattamente come farebbe net::ERR_*. -->
+    <string name="cfg_notif_disabled">non arriverà niente — qui è tutto spento</string>
+    <string name="cfg_notif_armed">attivo — arriva al cambio giorno e agli orari che imposti</string>
+    <string name="cfg_notif_missing">manca il permesso per le notifiche — tocca per concederlo</string>
+    <string name="cfg_notif_blocked">notifiche bloccate — tocca per aprire le impostazioni di sistema</string>
+
+    <!-- I prompt del wizard: sono i primi sessanta secondi dell'app. -->
+    <string name="wiz_name">come lo vuoi chiamare?</string>
+    <string name="wiz_type">che tipo di test è?</string>
+    <string name="wiz_when">ogni quanto?</string>
+    <string name="wiz_remind_off">vuoto per spegnerlo</string>
+    <string name="wiz_remind_not_armed">non attivo: le notifiche sono spente</string>
+    <string name="wiz_discard">non hai ancora scritto niente — tocca di nuovo [esc] per annullare</string>
+
+    <!-- stats.md. Il suo canale commenti è quello HTML che il markdown si porta
+         dietro, perché un `#` lì è un heading (VISION §1.1). Gli hint sono frasi;
+         le formule accanto sono formule e si stampano come vengono calcolate. -->
+    <string name="stats_hint_coverage">un giorno senza run non è una build fallita — è una build che non è mai partita</string>
+    <string name="stats_hint_flaky">un test flaky chiede un assert più piccolo o una schedule diversa</string>
+    <string name="stats_hint_regression">una regressione è un\'abitudine che prima teneva; si riporta una volta, senza consigli</string>
+    <string name="stats_hint_empty">ancora niente da riportare — la griglia si riempie man mano che i giorni si chiudono</string>
+    <string name="stats_rule_window">calcolate su questo dispositivo · window: ultimi %1$d giorni</string>
+
+    <!-- La scheda di un test: cosa dice quando non c\'è ancora una barra da
+         disegnare. -->
+    <string name="suite_health_unknown">non ci sono ancora abbastanza run</string>
+
+    <!-- Le parole intorno a un numero che il wizard cicla. Il numero è il valore
+         che finirà nel file; queste dicono cosa conta. -->
+    <string name="wiz_quota_unit">volte a settimana</string>
+    <string name="wiz_interval_every">ogni</string>
+    <string name="wiz_interval_days">giorni</string>
+
+    <!-- Output del terminale: cosa risponde l\'app quando un tocco non si può
+         onorare. ERROR: è il livello e lo mette il renderer; queste sono le
+         frasi dopo, e il cambio di giorno non è affatto un errore. -->
+    <string name="note_read_only_suite">quel giorno è storia — solo oggi e ieri si possono scrivere</string>
+    <string name="note_unknown_test_suite">quel test non è nella suite di oggi</string>
+    <string name="note_read_only_log">quel giorno è storia — la finestra di amend si è chiusa</string>
+    <string name="note_unknown_test_log">quel test non era nella suite quel giorno</string>
+    <string name="note_rolled_over">il giorno è cambiato — adesso questo file è %1$s</string>
+
+    <!-- Il significato in chiaro accanto a ogni token che il wizard offre
+         (VISION §3.3.7): il token è quello che finirà nel file, l'hint è cosa
+         vuol dire. -->
+    <string name="wiz_hint_boolean">l\'hai fatto, sì o no</string>
+    <string name="wiz_hint_counter">contare fino a un numero</string>
+    <string name="wiz_hint_avoid">qualcosa da cui stare alla larga</string>
+    <string name="wiz_hint_daily">tutti i giorni</string>
+    <string name="wiz_hint_weekdays">certi giorni della settimana</string>
+    <string name="wiz_hint_quota">un numero di volte a settimana</string>
+    <string name="wiz_hint_interval">con dei giorni in mezzo</string>
+
+    <!-- Perché il test non si può ancora aggiungere. ERROR: è il livello e
+         resta fuori; quello che il lettore deve sistemare è una frase. -->
+    <string name="wiz_err_name">un test ha bisogno di un nome</string>
+    <string name="wiz_err_target">un contatore ha bisogno di un obiettivo sopra zero</string>
+    <string name="wiz_err_unit">un contatore ha bisogno di un\'unità da contare</string>
+    <string name="wiz_err_missing">quel test non è più nella suite</string>
+    <string name="wiz_err_time">un promemoria è un\'ora del giorno — 07:00</string>
+
+    <!-- I due piè di pagina delle notifiche: la riga # sotto il transcript. -->
+    <string name="notif_digest_footer">%1$d pending — la giornata finisce alle %2$s</string>
+    <string name="notif_reminder_footer">un promemoria è una spinta — può arrivare con qualche minuto di ritardo</string>
+
+    <!-- Le righe di commento del widget. "N pending" e "nothing pending" sono
+         letture e restano; l'affordance accanto no. -->
+    <string name="widget_empty">nessun test — tocca per crearne uno</string>
+    <string name="widget_nothing_due">niente in programma oggi</string>
+    <string name="widget_tap_to_pass">tocca per passare</string>
 
     <!-- `$ thabit init` (Fase 14): prosa per chi vede l\'app per la prima volta -->
     <string name="init_intro">thabit tiene le tue abitudini come una lista da spuntare, un giorno alla volta.</string>

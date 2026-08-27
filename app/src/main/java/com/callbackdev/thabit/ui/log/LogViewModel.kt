@@ -216,22 +216,31 @@ data class LogPrompt(
  */
 @Immutable
 sealed interface LogNote {
-    /** What the file prints, after its `# `. English: it is a comment (§1.3). */
-    val text: String
+    /**
+     * Whether the line wears the `ERROR:` level (Fase 15).
+     *
+     * What the file prints is a resource the screen resolves; the note itself
+     * carries only what happened, which is what makes it a value the tests can
+     * assert without a locale.
+     */
+    val isError: Boolean
 
     /** The amend window has closed on the day the tap landed on. */
     data object ReadOnly : LogNote {
-        override val text = "ERROR: that day is history — the amend window has closed"
+        override val isError = true
     }
 
     /** The tap named a test that day's suite did not have. */
     data object UnknownTest : LogNote {
-        override val text = "ERROR: that test was not in the suite that day"
+        override val isError = true
     }
 
     /** The day ended while the log was open, and the file says which day it is now. */
     data class RolledOver(val date: LocalDate) : LogNote {
-        override val text = "the day rolled over — this file is ${CodeFormat.date(date)} now"
+        override val isError = false
+
+        /** The date the sentence is about, already in the file's own format. */
+        val printedDate: String get() = CodeFormat.date(date)
     }
 }
 

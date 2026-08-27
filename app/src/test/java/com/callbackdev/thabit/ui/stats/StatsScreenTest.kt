@@ -20,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.time.LocalDate
 
 /**
@@ -143,5 +144,35 @@ class StatsScreenTest {
         // Only the data rows get a sentence: a separator row read as a habit
         // would be the screen inventing a test that does not exist.
         compose.onNodeWithContentDescription("| test", substring = true).assertDoesNotExist()
+    }
+
+    // ---- the register rule (Fase 15) --------------------------------------
+
+    /**
+     * `coverage`, `flaky` and `regression` are the terms §3.3.7 worries about,
+     * and these lines are what explains them where the numbers are. A gloss in a
+     * language the reader does not have glosses nothing, so the sentences move —
+     * while the heading above them and the formula below stay exactly as they
+     * are, because one is a key and the other is the arithmetic itself.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the hints explain themselves in Italian, the headings and formulas do not`() {
+        show(greenDays(20))
+        compose.onNodeWithText("## coverage").assertIsDisplayed()
+        compose.onNodeWithText(
+            "<!-- un giorno senza run non è una build fallita — è una build che non è mai partita -->"
+        ).assertIsDisplayed()
+        scrollTo(hasText("flaky:", substring = true))
+        compose.onNodeWithText("flaky:", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the empty grid says why it is empty in Italian`() {
+        show(SuiteHistory.Empty)
+        compose.onNodeWithText(
+            "<!-- ancora niente da riportare — la griglia si riempie man mano che i giorni si chiudono -->"
+        ).assertIsDisplayed()
     }
 }

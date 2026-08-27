@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.wizard
 
+import com.callbackdev.thabit.R
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
@@ -124,7 +125,7 @@ class WizardViewModelTest {
     @Test
     fun `a test with no name is refused, in the terminal's own words`() = runUi { wizard ->
         wizard.onDone()
-        assertEquals("ERROR: a test needs a name", state(wizard).error)
+        assertEquals(R.string.wiz_err_name, state(wizard).error)
         assertTrue(suite().isEmpty())
     }
 

@@ -458,8 +458,31 @@ Il precedente è lo strumento stesso della metafora: `git status` sotto `LANG=it
 
 - [x] `VISION.md §1.3` riscritta sui tre registri, con la clausola che protegge la §3.3.7; `CLAUDE.md`, Note trasversali e intestazioni di `values/` + `values-it/strings.xml` allineate
 - [x] Annotata la Fase 13, che aveva scartato la glossa nei commenti anche perché "i commenti restano inglesi": quella ragione è decaduta, la decisione no
-- [x] `README.md` di root e `CHANGELOG.md` non toccati: il README non enuncia la vecchia regola (niente da correggere), il CHANGELOG descrive ciò che è stato spedito e si aggiorna con l'implementazione
-- [ ] Implementazione: fase a sé, non una rifinitura opportunistica (la regola vale al 100% o non vale). **thabit va per primo nella serie**, poi tsteps e tweather
+
+### L'implementazione, e la forma che ha preso
+
+**Il problema di architettura, che non era la traduzione.** I documenti di questa app (`SuiteDocument`, `LogDocument`, `SettingsDocument`, `StatsDocument`) sono **valori puri**: niente Android dentro, così le parole del file si asseriscono carattere per carattere in test JVM. Passare loro un `Resources` per tradurre due frasi avrebbe buttato via esattamente quella proprietà, e con lei la ragione per cui esistono.
+
+La via d'uscita era già scritta nel repo: la `RowDetail` di `SuiteDocument` viaggia accanto al commento e **il renderer la trasforma in una frase** nella lingua di chi legge. Stessa cosa qui, un registro più in là: **il documento decide *quale* riga, il renderer decide *in che lingua***. Le frasi diventano `@StringRes Int` (`DAY_ENDS_NOTE`, `emptyHints()`, `BRANCH_LINE`), lo schermo le risolve con `stringResource`. I documenti restano puri, le schermate restano l'unico posto in cui si legge un locale, e i test di documento continuano ad asserire la *forma* (quali righe, in che ordine) mentre quelli di schermata asseriscono le *parole*, in due lingue.
+
+Ricaduta di nomenclatura, che vale la pena tenere: in `SettingsDocument` **`*_HINT` significa marcatore inglese** (`// active`, la lista delle opacità) e **`*_NOTE` significa frase**. La regola dei registri è leggibile dai nomi, e la prossima riga nuova si scrive dalla parte giusta senza dover rileggere niente.
+
+**Il `// ` non è mai dentro la risorsa.** C'è una funzione `note()` che lo antepone. Il marcatore è la sintassi, e la sintassi non si traduce: tenerli separati in un punto solo è ciò che impedisce alla prossima nota di rinascere come un'unica stringa inglese.
+
+**Cosa si è spostato**, oltre a quello che la fase aveva già elencato: le note di `stats.md` (`coverage`, `flaky`, `regression` e la griglia vuota — sono proprio le righe che spiegano i termini di cui si preoccupa la §3.3.7), gli hint in chiaro accanto a ogni token del wizard (`# l'hai fatto, sì o no`), le sue etichette di unità (`ogni [2] giorni`), i suoi rifiuti, e l'**output di terminale** di `SuiteNote`/`LogNote` — che era la superficie più sbagliata di tutte, perché una riga che dice al lettore *perché il suo tocco non è stato accettato* è la definizione di una frase rivolta a lui.
+
+**Cosa è rimasto inglese, e non per dimenticanza**: i commenti di riga di `habits.test` (`# 07:12`, `# 12/30 reps`, `# skip: influenza`, `# when: mon`) perché sono letture e una riga tradotta renderebbe bilingue la colonna; i verdetti, le check line, gli assert, gli hash, `# amended`, `# habits.test`; `// active` e la lista delle opacità; `// Last modified:`; i totali dell'export (`// 6 tests · 142 checks · 30 days`, tre conteggi e tre nomi di codice); il livello `ERROR:`, che sta **fuori** da ogni risorsa e viene anteposto dal renderer.
+
+**Il caso da manuale è la riga del branch.** `# On branch main — changes not yet committed (today)` diventa `# Sul branch main — modifiche non ancora committate (oggi)`: è la frase di `git status`, tradotta come la traduce `git`, con `branch`, `main` e `commit` fermi dove sono. Se qualcuno un giorno vorrà rimettere in discussione la regola, questa riga è l'argomento.
+
+**Fuori perimetro, dichiarato.** I *valori* di `settings.config` che sono prosa (`"storage": "this device only"`, `"network": "none — no INTERNET permission"`) restano inglesi: sono valori, non commenti, e localizzarli è una domanda diversa (la regola dice che i dati si localizzano, ma questi descrivono l'app a sé stessa). Meglio dichiararlo che farlo a metà.
+
+- [x] 46 risorse nuove EN/IT, parità verificata (245 stringhe per lingua, zero mancanti da entrambe le parti)
+- [x] Tutte le superfici: `habits.test`, `habits_history.diff`, `stats.md`, `settings.config`, il wizard, le notifiche, il widget
+- [x] Riscritti i tre test che congelavano la **vecchia** regola (`the hints are source, so they are English and marked as comments`, `terminal output keeps its English…`, `the spoken half is the reader's language, the transcript stays English`): erano la regola sbagliata messa a guardia, e ora sono la nuova
+- [x] 12 test nuovi con `@Config(qualifiers = "it")`, uno per superficie, ognuno che asserisce **entrambe** le metà — la frase in italiano *e* il token inglese accanto. Suite a 674 (era 657), lint pulito, release minificata compilata
+- [ ] Verifica su device del committente, e questa fase la chiede più di altre: l'italiano è più lungo del 15-20% e le righe da riguardare a 360dp sono la nota `reminders` di `settings.config`, gli hint del wizard accanto ai token, e il commento in coda al widget (`# 2026-08-21 · 1 pending — tocca per passare`, che è la più lunga di tutte e si affida al fatto che la data viene per prima e l'ellissi mangia la coda)
+- [ ] Poi tsteps, e infine tweather
 
 
 ## Note trasversali

@@ -198,11 +198,12 @@ private fun logLines(
     val syntax = ThabitTheme.syntax
     val lines = mutableListOf<CanvasLine>()
 
-    lines += commentLine("# ${LogDocument.BRANCH_LINE}", syntax)
+    lines += commentLine("# " + stringResource(LogDocument.BRANCH_LINE), syntax)
     document.todaySummary?.let { lines += commentLine("#   $it", syntax) }
 
     if (document.isEmpty) {
-        LogDocument.emptyHints(hasSuite = document.todaySummary != null).forEach { hint ->
+        LogDocument.emptyHints(hasSuite = document.todaySummary != null).forEach { id ->
+            val hint = if (id == LogDocument.BLANK_LINE) "" else stringResource(id)
             lines += commentLine(if (hint.isEmpty()) "#" else "# $hint", syntax)
         }
         return lines
@@ -251,7 +252,7 @@ private fun commitLines(
         // The window is declared, not discovered: nobody taps a line hoping it
         // might be editable (VISION §4.2).
         lines += commentLine(
-            text = "# still editable until ${until.spokenTime()}",
+            text = "# " + stringResource(R.string.log_amend_window, until.spokenTime()),
             syntax = syntax,
             contentDescription = stringResource(R.string.cd_log_amendable, until.spokenTime())
         )
@@ -280,7 +281,7 @@ private fun commitLines(
     }
     interaction.transient?.takeIf { it.date == commit.date }?.let {
         lines += commentLine(
-            text = "# ${it.note.text}",
+            text = "# " + it.note.printed(),
             syntax = syntax,
             contentDescription = it.note.spoken()
         )
@@ -493,6 +494,21 @@ private fun LogEntry.Week.spoken(): String = stringResource(
  * The note in the reader's own language. Exhaustive, like the suite's: a new
  * [LogNote] does not compile until its spoken half exists (Fase 12).
  */
+/**
+ * What the file prints after its `# `, in the reader's language (Fase 15) — the
+ * twin of [spoken]. `ERROR:` is the channel's level and is added here, so it
+ * reads the same in every language, like `amend` inside the sentence.
+ */
+@Composable
+private fun LogNote.printed(): String {
+    val sentence = when (this) {
+        LogNote.ReadOnly -> stringResource(R.string.note_read_only_log)
+        LogNote.UnknownTest -> stringResource(R.string.note_unknown_test_log)
+        is LogNote.RolledOver -> stringResource(R.string.note_rolled_over, printedDate)
+    }
+    return if (isError) "ERROR: $sentence" else sentence
+}
+
 @Composable
 private fun LogNote.spoken(): String = when (this) {
     LogNote.ReadOnly -> stringResource(R.string.cd_note_log_read_only)

@@ -25,8 +25,11 @@
 
      This replaces the old wording ("comments stay English"), which mistook the
      channel for the register. It does NOT discharge VISION 3.3.7: a translated
-     comment is politeness, not a gloss. Decided, NOT yet implemented: the comment
-     strings are still hardcoded English in the Kotlin sources. -->
+     comment is politeness, not a gloss.
+
+     Implemented in Fase 15. The prose a document decides on travels as a string
+     id and the renderer speaks it, so the documents stay pure values and the
+     screens stay the only place a locale is read. -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">thabit</string>
 
@@ -102,18 +105,20 @@
     </plurals>
     <string name="cd_stats_regression_row">“%1$s”: used to hold, and lately does not.</string>
 
-    <!-- Terminal output, spoken. The file prints these in English like every
-         other comment; the ear gets the reader's own language, which is the
-         whole point of the third localized surface (VISION §3.3.7). -->
+    <!-- Terminal output, spoken. Since Fase 15 the printed line is the reader's
+         language too, but these stay a separate set of words on purpose: the eye
+         gets the file's sentence (`amend` included, because the file may print a
+         git flag), the ear gets one that explains it. No fact in only one. -->
     <string name="cd_note_suite_read_only">That day is history: only today and yesterday can still be written.</string>
     <string name="cd_note_suite_unknown_test">That test is not in today\'s suite.</string>
     <string name="cd_note_log_read_only">That day is history: the window for amending it has closed.</string>
     <string name="cd_note_log_unknown_test">That test was not in the suite that day.</string>
     <string name="cd_note_rolled_over">The day rolled over: this file is now %1$s.</string>
 
-    <!-- Live detail, spoken. The comment channel says the same thing in English
-         because a comment is source; this is the half that speaks the reader's
-         language, and no fact ever lives in only one of the two. -->
+    <!-- Live detail, spoken. The row comments stay English because they are
+         readouts — a time, a fraction, a state name — and a column half in one
+         language would be worse than a column in the other. This is the half that
+         speaks, and no fact ever lives in only one of the two. -->
     <string name="cd_detail_at">at %1$s</string>
     <string name="cd_detail_counter">%1$s of %2$s %3$s</string>
     <string name="cd_detail_counter_done">%1$s %2$s</string>
@@ -128,8 +133,10 @@
     </plurals>
     <string name="cd_status_passed">%1$d of %2$d passed</string>
 
-    <!-- settings.config. The file itself is source and stays English; these are
-         the sentences a screen reader gets instead of `"day_ends": "03:00"`. -->
+    <!-- settings.config, spoken. The keys and values stay English because they
+         are the file; these are the sentences a screen reader gets instead of
+         `"day_ends": "03:00"`. The notes beside those keys are further down,
+         under the comment channel. -->
     <string name="cd_setting_day_ends">The day ends at %1$s</string>
     <string name="cd_setting_week_starts">The week starts on %1$s</string>
     <string name="cd_setting_line_numbers">Line numbers, %1$s</string>
@@ -331,6 +338,128 @@
     <string name="cd_setting_widget_opacity">Widget background opacity, %1$d percent</string>
     <string name="cd_export_wrote">Written to your Downloads folder as %1$s</string>
     <string name="cd_export_failed">The export failed: %1$s</string>
+
+    <!-- THE COMMENT CHANNEL (Fase 15). The register rule: a comment line that is
+         a SENTENCE addressed to the reader is prose and localizes; a comment that
+         is a readout (a count, a time, a state name, a schedule) or a marker is
+         code and stays English, wherever it sits. Tokens inside a localized line
+         survive it: file names, `[edit]`, `[show]`, `ERROR:`, `commit`, `pending`.
+         What stays English on purpose: the row comments of habits.test (they are
+         live detail, and one translated row would make the column bilingual),
+         `// active`, `// Last modified:`, the export tallies, every check line,
+         verdict and assert. -->
+
+    <!-- habits.test. The empty suite is the first sentence the app ever says. -->
+    <string name="suite_empty_none">no tests in the suite yet</string>
+    <string name="suite_empty_add">tap + to add your first test</string>
+    <string name="suite_empty_readme">the README tab says what a test is here</string>
+    <plurals name="suite_not_due">
+        <item quantity="one">%1$d test not due today</item>
+        <item quantity="other">%1$d tests not due today</item>
+    </plurals>
+
+    <!-- The two-tap confirm, shared by habits.test and settings.config: one
+         sentence, one string, or the two files would drift apart. -->
+    <string name="confirm_command">tap the command to confirm</string>
+
+    <!-- habits_history.diff. The branch line is git's own sentence, and git
+         translates it: "Sul branch main" keeps branch, main and commit. -->
+    <string name="log_branch">On branch main — changes not yet committed (today)</string>
+    <string name="log_empty_none">no commits yet</string>
+    <string name="log_empty_suite">today\'s run commits when the day ends</string>
+    <string name="log_empty_no_suite">a day commits when it ends — the suite is still empty</string>
+    <string name="log_amend_window">still editable until %1$s</string>
+
+    <!-- settings.config. The hints explain a setting, so they are prose; the
+         values, the keys and `// active` are the file and stay put. -->
+    <string name="cfg_day_ends">the nightly build; \"03:00\" if your day ends late</string>
+    <string name="cfg_week_starts">where the heatmap and the week table start</string>
+    <string name="cfg_daily_commit">the day\'s build result, silent, at commit</string>
+    <string name="cfg_pending_digest">one evening summary — never one nag per test</string>
+    <string name="cfg_digest_hour">when that summary goes out</string>
+    <string name="cfg_reminders">reminders are approximate — a nudge, not an alarm clock</string>
+    <string name="cfg_reminders_none">no test carries a reminder yet — set one from a test\'s [edit]</string>
+    <plurals name="cfg_reminders_count">
+        <item quantity="one">%1$d test carries a reminder — set on the test, in habits.test</item>
+        <item quantity="other">%1$d tests carry a reminder — set on the test, in habits.test</item>
+    </plurals>
+    <string name="cfg_restore_hint">resets this file only — the suite and its history are untouched</string>
+    <string name="cfg_export_pending">nothing to export yet</string>
+    <string name="cfg_export_writing">writing…</string>
+    <string name="cfg_export_wrote">wrote Downloads/%1$s</string>
+
+    <!-- The notifications block's live line. `ERROR:` is a level and stays
+         outside the string, exactly as `net::ERR_*` would. -->
+    <string name="cfg_notif_disabled">nothing will post — everything here is off</string>
+    <string name="cfg_notif_armed">armed — posts at the boundary and at the times you set</string>
+    <string name="cfg_notif_missing">notifications permission missing — tap to grant</string>
+    <string name="cfg_notif_blocked">notifications blocked — tap to open the system settings</string>
+
+    <!-- The wizard's prompts. Its labels are the app's first sixty seconds, so
+         they were already held hardest to §3.3.7; now they are also in the
+         reader's language. -->
+    <string name="wiz_name">what do you want to call it?</string>
+    <string name="wiz_type">what kind of test is this?</string>
+    <string name="wiz_when">how often?</string>
+    <string name="wiz_remind_off">empty to turn it off</string>
+    <string name="wiz_remind_not_armed">not armed: notifications are off</string>
+    <string name="wiz_discard">nothing is written yet — tap [esc] again to discard</string>
+
+    <!-- stats.md. Its comment channel is the HTML one markdown carries, because
+         a `#` there is a heading (VISION §1.1). The hints are sentences; the
+         formulas beside them are formulas, printed as they are computed. -->
+    <string name="stats_hint_coverage">a day with no run is not a failed build — it is a build that never started</string>
+    <string name="stats_hint_flaky">a flaky test wants a smaller assert or a different schedule</string>
+    <string name="stats_hint_regression">a regression is a habit that used to hold; it is reported once, without advice</string>
+    <string name="stats_hint_empty">nothing to report yet — the grid fills in as days close</string>
+    <string name="stats_rule_window">worked out on this device · window: last %1$d days</string>
+
+    <!-- The spec of one test. The bar is the fact; this is what it says when
+         there is no bar to draw yet. -->
+    <string name="suite_health_unknown">not enough runs yet</string>
+
+    <!-- The words around a number the wizard cycles. The number is the value the
+         file will hold; these say what it counts. -->
+    <string name="wiz_quota_unit">times a week</string>
+    <string name="wiz_interval_every">every</string>
+    <string name="wiz_interval_days">days</string>
+
+    <!-- Terminal output: what the app answers when a tap cannot be honoured.
+         `ERROR:` is the level and is added by the renderer; these are the
+         sentences after it, and the roll-over is not an error at all. -->
+    <string name="note_read_only_suite">that day is history — only today and yesterday are writable</string>
+    <string name="note_unknown_test_suite">that test is not in today\'s suite</string>
+    <string name="note_read_only_log">that day is history — the amend window has closed</string>
+    <string name="note_unknown_test_log">that test was not in the suite that day</string>
+    <string name="note_rolled_over">the day rolled over — this file is %1$s now</string>
+
+    <!-- The plain meaning beside each token the wizard offers (VISION §3.3.7):
+         the token is what the file will hold, the hint is what it means. -->
+    <string name="wiz_hint_boolean">did you do it, yes or no</string>
+    <string name="wiz_hint_counter">count up to a number</string>
+    <string name="wiz_hint_avoid">something to stay away from</string>
+    <string name="wiz_hint_daily">every day</string>
+    <string name="wiz_hint_weekdays">certain days of the week</string>
+    <string name="wiz_hint_quota">a number of times each week</string>
+    <string name="wiz_hint_interval">with days in between</string>
+
+    <!-- Why the test cannot be added yet. `ERROR:` is the level and stays
+         outside; what the reader has to fix is a sentence. -->
+    <string name="wiz_err_name">a test needs a name</string>
+    <string name="wiz_err_target">a counter needs a target above zero</string>
+    <string name="wiz_err_unit">a counter needs a unit to count</string>
+    <string name="wiz_err_missing">that test is no longer in the suite</string>
+    <string name="wiz_err_time">a reminder is a time of day — 07:00</string>
+
+    <!-- The two notification footers: the `#` line under the transcript. -->
+    <string name="notif_digest_footer">%1$d pending — the day ends at %2$s</string>
+    <string name="notif_reminder_footer">a reminder is a nudge — it can arrive a few minutes late</string>
+
+    <!-- The widget's own comment lines. `N pending` and `nothing pending` are
+         readouts and stay; the affordance beside them does not. -->
+    <string name="widget_empty">no tests yet — tap to add one</string>
+    <string name="widget_nothing_due">nothing due today</string>
+    <string name="widget_tap_to_pass">tap to pass</string>
 
     <!-- `$ thabit init` (Fase 14). Prose for somebody seeing the app for the
          first time, so LOCALIZED - the same exception the README.md tab makes.

@@ -411,18 +411,24 @@ data class SuiteUiState(
  */
 @Immutable
 sealed interface SuiteNote {
-    /** What the file prints, after its `# `. */
-    val text: String
+    /**
+     * Whether the line wears the `ERROR:` level.
+     *
+     * The note carries **what happened**, not the words for it: since Fase 15 the
+     * printed sentence is a resource the screen resolves, exactly like the spoken
+     * one it has always had. The level is not part of that sentence — it is the
+     * channel's own token, added by the renderer and the same in every language.
+     */
+    val isError: Boolean
 
     /** The tap landed on a day this file can no longer write. */
     data object ReadOnly : SuiteNote {
-        override val text =
-            "ERROR: that day is history — only today and yesterday are writable"
+        override val isError = true
     }
 
     /** The tap named a test today's suite does not have. */
     data object UnknownTest : SuiteNote {
-        override val text = "ERROR: that test is not in today's suite"
+        override val isError = true
     }
 
     /**
@@ -431,7 +437,10 @@ sealed interface SuiteNote {
      * quietly showing the wrong one.
      */
     data class RolledOver(val date: LocalDate) : SuiteNote {
-        override val text = "the day rolled over — this file is ${CodeFormat.date(date)} now"
+        override val isError = false
+
+        /** The date the sentence is about, already in the file's own format. */
+        val printedDate: String get() = CodeFormat.date(date)
     }
 }
 

@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.stats
 
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.Fixture
 import com.callbackdev.thabit.domain.FlakyTests
 import com.callbackdev.thabit.domain.Regressions
@@ -108,9 +109,10 @@ class StatsDocumentTest {
         assertTrue(line.startsWith("meditate 10 min — "))
         assertTrue(line.contains("pass rate over 30 days"))
         assertTrue(line.contains("/"))
-        // The hint is fixed, factual, and the only advice on the screen.
+        // The hint is fixed, factual, and the only advice on the screen. Its
+        // words are a resource since Fase 15 and are read in StatsScreenTest.
         assertEquals(
-            "a flaky test wants a smaller assert or a different schedule",
+            R.string.stats_hint_flaky,
             StatsDocument.FLAKY_HINT
         )
     }
@@ -181,6 +183,8 @@ class StatsDocumentTest {
         assertTrue(document.healthTable.isEmpty())
         assertTrue(document.flaky.isEmpty())
         assertTrue(document.tagTable.isEmpty())
-        assertFalse(StatsDocument.EMPTY_HINT.isBlank())
+        // The words are a resource since Fase 15; that they are the right ones,
+        // in both languages, is StatsScreenTest's job.
+        assertEquals(R.string.stats_hint_empty, StatsDocument.EMPTY_HINT)
     }
 }

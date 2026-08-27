@@ -105,7 +105,7 @@ private fun statsLines(
     lines += heatmapLines(document.heatmap, syntax)
 
     if (document.isEmpty) {
-        markdown("", comment(StatsDocument.EMPTY_HINT))
+        markdown("", comment(stringResource(StatsDocument.EMPTY_HINT)))
         return lines
     }
 
@@ -120,7 +120,7 @@ private fun statsLines(
             document.coverage.noRunDays
         )
     )
-    markdown(comment(StatsDocument.COVERAGE_HINT))
+    markdown(comment(stringResource(StatsDocument.COVERAGE_HINT)))
 
     // ---- suite health ------------------------------------------------------
     if (document.healthTable.isNotEmpty()) {
@@ -158,7 +158,7 @@ private fun statsLines(
             },
             syntax = syntax
         )
-        markdown(comment(StatsDocument.FLAKY_HINT))
+        markdown(comment(stringResource(StatsDocument.FLAKY_HINT)))
     }
 
     // ---- regressions -------------------------------------------------------
@@ -172,7 +172,7 @@ private fun statsLines(
             },
             syntax = syntax
         )
-        markdown(comment(StatsDocument.REGRESSION_HINT))
+        markdown(comment(stringResource(StatsDocument.REGRESSION_HINT)))
     }
 
     // ---- tags --------------------------------------------------------------
@@ -183,6 +183,7 @@ private fun statsLines(
 
     // ---- the rules, printed ------------------------------------------------
     markdown("")
+    markdown(comment(stringResource(StatsDocument.WINDOW_RULE, StatsDocument.WINDOW_DAYS.toInt())))
     StatsDocument.rules().forEach { markdown(comment(it)) }
     return lines
 }

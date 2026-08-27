@@ -46,7 +46,7 @@ thabit is where that cost the most, because its comments are barely comments: `#
 
 Two consequences worth stating. A line often holds both registers: keep the tokens and translate around them (`# ancora modificabile fino alle 23:59`). And the rule applies **completely or not at all** — kept four times out of five it reads as a half-finished translation rather than as a design, which is why implementing it is a closed phase and never an opportunistic touch-up.
 
-*Decided, not yet implemented in code: the comment strings in this repo are still hardcoded English (`PLANNING.md` Fase 15).*
+*Implemented in Fase 15, and implemented the way the document layer already worked: the prose a document decides on travels as a **string id**, and the renderer speaks it. `SettingsDocument` still says which note each key carries, `SuiteDocument` still decides which lines an empty suite gets — they just name them instead of spelling them, so they stay pure values and the screens stay the only place that reads a locale.*
 
 ### 1.4 Engineering ethos
 

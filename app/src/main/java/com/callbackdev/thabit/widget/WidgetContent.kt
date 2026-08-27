@@ -185,10 +185,16 @@ object WidgetContentBuilder {
         // it would make the widget's list disagree with the file's.
         val rows = when {
             data.suiteSize == 0 -> listOf(
-                comment("# no tests yet — tap to add one", resources.getString(R.string.cd_widget_empty))
+                comment(
+                    "# " + resources.getString(R.string.widget_empty),
+                    resources.getString(R.string.cd_widget_empty)
+                )
             )
             data.outcomes.isEmpty() -> listOf(
-                comment("# nothing due today", resources.getString(R.string.cd_widget_nothing_due))
+                comment(
+                    "# " + resources.getString(R.string.widget_nothing_due),
+                    resources.getString(R.string.cd_widget_nothing_due)
+                )
             )
             else -> data.outcomes.map { outcome -> testLine(outcome, resources) }
         }
@@ -282,7 +288,11 @@ object WidgetContentBuilder {
         }
         return if (data.pending > 0) {
             comment(
-                "# $date · ${data.pending} pending — tap to pass",
+                // The date and `N pending` are readouts and stay; the
+                // affordance beside them is a sentence, so it does not (Fase 15).
+                // The date leads, so the longer tail is what an ellipsis eats.
+                "# $date · ${data.pending} pending — " +
+                    resources.getString(R.string.widget_tap_to_pass),
                 spokenDate + ". " +
                     resources.getQuantityString(
                         R.plurals.cd_widget_pending, data.pending, data.pending

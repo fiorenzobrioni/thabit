@@ -30,6 +30,33 @@ The phase-by-phase record, with every decision and the reason behind it, lives i
 Both new surfaces are localized, like the `README.md` tab: they are the ones
 addressed to somebody who cannot read the app yet.
 
+### Changed
+
+- **The comment channel now speaks the reader's language** when what it is
+  saying is a sentence. The rule that used to read "comments stay English"
+  mistook the punctuation for the register: under a `#` sat both `# 07:12`, which
+  is a readout, and `# tap the command to confirm`, which exists only to be
+  understood. Now the register decides. Code is still English everywhere — keys,
+  file names, `$` commands, check lines and verdicts, asserts, hashes, log
+  levels, `# amended`, `// active` — and so are the row comments of
+  `habits.test`, because they are live detail and one translated row would leave
+  the column bilingual. What moved is the prose: the empty suite, the not-due
+  summary, the two-tap confirms, every note in `settings.config`, the wizard's
+  prompts and the plain meaning beside each token it offers, the hints in
+  `stats.md` that explain `coverage`, `flaky` and `regression`, the notification
+  footers, the widget's affordance, and the terminal output that says why a tap
+  was refused. The marker never moves and neither does the level: an error reads
+  `// ERROR: manca il permesso per le notifiche — tocca per concederlo`.
+- **`habits_history.diff` opens the way `git` does in Italian** — `# Sul branch
+  main — modifiche non ancora committate (oggi)`, with `branch`, `main` and
+  `commit` exactly where they were. That is not a loosening of the metaphor: it
+  is what the tool the metaphor is borrowed from actually prints under
+  `LANG=it_IT`.
+
+None of this discharges the plain-language promise: a translated comment is
+politeness, not a gloss. The `README.md` tab, the notifications and the
+accessibility text still carry the whole meaning on their own.
+
 ## [1.0.0] - 2026-08-24
 
 The first release. thabit is an offline Android habit tracker whose interface is
