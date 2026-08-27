@@ -1,6 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Italian chrome. Series l10n rule: "code" (YAML keys, filenames, terminal
-     output, comments) stays English; only chrome and data values localize. -->
+<!-- Italiano. Regola dei tre registri (VISION 1.3, PLANNING Fase 15): decide il
+     REGISTRO, non la punteggiatura che lo circonda.
+
+       CODICE -> sempre inglese: chiavi YAML/JSON, nomi file, comandi $, output
+                 terminale, hash, check line e verdetti, assert, livelli (ERROR:,
+                 WARN:), marcatori di una parola (# amended), intestazioni dei file
+                 (# habits.test).
+       DATI   -> localizzati: chrome, giorni, titoli delle notifiche, unità. I nomi
+                 dei test sono dati dell'UTENTE, nella lingua in cui li scrive.
+       PROSA  -> localizzata ovunque si trovi: la tab README.md, HELP.md,
+                 $ thabit init, notifiche, accessibilità E le righe di commento che
+                 sono frasi.
+
+     Una riga può contenere due registri: si tengono i token e si traduce intorno.
+     Il canale dei commenti veste la sintassi del file ospite: cambia la lingua, il
+     # non diventa //. Non salda il debito della VISION 3.3.7 (un commento tradotto
+     è cortesia, non glossa). Decisa, NON ancora implementata: i commenti sono
+     ancora inglesi hardcoded nei sorgenti. -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Bottom navigation. "Editor" and "Log" are the same word in Italian;
          "Stats" stays English — "Statistiche" does not fit label-sm without
