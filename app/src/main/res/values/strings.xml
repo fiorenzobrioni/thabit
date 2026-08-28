@@ -322,7 +322,7 @@
          app: `habits.test` can put a `#` comment beside a glyph to tell `[·]`
          from `[ ]`, and a widget row has no room for one, so the words have to
          do the whole job (VISION §3.3.7, §4.6). -->
-    <string name="widget_label">thabit --status</string>
+    <string name="widget_label" translatable="false">thabit --status</string>
     <string name="widget_description">Today\'s suite on the home screen: check a habit off without opening the app.</string>
     <string name="cd_widget_suite">%1$d of %2$d passed on %3$s</string>
     <string name="cd_widget_row_pass">%1$s, %2$s. Tap to mark it done</string>
