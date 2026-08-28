@@ -1,5 +1,7 @@
 package com.callbackdev.thabit.ui.stats
 
+import android.content.Context
+
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.SemanticsMatcher
@@ -12,6 +14,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.callbackdev.thabit.domain.Regressions
+import com.callbackdev.thabit.domain.FlakyTests
+import com.callbackdev.thabit.domain.Health
 import com.callbackdev.thabit.domain.Fixture
 import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.ui.theme.ThabitTheme
@@ -165,6 +171,41 @@ class StatsScreenTest {
         ).assertIsDisplayed()
         scrollTo(hasText("flaky:", substring = true))
         compose.onNodeWithText("flaky:", substring = true).assertIsDisplayed()
+    }
+
+    /**
+     * The guard that keeps the two statements of a rule from drifting apart.
+     *
+     * The **export** carries the canonical English ([Health.FORMULA] and friends),
+     * because an archive whose meaning moves with the phone's language is not an
+     * archive. The **screen** carries the same rule as a sentence the reader can
+     * read. In English the two must be the same string, character for character:
+     * if anybody ever edits one and forgets the other, this fails.
+     */
+    @Test
+    fun `the printed rule and the exported rule are the same sentence`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val printed = StatsDocument.rules().associate { rule ->
+            rule.key to context.getString(rule.id, *rule.args.toTypedArray())
+        }
+        assertEquals(Health.FORMULA, printed.getValue("health"))
+        assertEquals(FlakyTests.RULE, printed.getValue("flaky"))
+        assertEquals(Regressions.RULE, printed.getValue("regression"))
+    }
+
+    /**
+     * And in Italian the rule is a sentence the reader can act on, with the same
+     * numbers in it — the arithmetic is the half that never translates.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the rules are stated in Italian, with the numbers they are about`() {
+        show(greenDays(20))
+        scrollTo(hasText("flaky:", substring = true))
+        // `pass rate` survives the translation: it is the name of the metric, the
+        // same one the table above prints. What moves is the sentence around it.
+        compose.onNodeWithText("flaky: pass rate negli ultimi 30 giorni", substring = true)
+            .assertIsDisplayed()
     }
 
     @Test

@@ -502,53 +502,67 @@ private fun schemeDetailLines(
         )
     )
 
-    ScheduleScheme.Quota -> listOf(
-        WidgetLine(indent = 3, measureText = "[3] times a week     ") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextControl(
-                    label = "[${draft.quota}]",
-                    color = syntax.number,
-                    description = pluralStringResource(R.plurals.cd_when_quota, draft.quota, draft.quota),
-                    actionLabel = stringResource(R.string.cd_action_change),
-                    onClick = actions.onCycleQuota
-                )
-                Text(
-                    text = stringResource(R.string.wiz_quota_unit),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment,
-                    // The `[3]` beside it already says *three times a week* in
-                    // the listener's own language.
-                    modifier = Modifier.decorative()
-                )
+    ScheduleScheme.Quota -> {
+        // The words are read once and used twice: the row draws them, and
+        // `measureText` reserves the width they will actually need. A longer
+        // translation measured against the English words gets squeezed.
+        val unit = stringResource(R.string.wiz_quota_unit)
+        listOf(
+            WidgetLine(indent = 3, measureText = "[3] $unit     ") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextControl(
+                        label = "[${draft.quota}]",
+                        color = syntax.number,
+                        description = pluralStringResource(
+                            R.plurals.cd_when_quota, draft.quota, draft.quota
+                        ),
+                        actionLabel = stringResource(R.string.cd_action_change),
+                        onClick = actions.onCycleQuota
+                    )
+                    Text(
+                        text = unit,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = syntax.comment,
+                        // The `[3]` beside it already says *three times a week*
+                        // in the listener's own language.
+                        modifier = Modifier.decorative()
+                    )
+                }
             }
-        }
-    )
+        )
+    }
 
-    ScheduleScheme.Interval -> listOf(
-        WidgetLine(indent = 3, measureText = "every [2] days     ") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.wiz_interval_every),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment,
-                    modifier = Modifier.decorative()
-                )
-                TextControl(
-                    label = "[${draft.intervalDays}]",
-                    color = syntax.number,
-                    description = pluralStringResource(R.plurals.cd_when_interval, draft.intervalDays, draft.intervalDays),
-                    actionLabel = stringResource(R.string.cd_action_change),
-                    onClick = actions.onCycleInterval
-                )
-                Text(
-                    text = stringResource(R.string.wiz_interval_days),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment,
-                    modifier = Modifier.decorative()
-                )
+    ScheduleScheme.Interval -> {
+        val every = stringResource(R.string.wiz_interval_every)
+        val days = stringResource(R.string.wiz_interval_days)
+        listOf(
+            WidgetLine(indent = 3, measureText = "$every [2] $days     ") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = every,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = syntax.comment,
+                        modifier = Modifier.decorative()
+                    )
+                    TextControl(
+                        label = "[${draft.intervalDays}]",
+                        color = syntax.number,
+                        description = pluralStringResource(
+                            R.plurals.cd_when_interval, draft.intervalDays, draft.intervalDays
+                        ),
+                        actionLabel = stringResource(R.string.cd_action_change),
+                        onClick = actions.onCycleInterval
+                    )
+                    Text(
+                        text = days,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = syntax.comment,
+                        modifier = Modifier.decorative()
+                    )
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 @Composable
@@ -605,7 +619,8 @@ private fun assertLine(
     }
     // `pages >= 20` reads without knowing the word `assert` (VISION §4.5), and
     // both halves are their own control.
-    return WidgetLine(indent = 1, measureText = "> assert: [pages] >= [20]  # how much counts as done   ") {
+    val hint = stringResource(R.string.wiz_hint_assert)
+    return WidgetLine(indent = 1, measureText = "> assert: [pages] >= [20]  # $hint   ") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "> assert:",
@@ -635,7 +650,7 @@ private fun assertLine(
                 onClick = { actions.onOpenPrompt(WizardField.Target) }
             )
             Text(
-                text = "  # how much counts as done",
+                text = "  # $hint",
                 style = MaterialTheme.typography.bodySmall,
                 color = syntax.comment.copy(alpha = 0.6f),
                 modifier = Modifier.decorative()
@@ -685,8 +700,13 @@ private fun remindLines(
     }
 
     val remindAt = state.draft.remindAt
+    // Read once, drawn once and measured once: `measureText` has to reserve the
+    // width of the words that will really be there, not of their English length.
+    val remindHint = stringResource(
+        if (remindAt != null) R.string.wiz_hint_remind_on else R.string.wiz_hint_remind_off
+    )
     val lines = mutableListOf<CanvasLine>(
-        WidgetLine(indent = 1, measureText = "> remind: [07:00] [off]  # approximate   ") {
+        WidgetLine(indent = 1, measureText = "> remind: [07:00] [off]  # $remindHint   ") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "> remind:",
@@ -711,11 +731,7 @@ private fun remindLines(
                     )
                 }
                 Text(
-                    text = if (remindAt != null) {
-                        "  # approximate — a nudge, not an alarm"
-                    } else {
-                        "  # optional — a nudge at a time you pick"
-                    },
+                    text = "  # $remindHint",
                     style = MaterialTheme.typography.bodySmall,
                     color = syntax.comment.copy(alpha = 0.6f),
                     modifier = Modifier.decorative()
@@ -770,7 +786,8 @@ private fun emojiLine(
         }
     }
     val emoji = state.draft.emoji
-    return WidgetLine(indent = 1, measureText = "> emoji: [none]  # optional  [skip]   ") {
+    val optional = stringResource(R.string.wiz_hint_optional)
+    return WidgetLine(indent = 1, measureText = "> emoji: [none]  # $optional  [skip]   ") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "> emoji:",
@@ -796,7 +813,7 @@ private fun emojiLine(
                 )
             }
             Text(
-                text = "  # optional",
+                text = "  # $optional",
                 style = MaterialTheme.typography.bodySmall,
                 color = syntax.comment.copy(alpha = 0.6f),
                 modifier = Modifier.decorative()

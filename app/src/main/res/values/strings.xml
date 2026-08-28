@@ -288,6 +288,14 @@
     <!-- stats.md. The file states every rate with its fraction, so the spoken
          half only has to turn the picture and the tables into sentences. -->
     <string name="cd_stats_coverage">Days that ran: %1$d of %2$d. Days nobody was there: %3$d</string>
+    <!-- A heatmap row, spoken. The dots are days inside the suite\'s life the
+         graph has nothing to colour for, and a glyph a screen reader cannot hear
+         is a glyph that is not there (VISION §3.3.7). -->
+    <plurals name="cd_stats_heatmap_no_record">
+        <item quantity="one">%1$d day with no record</item>
+        <item quantity="other">%1$d days with no record</item>
+    </plurals>
+
     <plurals name="cd_stats_heatmap_row">
         <item quantity="one">%1$s: %2$d day with something done</item>
         <item quantity="other">%1$s: %2$d days with something done</item>
@@ -414,6 +422,10 @@
     <string name="stats_hint_empty">nothing to report yet — the grid fills in as days close</string>
     <string name="stats_rule_window">worked out on this device · window: last %1$d days</string>
 
+    <!-- The one row comment that is a sentence rather than a readout: the gloss
+         of `[·]`, the glyph nobody has met anywhere else. -->
+    <string name="suite_holds">holds — asserts at commit</string>
+
     <!-- The spec of one test. The bar is the fact; this is what it says when
          there is no bar to draw yet. -->
     <string name="suite_health_unknown">not enough runs yet</string>
@@ -432,6 +444,22 @@
     <string name="note_read_only_log">that day is history — the amend window has closed</string>
     <string name="note_unknown_test_log">that test was not in the suite that day</string>
     <string name="note_rolled_over">the day rolled over — this file is %1$s now</string>
+
+    <!-- The three rules stats.md states about itself. The canonical English
+         wording lives in the domain (Health.FORMULA, FlakyTests.RULE,
+         Regressions.RULE) and goes into the export unchanged, because an archive
+         whose meaning moves with the phone language is not an archive. These are
+         the same rules said to the reader; the numbers come from the same
+         constants, so the two can never drift. -->
+    <string name="stats_rule_health">ema over graded units, half-life %1$d units, seeded with the first outcome, skips and no-run days excluded</string>
+    <string name="stats_rule_flaky">pass rate over the last %1$d days below %2$d%%, with at least %3$d graded units, excluding regressions</string>
+    <string name="stats_rule_regression">at least %1$d of the last %2$d graded units failed, after a green run of at least %3$d units</string>
+
+    <!-- The wizard\'s remaining hints: what a field is for, beside the field. -->
+    <string name="wiz_hint_assert">how much counts as done</string>
+    <string name="wiz_hint_optional">optional</string>
+    <string name="wiz_hint_remind_off">optional — a nudge at a time you pick</string>
+    <string name="wiz_hint_remind_on">approximate — a nudge, not an alarm</string>
 
     <!-- The plain meaning beside each token the wizard offers (VISION §3.3.7):
          the token is what the file will hold, the hint is what it means. -->

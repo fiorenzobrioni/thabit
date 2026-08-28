@@ -481,8 +481,49 @@ Ricaduta di nomenclatura, che vale la pena tenere: in `SettingsDocument` **`*_HI
 - [x] Tutte le superfici: `habits.test`, `habits_history.diff`, `stats.md`, `settings.config`, il wizard, le notifiche, il widget
 - [x] Riscritti i tre test che congelavano la **vecchia** regola (`the hints are source, so they are English and marked as comments`, `terminal output keeps its English…`, `the spoken half is the reader's language, the transcript stays English`): erano la regola sbagliata messa a guardia, e ora sono la nuova
 - [x] 12 test nuovi con `@Config(qualifiers = "it")`, uno per superficie, ognuno che asserisce **entrambe** le metà — la frase in italiano *e* il token inglese accanto. Suite a 674 (era 657), lint pulito, release minificata compilata
-- [ ] Verifica su device del committente, e questa fase la chiede più di altre: l'italiano è più lungo del 15-20% e le righe da riguardare a 360dp sono la nota `reminders` di `settings.config`, gli hint del wizard accanto ai token, e il commento in coda al widget (`# 2026-08-21 · 1 pending — tocca per passare`, che è la più lunga di tutte e si affida al fatto che la data viene per prima e l'ellissi mangia la coda)
+### Il giro sul device (28 ago 2026), e le tre code che ha trovato
+
+**1. Il blocco delle regole in fondo a `stats.md` era tradotto a metà** — la riga `calcolate su questo dispositivo` in italiano e le tre sotto in inglese. Segnalato dal committente, ed è esattamente il modo di fallire che la fase si era scritta contro: una regola smarcata all'80% non sembra una scelta, sembra una traduzione lasciata a metà.
+
+Le avevo classificate come formule. Non lo sono: `pass rate over the last 30 days below 60%` è una **regola descritta a parole**, e il test dei registri (tradurlo romperebbe un lookup? lo tradurrebbe `git`?) la manda dritta nella prosa. La mia svista è stata guardare il *nome* della costante (`FORMULA`, `RULE`) invece del contenuto.
+
+Ma non si potevano semplicemente tradurre, perché **le stesse tre stringhe finiscono nell'export**, e un archivio il cui senso cambia con la lingua del telefono non è un archivio (`CLAUDE.md`, note di dominio). Quindi: `Health.FORMULA`, `FlakyTests.RULE` e `Regressions.RULE` restano canoniche e inglesi e vanno nell'export come prima; lo **schermo** stampa la stessa regola come frase localizzata, e i numeri li prende dalle stesse costanti di dominio, passati e non ricopiati. È il rapporto che tweather ha fra `SkyJob.id` e `SkyJobNames`.
+
+Il guardiano contro la deriva è un test: in inglese la stringa risolta dev'essere **identica carattere per carattere** alla costante di dominio. Se qualcuno tocca una delle due e dimentica l'altra, la suite diventa rossa.
+
+**2. Il wizard aveva sei hint ancora inglesi**, e sono proprio quelli che la §3.3.7 tiene più stretti: `# how much counts as done`, `# optional`, `# optional — a nudge at a time you pick`, `# approximate — a nudge, not an alarm`, più le etichette `times a week` / `every` / `days` attorno ai numeri che il wizard cicla. Localizzati. **E con loro i `measureText`**: quel campo dichiara la larghezza che la riga occuperà, e misurarla sulle parole inglesi mentre se ne disegnano di italiane è esattamente il modo in cui una riga viene schiacciata e troncata. Ora le parole si leggono una volta sola e servono entrambi gli usi.
+
+**3. `# holds — asserts at commit` l'avevo lasciato inglese, e sbagliando.** Il ragionamento era "i commenti di riga sono letture, e una riga tradotta rende bilingue la colonna". Vero per `07:12`, `12/30 reps`, `skip: influenza`, `when: mon` — che sono numeri, nomi di stato e schedule. Ma quella riga non è una lettura: è **la glossa di `[·]`**, il glifo che nessuno ha mai visto altrove, e una glossa che il lettore non sa leggere non glossa niente. Tradurla non rompe nessuna colonna, perché è l'ultima cosa sulla riga.
+
+`TestRow` ha ora due campi al posto di uno: `comment` (la lettura, letterale e inglese) e `commentNote` (la frase, un id). **Ne è impostato esattamente uno**, e il tipo dice in quale registro sta il commento di quella riga — la stessa cosa che `*_HINT` e `*_NOTE` fanno in `SettingsDocument`.
+
+- [x] Le tre regole di `stats.md` come frasi, con l'export invariato e il test che tiene insieme le due formulazioni
+- [x] Sei hint del wizard + i `measureText` che ne dichiarano la larghezza
+- [x] `commentNote` per la glossa di `[·]`, con i due test (EN e IT) e quello che pretende che gli altri commenti di riga restino letture
+- [ ] Secondo giro sul device, e questa fase lo chiede più di altre: l'italiano è più lungo del 15-20% e le righe da riguardare a 360dp sono la nota `reminders` di `settings.config`, gli hint del wizard accanto ai token, e il commento in coda al widget (`# 2026-08-21 · 1 pending — tocca per passare`, che è la più lunga di tutte e si affida al fatto che la data viene per prima e l'ellissi mangia la coda)
 - [ ] Poi tsteps, e infine tweather
+
+
+## Fase 16 — La mappa dice anche i giorni che non sa (feedback su device, 28 ago 2026)
+
+Segnalazione del committente sullo stesso giro: nella heatmap di `stats.md` **mancano i puntini che tsteps ha**, ed è così da sempre — non è una regressione della 15.
+
+**Non era una svista di stile: la griglia faceva arrivare tre fatti diversi alla stessa cella vuota.** Un giorno fuori dalla vita della suite (non *poteva* girare), un giorno `no run` (è passato e non c'era nessuno) e un giorno in cui la schedule non chiedeva niente. Il primo è davvero fuori dalla conoscenza del grafico; gli altri due sono successi, dentro una suite che esisteva.
+
+Il KDoc difendeva quella scelta con la §3.3.8 — "un giorno che l'app non ha visto non è un giorno storto, è un giorno ignoto" — e quell'argomento **regge ancora**: dice di non colorarlo di rosso. Non dice di non disegnarlo affatto. E c'era una contraddizione interna a due sezioni di distanza: `## coverage` dichiara `4 of 5 days ran · 1 days no run`, cioè il file **conta** i giorni senza traccia mentre la griglia sopra non fa vedere **quali**. In un'app il cui primo comandamento è che il file non mente, una griglia che tace su un fatto che la sezione dopo conta è un buco.
+
+**La correzione**: `HeatmapCell.silent` separa "fuori dalla vita della suite o nel futuro" da "dentro, e senza niente da colorare", e il secondo disegna un `·` fioco — lo stesso segno che tsteps usa per un giorno che è successo e non ha prodotto niente.
+
+**Non è un quarto livello di intensità, ed è la distinzione che conta**: `·` dice *qui non c'è un livello*, `□` dice *il giorno è girato e non è passato niente*, che è un fatto diverso e molto peggiore. La rampa resta di tre segni, come la VISION §4.3 la disegna; il punto sta prima della rampa, non dentro. Il colore lo dice anche a occhio: il `·` è più fioco del segno più fioco della scala, perché è l'assenza di un livello e non il suo fondo.
+
+**Un giorno prima che esistesse il primo test resta vuoto.** Disegnare un puntino lì inventerebbe una giornata in cui il lettore avrebbe dovuto presentarsi.
+
+E siccome un glifo che l'orecchio non riceve è un glifo che non c'è (§3.3.7), la riga parlata ora dice anche quanti giorni senza traccia contiene, nella stessa frase in cui dice quelli con qualcosa di fatto.
+
+- [x] `HeatmapCell.silent` + `NO_RECORD`, `HeatmapGrid.silentDays`
+- [x] Il `·` reso in `StatsScreen` con un colore suo, e la riga parlata che lo conta
+- [x] Riscritto il test che congelava il vecchio comportamento (`days that have not happened are blank, and so are days nobody was there`), più uno nuovo per i giorni precedenti alla nascita della suite
+- [ ] Verifica su device: soprattutto che il `·` si legga ma non urli, e che una griglia quasi tutta puntinata (installazione nuova) non sembri più rumorosa di com'era vuota
 
 
 ## Note trasversali

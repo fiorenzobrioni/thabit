@@ -291,6 +291,15 @@
     <!-- stats.md. Il file dichiara ogni tasso con la sua frazione, quindi la
          metà parlata deve solo trasformare il disegno e le tabelle in frasi. -->
     <string name="cd_stats_coverage">Giorni girati: %1$d su %2$d. Giorni in cui non c\'era nessuno: %3$d</string>
+    <!-- Una riga della mappa, detta a parole. I puntini sono i giorni, dentro la
+         vita della suite, per cui il grafico non ha niente da colorare: un glifo
+         che un lettore di schermo non sente è un glifo che non c\'è. -->
+    <plurals name="cd_stats_heatmap_no_record">
+        <item quantity="one">%1$d giorno senza traccia</item>
+        <item quantity="many">%1$d giorni senza traccia</item>
+        <item quantity="other">%1$d giorni senza traccia</item>
+    </plurals>
+
     <plurals name="cd_stats_heatmap_row">
         <item quantity="one">%1$s: %2$d giorno con qualcosa di fatto</item>
         <item quantity="many">%1$s: %2$d giorni con qualcosa di fatto</item>
@@ -420,6 +429,10 @@
     <string name="stats_hint_empty">ancora niente da riportare — la griglia si riempie man mano che i giorni si chiudono</string>
     <string name="stats_rule_window">calcolate su questo dispositivo · window: ultimi %1$d giorni</string>
 
+    <!-- L\'unico commento di riga che è una frase e non una lettura: la glossa
+         di `[·]`, il glifo che nessuno ha mai visto altrove. -->
+    <string name="suite_holds">tiene — asserisce al commit</string>
+
     <!-- La scheda di un test: cosa dice quando non c\'è ancora una barra da
          disegnare. -->
     <string name="suite_health_unknown">non ci sono ancora abbastanza run</string>
@@ -438,6 +451,22 @@
     <string name="note_read_only_log">quel giorno è storia — la finestra di amend si è chiusa</string>
     <string name="note_unknown_test_log">quel test non era nella suite quel giorno</string>
     <string name="note_rolled_over">il giorno è cambiato — adesso questo file è %1$s</string>
+
+    <!-- Le tre regole che stats.md dichiara su sé stesso. La formulazione
+         canonica in inglese vive nel dominio (Health.FORMULA, FlakyTests.RULE,
+         Regressions.RULE) e finisce nell\'export invariata, perché un archivio il
+         cui senso cambia con la lingua del telefono non è un archivio. Queste
+         sono le stesse regole dette al lettore; i numeri arrivano dalle stesse
+         costanti, quindi le due non possono divergere. -->
+    <string name="stats_rule_health">ema sulle unità valutate, emivita %1$d unità, inizializzata col primo esito, skip e giorni no run esclusi</string>
+    <string name="stats_rule_flaky">pass rate negli ultimi %1$d giorni sotto il %2$d%%, con almeno %3$d unità valutate, regressioni escluse</string>
+    <string name="stats_rule_regression">almeno %1$d delle ultime %2$d unità valutate fallite, dopo una serie verde di almeno %3$d unità</string>
+
+    <!-- Gli hint che restavano nel wizard: a cosa serve un campo, accanto al campo. -->
+    <string name="wiz_hint_assert">quanto conta come fatto</string>
+    <string name="wiz_hint_optional">facoltativo</string>
+    <string name="wiz_hint_remind_off">facoltativo — una spinta a un\'ora che scegli tu</string>
+    <string name="wiz_hint_remind_on">approssimativo — una spinta, non una sveglia</string>
 
     <!-- Il significato in chiaro accanto a ogni token che il wizard offre
          (VISION §3.3.7): il token è quello che finirà nel file, l'hint è cosa

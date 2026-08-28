@@ -3,6 +3,7 @@ package com.callbackdev.thabit.ui.stats
 import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.Fixture
 import com.callbackdev.thabit.domain.FlakyTests
+import com.callbackdev.thabit.domain.Health
 import com.callbackdev.thabit.domain.Regressions
 import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.domain.model.Schedule
@@ -164,13 +165,35 @@ class StatsDocumentTest {
 
     // ---- the rules, and the empty file --------------------------------------
 
+    /**
+     * The file states the rules it computed with (VISION §5). Since Fase 15 it
+     * states them in the reader's language, so what this level owns is the
+     * *structure*: which keys, and that the numbers handed to the sentence are
+     * the domain's own constants rather than a second copy of them. That the
+     * sentence then says the same thing as the canonical English is asserted, in
+     * both languages, in StatsScreenTest.
+     */
     @Test
     fun `the file prints the rules it computed itself with`() {
         val rules = StatsDocument.rules()
-        assertTrue(rules.any { it.contains(FlakyTests.RULE) })
-        assertTrue(rules.any { it.contains(Regressions.RULE) })
-        // No secret formulas: the health EMA states its half-life too.
-        assertTrue(rules.any { it.contains("half-life") })
+        assertEquals(listOf("health", "flaky", "regression"), rules.map { it.key })
+        assertEquals(listOf(Health.HALF_LIFE_UNITS), rules[0].args)
+        assertEquals(
+            listOf(
+                FlakyTests.WINDOW_DAYS.toInt(),
+                (FlakyTests.THRESHOLD * 100).toInt(),
+                FlakyTests.MIN_SAMPLES
+            ),
+            rules[1].args
+        )
+        assertEquals(
+            listOf(
+                Regressions.MIN_RECENT_FAILS,
+                Regressions.RECENT_UNITS,
+                Regressions.MIN_GREEN_RUN
+            ),
+            rules[2].args
+        )
     }
 
     @Test

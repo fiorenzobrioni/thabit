@@ -1,6 +1,7 @@
 package com.callbackdev.thabit.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,18 +39,51 @@ class HeatmapTest {
         assertEquals(DayOfWeek.SUNDAY, grid.rows.first().day)
     }
 
+    /**
+     * Three facts that used to draw the same nothing, and now draw two things
+     * (Fase 16).
+     *
+     * A day nobody was there for still has no level — §3.3.8 stands, the app does
+     * not know and does not pretend — but it is a day that *happened* inside a
+     * suite that existed, and the grid says so with a dot. The future has not
+     * happened, so it stays blank. Neither is ever a failure: `□` is the mark for
+     * a day that ran and passed nothing, and it is a different glyph on purpose.
+     */
     @Test
-    fun `days that have not happened are blank, and so are days nobody was there`() {
+    fun `the future is blank, a day nobody was there for is a dot`() {
         val ran = today.minusDays(1)
         val history = Fixture.history(listOf(habit), listOf(Fixture.pass(1L, ran)), setOf(ran))
         val cells = Heatmap.build(history, today).rows.flatMap { it.cells }.associateBy { it.date }
 
-        assertNull(cells.getValue(today.plusDays(1)).level)   // not yet
-        assertNull(cells.getValue(today.minusDays(2)).level)  // nobody was there
-        assertEquals(" ", cells.getValue(today.minusDays(2)).glyph)
-        // The day that ran is not blank, and it is the same blank glyph the
-        // future gets — that is the point of §3.3.8, drawn.
+        val future = cells.getValue(today.plusDays(1))
+        assertNull(future.level)
+        assertFalse(future.silent)
+        assertEquals(" ", future.glyph)
+
+        val nobodyThere = cells.getValue(today.minusDays(2))
+        assertNull(nobodyThere.level)
+        assertTrue(nobodyThere.silent)
+        assertEquals("·", nobodyThere.glyph)
+
         assertEquals(1.0, cells.getValue(ran).fraction!!, 0.0)
+    }
+
+    /**
+     * A day before the first test existed could not have run, so the grid has
+     * nothing to be silent about: it is outside the suite's life, not a gap in
+     * it. Drawing a dot there would invent a day the reader was supposed to show
+     * up for.
+     */
+    @Test
+    fun `days before the suite existed stay blank`() {
+        val born = today.minusDays(3)
+        val young = Fixture.habit(1L, createdAt = born)
+        val cells = Heatmap.build(Fixture.history(listOf(young)), today)
+            .rows.flatMap { it.cells }.associateBy { it.date }
+
+        assertFalse(cells.getValue(born.minusDays(1)).silent)
+        assertEquals(" ", cells.getValue(born.minusDays(1)).glyph)
+        assertTrue(cells.getValue(born.plusDays(1)).silent)
     }
 
     @Test

@@ -57,6 +57,16 @@ None of this discharges the plain-language promise: a translated comment is
 politeness, not a gloss. The `README.md` tab, the notifications and the
 accessibility text still carry the whole meaning on their own.
 
+- **The heatmap says which days it has no record of.** A `no run` day inside the
+  suite's life now draws a dim `·` instead of nothing. Three different facts used
+  to arrive at the same blank cell (the future, a day before the first test
+  existed, and a day nobody was there for), and `## coverage` was already counting
+  the last of them out loud two sections below, so the grid was keeping quiet
+  about something the file states. It is not a fourth intensity: `·` means there
+  is no level here, `□` still means the day ran and passed none of it. The future
+  and the days before the suite existed stay blank, because drawing a dot there
+  would invent a day somebody was supposed to show up for.
+
 ## [1.0.0] - 2026-08-24
 
 The first release. thabit is an offline Android habit tracker whose interface is

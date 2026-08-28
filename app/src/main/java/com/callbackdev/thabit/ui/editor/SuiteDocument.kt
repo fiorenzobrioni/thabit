@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.editor
 
+import androidx.annotation.StringRes
 import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.Health
 import com.callbackdev.thabit.domain.Quotas
@@ -211,6 +212,7 @@ data class SuiteDocument(
                 type = habit.type,
                 state = outcome.state,
                 comment = comment(detail),
+                commentNote = commentNote(detail),
                 detail = detail,
                 // The test's own unit, not today's: a skipped counter still
                 // counts pages, and its prompt has to know that.
@@ -220,7 +222,12 @@ data class SuiteDocument(
             )
         }
 
-        /** The live detail the comment channel carries, in English, as source. */
+        /**
+         * The live detail the comment channel carries: readouts, so English.
+         *
+         * Null for [RowDetail.Holding], whose comment is a sentence and lives in
+         * [TestRow.commentNote] instead — see the field.
+         */
         private fun comment(detail: RowDetail): String? = when (detail) {
             is RowDetail.Passed -> detail.at?.let { CodeFormat.time(it) }
             is RowDetail.Counter ->
@@ -231,7 +238,7 @@ data class SuiteDocument(
                 detail.note?.takeIf { it.isNotBlank() }?.let { append(": ").append(it) }
                 detail.until?.let { append(" until ").append(CodeFormat.date(it)) }
             }
-            RowDetail.Holding -> "holds — asserts at commit"
+            RowDetail.Holding -> null
             is RowDetail.Failed -> buildString {
                 append("failed")
                 detail.at?.let { append(" ").append(CodeFormat.time(it)) }
@@ -240,6 +247,11 @@ data class SuiteDocument(
             is RowDetail.Quota -> "${detail.done}/${detail.target} this week"
             RowDetail.Pending -> null
         }
+
+        /** The one comment that is a gloss rather than a number (Fase 15). */
+        @StringRes
+        private fun commentNote(detail: RowDetail): Int? =
+            if (detail == RowDetail.Holding) R.string.suite_holds else null
 
         /**
          * A test the schedule does not ask for today is rendered as a
@@ -296,8 +308,27 @@ data class TestRow(
     val name: String,
     val type: HabitType,
     val state: TestState,
-    /** English, dimmed, trailing: `07:12`, `12/30 reps`, `skip: rest day`. */
+    /**
+     * The live detail, dimmed and trailing: `07:12`, `12/30 reps`, `skip: rest
+     * day`.
+     *
+     * **A readout, so it is English and it is a literal.** A time, a fraction and
+     * its unit, a state name, a schedule — nothing here is written to be
+     * understood, it is the day's numbers put where a comment goes, and one
+     * translated row would leave the column speaking two languages for nothing.
+     */
     val comment: String?,
+    /**
+     * The one row whose comment is a **sentence** instead: `[·]` holding.
+     *
+     * `[·]` is the glyph nobody has met anywhere else, so its comment is not a
+     * readout but its gloss — and a gloss the reader cannot read glosses nothing
+     * (VISION §3.3.7). It travels as a string id and the renderer speaks it,
+     * which is also why it is a separate field: the type says which of the two
+     * registers the row's comment is in, the way `*_HINT` and `*_NOTE` do in
+     * `SettingsDocument`. Exactly one of the two is ever set.
+     */
+    @StringRes val commentNote: Int?,
     /** The same fact, structured, so a screen reader can be told it in its language. */
     val detail: RowDetail,
     /**

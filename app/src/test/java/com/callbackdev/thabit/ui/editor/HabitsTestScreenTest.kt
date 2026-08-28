@@ -284,6 +284,27 @@ class HabitsTestScreenTest {
         compose.onNodeWithText("# suite 2026-08-01 — 1 passed · 2 pending").assertIsDisplayed()
     }
 
+    /**
+     * The exception in that column, and the reason it is one: `[·]` is the glyph
+     * nobody has met anywhere else, so its comment is not a number but the
+     * sentence that explains it — and a gloss the reader cannot read glosses
+     * nothing. `commit` stays inside it, because `commit` is a noun git keeps too.
+     */
+    @Test
+    fun `the one row comment that is a gloss says it in English here`() {
+        show(suite())
+        compose.onNodeWithText("# holds — asserts at commit", substring = true)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `and in Italian there, with commit left alone`() {
+        show(suite())
+        compose.onNodeWithText("# tiene — asserisce al commit", substring = true)
+            .assertIsDisplayed()
+    }
+
     @Test
     fun `a test not due today opens the same spec, and the actions that make sense`() {
         val mondays = Fixture.habit(

@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.callbackdev.thabit.R
+import com.callbackdev.thabit.domain.HeatmapCell
 import com.callbackdev.thabit.domain.HeatmapGrid
 import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.domain.model.Check
@@ -184,7 +185,10 @@ private fun statsLines(
     // ---- the rules, printed ------------------------------------------------
     markdown("")
     markdown(comment(stringResource(StatsDocument.WINDOW_RULE, StatsDocument.WINDOW_DAYS.toInt())))
-    StatsDocument.rules().forEach { markdown(comment(it)) }
+    StatsDocument.rules().forEach { rule ->
+        // The key stays a key; the sentence after it is the reader's.
+        markdown(comment("${rule.key}: " + stringResource(rule.id, *rule.args.toTypedArray())))
+    }
     return lines
 }
 
@@ -204,22 +208,33 @@ private fun heatmapLines(grid: HeatmapGrid, syntax: SyntaxColors): List<CanvasLi
         // labels in a 13sp column would be noise, and none at all would leave
         // the reader counting rows.
         val label = if (index % 2 == 0) row.day.short(locale) else "   "
+        val done = row.cells.count { it.level != null && it.level > 0 }
+        val noRecord = row.cells.count { it.silent }
+        val spoken = pluralStringResource(
+            R.plurals.cd_stats_heatmap_row,
+            done,
+            row.day.getDisplayName(TextStyle.FULL, locale),
+            done
+        )
+        // A dot the ear never gets is a glyph that is not there: the row says
+        // how many days it has no record of, in the same breath as the ones it
+        // does (VISION §3.3.7).
+        val spokenGaps = if (noRecord == 0) {
+            ""
+        } else {
+            ". " + pluralStringResource(R.plurals.cd_stats_heatmap_no_record, noRecord, noRecord)
+        }
         CodeLine(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = syntax.comment)) { append(label.padEnd(5)) }
                 row.cells.forEach { cell ->
-                    withStyle(SpanStyle(color = cell.level.color(syntax))) {
+                    withStyle(SpanStyle(color = cell.color(syntax))) {
                         append(cell.glyph)
                     }
                     append(" ")
                 }
             },
-            contentDescription = pluralStringResource(
-                R.plurals.cd_stats_heatmap_row,
-                row.cells.count { it.level != null && it.level > 0 },
-                row.day.getDisplayName(TextStyle.FULL, locale),
-                row.cells.count { it.level != null && it.level > 0 }
-            )
+            contentDescription = spoken + spokenGaps
         )
     }
     return lines + monthLine(grid, syntax)
@@ -289,6 +304,16 @@ private fun tagLines(
 
 /** Markdown's own comment channel — `#` here would be a heading (VISION §1.1). */
 private fun comment(text: String): String = "<!-- $text -->"
+
+/**
+ * The dot is dimmer than the faintest mark on the ramp, on purpose: it is the
+ * absence of a level, not the bottom of it.
+ */
+private fun HeatmapCell.color(syntax: SyntaxColors) = when {
+    level != null -> level.color(syntax)
+    silent -> syntax.comment.copy(alpha = 0.45f)
+    else -> syntax.border
+}
 
 private fun Int?.color(syntax: SyntaxColors) = when (this) {
     null -> syntax.border

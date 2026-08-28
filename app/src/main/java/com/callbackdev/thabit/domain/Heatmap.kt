@@ -8,19 +8,41 @@ import java.util.Locale
 /**
  * One day of the contribution graph.
  *
- * [fraction] is **how much of the day's due suite passed**, or null when the app
- * has nothing to say about that day: it has not happened yet, nobody was there
- * (`no run`), or nothing was due. All three draw the same blank cell, and that
- * is the point — a day the app never saw is not a bad day, it is an unknown one
- * (VISION §3.3.8). The size of that unknown is stated once, in `## coverage`.
+ * [fraction] is **how much of the day's due suite passed**, or null when there is
+ * nothing to colour. A day the app never saw is not a bad day, it is an unknown
+ * one (VISION §3.3.8) — but it is not *nothing*, and until Fase 16 the grid drew
+ * it as nothing.
+ *
+ * Three different facts were arriving at the same blank cell: a day outside the
+ * suite's life (it could not have run), a day nobody was there for (`no run`),
+ * and a day the schedule did not ask for. The first is genuinely outside the
+ * graph's knowledge; the other two happened, inside a suite that existed, and
+ * saying nothing about them was the grid keeping quiet about a fact `##
+ * coverage` counts out loud two sections below. So [silent] separates them, and
+ * they draw a dim `·` — the same mark tsteps uses for a day that happened and
+ * produced nothing.
+ *
+ * That is deliberately **not** a fourth intensity: `·` says *there is no level
+ * here*, while `□` says *the day ran and passed none of it*, which is a
+ * different and much worse fact. The ramp is still three marks.
  */
 data class HeatmapCell(
     val date: LocalDate,
     val fraction: Double?,
     /** 0..[Heatmap.LEVELS] once the day is known, null when it is not. */
-    val level: Int?
+    val level: Int?,
+    /**
+     * True when the day is over, the suite already existed, and there is still
+     * nothing to colour: nobody was there, or nothing was due.
+     */
+    val silent: Boolean = false
 ) {
-    val glyph: String get() = GLYPHS.getOrNull(level ?: -1) ?: " "
+    val glyph: String
+        get() = when {
+            level != null -> GLYPHS.getOrNull(level) ?: " "
+            silent -> NO_RECORD
+            else -> " "
+        }
 
     companion object {
         /**
@@ -32,6 +54,9 @@ data class HeatmapCell(
          * distinguish. That is why the buckets below are tertiles.
          */
         val GLYPHS: List<String> = listOf("□", "▪", "■")
+
+        /** A day inside the suite's life with nothing to colour. */
+        const val NO_RECORD: String = "·"
     }
 }
 
@@ -56,6 +81,9 @@ data class HeatmapGrid(val rows: List<HeatmapRow>, val months: List<MonthLabel>)
 
     /** Days the graph actually knows something about — the empty-state test. */
     val knownDays: Int get() = rows.sumOf { row -> row.cells.count { it.level != null } }
+
+    /** Days inside the suite's life the graph has nothing to colour for. */
+    val silentDays: Int get() = rows.sumOf { row -> row.cells.count { it.silent } }
 }
 
 /**
@@ -88,6 +116,7 @@ object Heatmap {
             date = date.plusDays(1)
         }
 
+        val suiteStart = history.suiteStart()
         val known = fractions.values.filterNotNull().filter { it > 0.0 }.sorted()
         val t1 = tertile(known, 1.0 / 3)
         val t2 = tertile(known, 2.0 / 3)
@@ -99,7 +128,18 @@ object Heatmap {
                 cells = (0 until weeks).map { column ->
                     val cellDate = firstStart.plusWeeks(column.toLong()).plusDays(offset)
                     val fraction = fractions[cellDate]
-                    HeatmapCell(cellDate, fraction, fraction?.let { level(it, t1, t2) })
+                    HeatmapCell(
+                        date = cellDate,
+                        fraction = fraction,
+                        level = fraction?.let { level(it, t1, t2) },
+                        // A day before the first test existed could not have run,
+                        // so it stays blank: the dot is for days the suite was
+                        // alive for and still has nothing to show.
+                        silent = fraction == null &&
+                            !cellDate.isAfter(today) &&
+                            suiteStart != null &&
+                            !cellDate.isBefore(suiteStart)
+                    )
                 }
             )
         }

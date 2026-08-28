@@ -394,11 +394,14 @@ private fun testLines(
         stringResource(R.string.cd_action_increment, CodeFormat.number(row.incrementStep ?: 1.0))
     }
     val noteDescription = stringResource(R.string.cd_action_note)
+    // Exactly one of the two is set: the readout as the document spelled it, or
+    // the one comment that is a sentence, spoken here (Fase 15).
+    val comment = row.comment ?: row.commentNote?.let { stringResource(it) }
 
     lines += WidgetLine(
         measureText = buildString {
             append("- ").append(checkbox.glyph).append(' ').append(row.name)
-            row.comment?.let { append("  # ").append(it) }
+            comment?.let { append("  # ").append(it) }
             increment?.let { append("  ").append(it) }
             append("    ")
         }
@@ -406,7 +409,7 @@ private fun testLines(
         TestLine(
             checkbox = checkbox,
             name = row.name,
-            comment = row.comment,
+            comment = comment,
             syntax = syntax,
             spokenRow = spoken,
             checkboxActionLabel = checkboxLabel,

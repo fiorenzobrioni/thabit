@@ -136,12 +136,31 @@ class SuiteDocumentTest {
         assertEquals("0/30 reps", doc(history).due.single().comment)
     }
 
+    /**
+     * The one row whose comment is a gloss and not a readout, so it is the one
+     * row that carries a note instead of a literal (Fase 15). The words are read
+     * in both languages in HabitsTestScreenTest.
+     */
     @Test
-    fun `an avoid test holds and says what holding means`() {
+    fun `an avoid test holds, and its comment is the gloss and not a readout`() {
         val history = Fixture.history(listOf(noSugar), emptyList(), setOf(d))
         val row = doc(history).due.single()
         assertEquals(TestState.HOLDING, row.state)
-        assertEquals("holds — asserts at commit", row.comment)
+        assertNull(row.comment)
+        assertEquals(R.string.suite_holds, row.commentNote)
+    }
+
+    /** And every other row is the opposite way round: a readout, no note. */
+    @Test
+    fun `a readout row carries no note`() {
+        val history = Fixture.history(
+            listOf(meditate),
+            listOf(Check(1L, d, CheckState.PASS, at = LocalTime.of(7, 12))),
+            setOf(d)
+        )
+        val row = doc(history).due.single()
+        assertEquals("07:12", row.comment)
+        assertNull(row.commentNote)
     }
 
     @Test
