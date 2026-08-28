@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -195,35 +196,28 @@ private fun statsLines(
 /**
  * The graph: one row per day of the week, one mark per week.
  *
- * Each mark is coloured by its own level, which is why this is not markdown —
- * and the blanks are left blank on purpose: a day the app never saw looks
- * exactly like a day that has not happened yet, because that is what it is
- * (VISION §3.3.8).
+ * Each mark is coloured by its own level, which is why this is not markdown.
+ * Every day behind the reader carries at least a dot, so the twelve weeks have a
+ * shape to hang the marks on; only the future is blank.
+ *
+ * The labels are **data**, so they are the reader's: lowercase short day names
+ * and month names in the reader's own language, taken from the configuration
+ * rather than from a hardcoded `Locale.ENGLISH` (VISION §1.3 — day names were
+ * already on the localized side of that rule, and this grid had simply never
+ * been asked).
  */
 @Composable
 private fun heatmapLines(grid: HeatmapGrid, syntax: SyntaxColors): List<CanvasLine> {
-    val locale = Locale.ENGLISH
+    val locale = LocalConfiguration.current.locales[0]
     val lines = grid.rows.mapIndexed { index, row ->
         // Labels on every other row, like the graph this borrows from: seven
         // labels in a 13sp column would be noise, and none at all would leave
         // the reader counting rows.
         val label = if (index % 2 == 0) row.day.short(locale) else "   "
+        // The dot is the paper, not a mark, so the spoken row counts what was
+        // actually done and leaves the grid to the eye — the size of what is
+        // missing is `## coverage`'s sentence, two sections below.
         val done = row.cells.count { it.level != null && it.level > 0 }
-        val noRecord = row.cells.count { it.silent }
-        val spoken = pluralStringResource(
-            R.plurals.cd_stats_heatmap_row,
-            done,
-            row.day.getDisplayName(TextStyle.FULL, locale),
-            done
-        )
-        // A dot the ear never gets is a glyph that is not there: the row says
-        // how many days it has no record of, in the same breath as the ones it
-        // does (VISION §3.3.7).
-        val spokenGaps = if (noRecord == 0) {
-            ""
-        } else {
-            ". " + pluralStringResource(R.plurals.cd_stats_heatmap_no_record, noRecord, noRecord)
-        }
         CodeLine(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = syntax.comment)) { append(label.padEnd(5)) }
@@ -234,19 +228,27 @@ private fun heatmapLines(grid: HeatmapGrid, syntax: SyntaxColors): List<CanvasLi
                     append(" ")
                 }
             },
-            contentDescription = spoken + spokenGaps
+            contentDescription = pluralStringResource(
+                R.plurals.cd_stats_heatmap_row,
+                done,
+                row.day.getDisplayName(TextStyle.FULL, locale),
+                done
+            )
         )
     }
-    return lines + monthLine(grid, syntax)
+    return lines + monthLine(grid, locale, syntax)
 }
 
-/** `         jun         jul         aug` — one label per month, under its week. */
-private fun monthLine(grid: HeatmapGrid, syntax: SyntaxColors): CodeLine {
+/** `         giu         lug         ago` — one label per month, under its week. */
+@Composable
+private fun monthLine(grid: HeatmapGrid, locale: Locale, syntax: SyntaxColors): CodeLine {
     val text = StringBuilder(" ".repeat(5))
     grid.months.forEach { month ->
         val target = 5 + month.column * 2
         while (text.length < target) text.append(' ')
-        text.append(month.label)
+        text.append(
+            month.month.getDisplayName(TextStyle.SHORT, locale).lowercase(locale).take(3)
+        )
     }
     return CodeLine(AnnotatedString(text.toString(), SpanStyle(color = syntax.comment)))
 }
@@ -322,8 +324,13 @@ private fun Int?.color(syntax: SyntaxColors) = when (this) {
     else -> syntax.diffAdd
 }
 
+/**
+ * `lun`, `mer`, `ven`, `dom` — lowercase and three letters, like the row of a
+ * contribution graph and like tsteps' grid next door. Lowercase because the
+ * labels are chrome around the data, not headings for it.
+ */
 private fun DayOfWeek.short(locale: Locale): String =
-    getDisplayName(TextStyle.SHORT, locale)
+    getDisplayName(TextStyle.SHORT, locale).lowercase(locale).take(3)
 
 @Preview(showBackground = true, backgroundColor = 0xFF10141A, heightDp = 720)
 @Composable

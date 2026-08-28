@@ -523,7 +523,51 @@ E siccome un glifo che l'orecchio non riceve è un glifo che non c'è (§3.3.7),
 - [x] `HeatmapCell.silent` + `NO_RECORD`, `HeatmapGrid.silentDays`
 - [x] Il `·` reso in `StatsScreen` con un colore suo, e la riga parlata che lo conta
 - [x] Riscritto il test che congelava il vecchio comportamento (`days that have not happened are blank, and so are days nobody was there`), più uno nuovo per i giorni precedenti alla nascita della suite
-- [ ] Verifica su device: soprattutto che il `·` si legga ma non urli, e che una griglia quasi tutta puntinata (installazione nuova) non sembri più rumorosa di com'era vuota
+- [x] Verifica su device: **fatta, e la 16 era mezza risposta** — vedi 16a
+
+## Fase 16a — La mappa è carta a quadretti, non una serie di verdetti (device, 28 ago 2026)
+
+Screenshot del committente accanto a quello di tsteps, con una richiesta secca: **la mappa di thabit dev'essere uguale a quella di tsteps.** E aveva ragione due volte, perché nella 16 avevo risolto metà problema e introdotto una regola sbagliata.
+
+### 1. Le etichette erano inglesi per un `Locale.ENGLISH` scritto a mano
+
+`heatmapLines` apriva con `val locale = Locale.ENGLISH`, e `Heatmap.build` aveva `locale: Locale = Locale.ENGLISH` come default che nessun chiamante sovrascriveva. Da qui `Mon/Wed/Fri/Sun` e `jun jul aug` su un telefono italiano, mentre tsteps accanto scrive `lun/mer/ven/dom` e `giu lug ago`.
+
+**Non è una differenza di stile: è questa griglia che si era chiamata fuori da una regola che l'app segue dalla Fase 6.** I nomi dei giorni e dei mesi sono *dati*, e i dati si localizzano — sta scritto in `VISION §1.3` da prima che esistesse la regola dei registri. Nessuno gliel'aveva mai chiesto perché nessuno aveva mai guardato quella griglia in italiano.
+
+Sistemato dove va sistemato: `MonthLabel` porta il `Month`, non il suo nome. Nominarlo è lavoro del renderer, come per ogni altro dato dell'app, e così la griglia non va ricostruita quando il lettore cambia lingua. Le etichette dei giorni passano da `SHORT` a `SHORT` minuscolo di tre lettere, come le disegna la griglia di tsteps e come le disegna il grafico da cui la metafora è presa.
+
+### 2. I puntini c'erano ma quasi ovunque mancavano, e la colpa era di una mia regola
+
+Nella 16 avevo scritto: *«Un giorno prima che esistesse il primo test resta vuoto. Disegnare un puntino lì inventerebbe una giornata in cui il lettore avrebbe dovuto presentarsi.»* Sembrava rigoroso. Sul telefono, con una suite di quattro giorni dentro una finestra di dodici settimane, il risultato era **una griglia vuota con tre quadratini che galleggiavano nel nulla** — esattamente lo screenshot che mi è arrivato.
+
+**L'errore era trattare il puntino come un'affermazione su quel giorno.** Non lo è, una volta che *ogni* cella passata ne porta uno: è la **carta a quadretti**. Un segno che tutte le celle hanno non può essere letto come un'accusa, e infatti il grafico da cui questa griglia è copiata disegna da sempre l'intera finestra, compresi i giorni precedenti all'iscrizione. Quello che sarebbe un'accusa è `□` — *il giorno è girato e non è passato niente* — e resta un glifo diverso.
+
+Quindi `silent` diventa semplicemente «il giorno è alle spalle del lettore e non c'è un livello da disegnare». Il futuro resta bianco: non è ancora successo, non c'è carta.
+
+E cade con lei la riga parlata che avevo aggiunto nella 16 (`N giorni senza traccia` per riga). Con la carta stesa dappertutto quella frase direbbe `11 giorni senza traccia` su quasi ogni riga: è rumore, non informazione. La riga parlata torna a dire i giorni con qualcosa di fatto, e **quanto manca continua a dirlo `## coverage` due sezioni sotto**, che è dove quel numero è sempre vissuto.
+
+### Cosa resta diverso da tsteps, e apposta
+
+La rampa. tsteps usa `■` a quattro alfa crescenti; thabit usa `□ ▪ ■`, che la `VISION §4.3` fissa e che le servono perché ha uno stato che tsteps non ha: `□` è *il giorno è girato e non è passato niente*, un fatto che in un contatore di passi non esiste. Quello che rendeva la mappa illeggibile era la carta mancante e le etichette inglesi, non i segni.
+
+- [x] `Locale` dalla configurazione in `heatmapLines`; `MonthLabel` porta il `Month` e il nome lo fa il renderer
+- [x] Etichette dei giorni minuscole a tre lettere, come tsteps
+- [x] `silent` = ogni giorno passato senza livello; rimossi `silentDays` e la frase parlata dei buchi, con la sua stringa
+- [x] Riscritto il test che congelava «i giorni prima della suite restano vuoti» (era la regola sbagliata messa a guardia), più uno che pretende che nessuna cella passata resti senza segno e che il futuro resti bianco
+- [x] Due test di schermata: le etichette nella lingua del lettore (IT ed EN) e una riga che porta tutte e dodici le settimane anche con una suite di tre giorni
+
+## Fase 16b — Il FAB era un flake, ed era anche un problema di TalkBack
+
+Rilevato girando la suite: `ThabitAppTest` falliva **circa una volta su tre**, con un test diverso ogni volta e sempre verde se la classe girava da sola. Verificato che fosse precedente a questo lavoro mettendo da parte le modifiche e girando la suite tre volte sul commit prima: falliva anche lì.
+
+L'errore diceva la cosa giusta: *«the unmerged tree contains 1 node that matches»*. `GlowFab` dichiara il suo `contentDescription` con `Modifier.semantics { }` **senza `mergeDescendants`**, e un `clickable` nudo non fa da confine di merge per conto suo. Risultato: la descrizione non è un nodo dell'albero merged, viene assorbita da qualunque antenato che fonde i discendenti si trovi sopra al FAB in quel momento — e quale antenato ci sia dipende da cosa altro è composto, il che è esattamente la definizione di un test che va a fortuna.
+
+**E non era solo un problema di test.** Un FAB che non è confine di merge viene annunciato da TalkBack come parte di un blocco più lungo invece che come un pulsante con la sua frase. `Modifier.semantics(mergeDescendants = true)` è quello che fa il `Button` di Material, ed è quello che un pulsante *è*: una cosa sola, che dice una frase sola.
+
+- [x] `mergeDescendants = true` su `GlowFab`
+- [x] Cinque giri completi della suite di fila, tutti verdi (prima: rossa circa una volta su tre)
+
 
 
 ## Note trasversali

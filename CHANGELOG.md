@@ -57,15 +57,24 @@ None of this discharges the plain-language promise: a translated comment is
 politeness, not a gloss. The `README.md` tab, the notifications and the
 accessibility text still carry the whole meaning on their own.
 
-- **The heatmap says which days it has no record of.** A `no run` day inside the
-  suite's life now draws a dim `·` instead of nothing. Three different facts used
-  to arrive at the same blank cell (the future, a day before the first test
-  existed, and a day nobody was there for), and `## coverage` was already counting
-  the last of them out loud two sections below, so the grid was keeping quiet
-  about something the file states. It is not a fourth intensity: `·` means there
-  is no level here, `□` still means the day ran and passed none of it. The future
-  and the days before the suite existed stay blank, because drawing a dot there
-  would invent a day somebody was supposed to show up for.
+- **The heatmap draws the whole window.** Every day behind the reader now carries
+  at least a dim `·`; before, anything the app had nothing to say about was blank,
+  so a young suite was three squares floating in a void with no grid to place them
+  against. The dot is the graph paper, not a verdict about that day: a mark every
+  past cell carries cannot read as an accusation, and it is not a fourth intensity
+  either — `·` means there is no level here, `□` still means the day ran and passed
+  none of it. Only the future is blank.
+- **The grid speaks the reader's language.** Its row and month labels were a
+  hardcoded English, so an Italian phone read `Mon`/`jun` while every other date in
+  the app was already localized. They are now lowercase three-letter names in the
+  reader's own language, like the graph this borrows from.
+
+### Fixed
+
+- **The `+` button is one thing to a screen reader.** It declared its own
+  description without making itself a merge boundary, so TalkBack announced it as
+  part of whatever larger block happened to sit above it, and a test looking for
+  it passed or failed depending on what else was on screen.
 
 ## [1.0.0] - 2026-08-24
 

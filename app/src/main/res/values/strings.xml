@@ -288,14 +288,6 @@
     <!-- stats.md. The file states every rate with its fraction, so the spoken
          half only has to turn the picture and the tables into sentences. -->
     <string name="cd_stats_coverage">Days that ran: %1$d of %2$d. Days nobody was there: %3$d</string>
-    <!-- A heatmap row, spoken. The dots are days inside the suite\'s life the
-         graph has nothing to colour for, and a glyph a screen reader cannot hear
-         is a glyph that is not there (VISION §3.3.7). -->
-    <plurals name="cd_stats_heatmap_no_record">
-        <item quantity="one">%1$d day with no record</item>
-        <item quantity="other">%1$d days with no record</item>
-    </plurals>
-
     <plurals name="cd_stats_heatmap_row">
         <item quantity="one">%1$s: %2$d day with something done</item>
         <item quantity="other">%1$s: %2$d days with something done</item>

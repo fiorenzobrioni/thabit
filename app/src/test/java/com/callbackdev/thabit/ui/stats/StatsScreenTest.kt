@@ -2,6 +2,8 @@ package com.callbackdev.thabit.ui.stats
 
 import android.content.Context
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import com.callbackdev.thabit.domain.Heatmap
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.SemanticsMatcher
@@ -22,6 +24,7 @@ import com.callbackdev.thabit.domain.Fixture
 import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -206,6 +209,66 @@ class StatsScreenTest {
         // same one the table above prints. What moves is the sentence around it.
         compose.onNodeWithText("flaky: pass rate negli ultimi 30 giorni", substring = true)
             .assertIsDisplayed()
+    }
+
+    // ---- the grid reads like a grid (Fase 16a) ----------------------------
+
+    /**
+     * The labels are data, so they are the reader's: lowercase three-letter day
+     * names and month names in the reader's language, the way tsteps' grid next
+     * door has always drawn them. They used to be a hardcoded `Locale.ENGLISH`,
+     * which was this grid quietly opting out of a rule the rest of the app has
+     * followed since Fase 6.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the grid labels its rows and months in the reader's language`() {
+        show(greenDays(20))
+        compose.onNodeWithText("lun", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("mer", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("dom", substring = true).assertIsDisplayed()
+        // The month row is one line: whichever three months the window spans,
+        // they are the Italian abbreviations and not jun/jul/aug.
+        compose.onNodeWithText("ago", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `and in English they are the English ones, lowercase like the graph`() {
+        show(greenDays(20))
+        compose.onNodeWithText("mon", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("aug", substring = true).assertIsDisplayed()
+    }
+
+    /**
+     * The paper: a row of the grid is dotted across the window, not a couple of
+     * marks floating in a void. Without this the twelve weeks had no shape to
+     * place a mark against, which is what the grid was actually for.
+     */
+    /** The text of the grid row whose label is [label], cells and all. */
+    private fun gridRow(label: String): String =
+        compose.onAllNodes(hasText(label, substring = true))
+            .fetchSemanticsNodes()
+            .map { node -> node.config[SemanticsProperties.Text].joinToString("") { it.text } }
+            .first { it.startsWith(label) }
+
+    /**
+     * The paper: a row is dotted across the whole window, not a couple of marks
+     * floating in a void. Twelve weeks of cells, whatever happened in them.
+     */
+    @Test
+    fun `every week of the window is drawn, not just the days that ran`() {
+        show(greenDays(20))
+        val marks = gridRow("mon").count { it in "·□▪■" }
+        assertEquals(Heatmap.WEEKS, marks)
+    }
+
+    /** And a suite three days old still draws all twelve, mostly as paper. */
+    @Test
+    fun `a young suite still draws the whole window`() {
+        show(greenDays(3))
+        val row = gridRow("mon")
+        assertEquals(Heatmap.WEEKS, row.count { it in "·□▪■" })
+        assertTrue(row.count { it == '·' } >= Heatmap.WEEKS - 1)
     }
 
     @Test

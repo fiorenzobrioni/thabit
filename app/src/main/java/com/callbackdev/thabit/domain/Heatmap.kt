@@ -2,8 +2,7 @@ package com.callbackdev.thabit.domain
 
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
+import java.time.Month
 
 /**
  * One day of the contribution graph.
@@ -13,28 +12,27 @@ import java.util.Locale
  * one (VISION §3.3.8) — but it is not *nothing*, and until Fase 16 the grid drew
  * it as nothing.
  *
- * Three different facts were arriving at the same blank cell: a day outside the
- * suite's life (it could not have run), a day nobody was there for (`no run`),
- * and a day the schedule did not ask for. The first is genuinely outside the
- * graph's knowledge; the other two happened, inside a suite that existed, and
- * saying nothing about them was the grid keeping quiet about a fact `##
- * coverage` counts out loud two sections below. So [silent] separates them, and
- * they draw a dim `·` — the same mark tsteps uses for a day that happened and
- * produced nothing.
+ * Every day already behind the reader draws a dim `·` when there is no level to
+ * put there — `no run`, nothing due, or a day before the suite existed. That dot
+ * is the **graph paper**, not a verdict about that day, which is the correction
+ * Fase 16a made to 16: a mark every past cell carries cannot be read as an
+ * accusation, and without it the grid had no shape at all — a handful of squares
+ * floating in a void with nothing to place them against. It is the same paper
+ * tsteps draws, and the same one a contribution graph has always had.
  *
- * That is deliberately **not** a fourth intensity: `·` says *there is no level
- * here*, while `□` says *the day ran and passed none of it*, which is a
- * different and much worse fact. The ramp is still three marks.
+ * The future stays blank: it has not happened, so there is no paper for it yet.
+ *
+ * The dot is deliberately **not** a fourth intensity. `·` says *there is no level
+ * here*; `□` says *the day ran and passed none of it*, which is a different and
+ * much worse fact, and it stays a different glyph. §3.3.8 forbids colouring an
+ * unknown day like a failure — it never asked the graph to hide it.
  */
 data class HeatmapCell(
     val date: LocalDate,
     val fraction: Double?,
     /** 0..[Heatmap.LEVELS] once the day is known, null when it is not. */
     val level: Int?,
-    /**
-     * True when the day is over, the suite already existed, and there is still
-     * nothing to colour: nobody was there, or nothing was due.
-     */
+    /** True when the day is behind the reader and there is no level to draw. */
     val silent: Boolean = false
 ) {
     val glyph: String
@@ -55,7 +53,7 @@ data class HeatmapCell(
          */
         val GLYPHS: List<String> = listOf("□", "▪", "■")
 
-        /** A day inside the suite's life with nothing to colour. */
+        /** The paper: a day already behind the reader with no level to draw. */
         const val NO_RECORD: String = "·"
     }
 }
@@ -63,8 +61,15 @@ data class HeatmapCell(
 /** One row of the grid: a day of the week, one cell per column. */
 data class HeatmapRow(val day: DayOfWeek, val cells: List<HeatmapCell>)
 
-/** Where a month label goes: under the column its first week starts. */
-data class MonthLabel(val column: Int, val label: String)
+/**
+ * Where a month label goes: under the column its first week starts.
+ *
+ * The [month] and not its name: a month name is **data**, so it localizes, and
+ * localizing is the renderer's job everywhere else in this app (VISION §1.3).
+ * Keeping the value here is also what stops the grid from having to be rebuilt
+ * when the reader changes language.
+ */
+data class MonthLabel(val column: Int, val month: Month)
 
 /**
  * The grid, drawn like a contribution graph: **seven rows** (days of the week)
@@ -81,9 +86,6 @@ data class HeatmapGrid(val rows: List<HeatmapRow>, val months: List<MonthLabel>)
 
     /** Days the graph actually knows something about — the empty-state test. */
     val knownDays: Int get() = rows.sumOf { row -> row.cells.count { it.level != null } }
-
-    /** Days inside the suite's life the graph has nothing to colour for. */
-    val silentDays: Int get() = rows.sumOf { row -> row.cells.count { it.silent } }
 }
 
 /**
@@ -103,8 +105,7 @@ object Heatmap {
         history: SuiteHistory,
         today: LocalDate,
         weekStartsOn: DayOfWeek = DayOfWeek.MONDAY,
-        weeks: Int = WEEKS,
-        locale: Locale = Locale.ENGLISH
+        weeks: Int = WEEKS
     ): HeatmapGrid {
         val lastStart = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(weekStartsOn))
         val firstStart = lastStart.minusWeeks(weeks - 1L)
@@ -116,7 +117,6 @@ object Heatmap {
             date = date.plusDays(1)
         }
 
-        val suiteStart = history.suiteStart()
         val known = fractions.values.filterNotNull().filter { it > 0.0 }.sorted()
         val t1 = tertile(known, 1.0 / 3)
         val t2 = tertile(known, 2.0 / 3)
@@ -132,13 +132,7 @@ object Heatmap {
                         date = cellDate,
                         fraction = fraction,
                         level = fraction?.let { level(it, t1, t2) },
-                        // A day before the first test existed could not have run,
-                        // so it stays blank: the dot is for days the suite was
-                        // alive for and still has nothing to show.
-                        silent = fraction == null &&
-                            !cellDate.isAfter(today) &&
-                            suiteStart != null &&
-                            !cellDate.isBefore(suiteStart)
+                        silent = fraction == null && !cellDate.isAfter(today)
                     )
                 }
             )
@@ -151,10 +145,7 @@ object Heatmap {
                 null
             } else {
                 previousMonth = start.monthValue
-                MonthLabel(
-                    column = column,
-                    label = start.month.getDisplayName(TextStyle.SHORT, locale).lowercase(locale)
-                )
+                MonthLabel(column = column, month = start.month)
             }
         }
         return HeatmapGrid(rows, months)

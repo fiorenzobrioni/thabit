@@ -291,15 +291,6 @@
     <!-- stats.md. Il file dichiara ogni tasso con la sua frazione, quindi la
          metà parlata deve solo trasformare il disegno e le tabelle in frasi. -->
     <string name="cd_stats_coverage">Giorni girati: %1$d su %2$d. Giorni in cui non c\'era nessuno: %3$d</string>
-    <!-- Una riga della mappa, detta a parole. I puntini sono i giorni, dentro la
-         vita della suite, per cui il grafico non ha niente da colorare: un glifo
-         che un lettore di schermo non sente è un glifo che non c\'è. -->
-    <plurals name="cd_stats_heatmap_no_record">
-        <item quantity="one">%1$d giorno senza traccia</item>
-        <item quantity="many">%1$d giorni senza traccia</item>
-        <item quantity="other">%1$d giorni senza traccia</item>
-    </plurals>
-
     <plurals name="cd_stats_heatmap_row">
         <item quantity="one">%1$s: %2$d giorno con qualcosa di fatto</item>
         <item quantity="many">%1$s: %2$d giorni con qualcosa di fatto</item>
