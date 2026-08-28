@@ -38,7 +38,7 @@ Giro di critica alla VISION a Fase 1 chiusa. Le decisioni sono distribuite nelle
 
 Secondo giro di critica: l'app è usabile da chi non riconosce la metafora CI? La diagnosi accolta è che **estetica e vocabolario sono due cose diverse** — il look da editor (monospaziato, gutter, controlli testuali) non chiede nulla al lettore, è una checklist ben vestita, e il gesto quotidiano è il tap che fanno tutte le app della categoria; è il *vocabolario tecnico* che può escludere, e sono meno di dieci parole. La cura non richiede di annacquare niente, ma **non è quella proposta**.
 
-**La correzione di rotta.** La proposta era glossare le stringhe difficili nel canale commenti (`~ build unstable (4/6)` seguito da `# 4 test su 6 passati`). Verificato sui gemelli prima di decidere: il `values-it` di tsteps ha 65 righe e localizza **esattamente tre superfici** — la tab `README.md` per intero, le notifiche (titoli e corpo) e i contentDescription; i commenti dei file finti restano inglesi, e la regola è scritta nel commento in testa al `strings.xml` di thabit stesso. Quindi glossare nei commenti sarebbe una divergenza di serie, e in più il canale commenti delle righe test **è già occupato** dal dettaglio vivo (orario del pass, progresso counter, motivo skip, stato quota), che vale più di una glossa ripetuta su ogni riga ogni giorno. Le tre superfici già localizzate sono la risposta: non servono meccanismi nuovi, serve **dichiararle come strato di linguaggio piano e renderle complete**.
+**La correzione di rotta.** La proposta era glossare le stringhe difficili nel canale commenti (`~ build unstable (4/6)` seguito da `# 4 test su 6 passati`). Verificato sui gemelli prima di decidere: il `values-it` di tsteps ha 65 righe e localizza **esattamente tre superfici** — la tab `README.md` per intero, le notifiche (titoli e corpo) e i contentDescription; i commenti dei file finti restano inglesi, e la regola è scritta nel commento in testa al `strings.xml` di thabit stesso. Quindi glossare nei commenti sarebbe una divergenza di serie, e in più il canale commenti delle righe test **è già occupato** dal dettaglio vivo (orario del pass, progresso counter, motivo skip, stato quota), che vale più di una glossa ripetuta su ogni riga ogni giorno. *(La prima delle due ragioni è decaduta con la **Fase 15**: i commenti che sono frasi ora parlano la lingua del lettore in tutta la serie. La decisione di non glossare regge lo stesso, e sulle ragioni che non riguardavano la lingua: il canale resta occupato, e una glossa ripetuta ogni giorno su ogni riga resta rumore permanente per tutti.)* Le tre superfici già localizzate sono la risposta: non servono meccanismi nuovi, serve **dichiararle come strato di linguaggio piano e renderle complete**.
 
 **Accolte in VISION:**
 
@@ -442,14 +442,153 @@ Portata dai gemelli (tweather Fase 14c/14d, tsteps Fase 17), che l'avevano già 
 
 ---
 
+## Fase 15 — I registri l10n: la lingua segue la frase, non le barre (decisione di serie, ago 2026)
+
+Domanda del committente nata su tweather e valida per tutta la serie: la regola "il codice resta inglese" si può ammorbidire sui commenti, senza affogare la filosofia terminal/git? Sì, perché la vecchia formulazione confondeva il **canale** (`#`, `//`) con il **registro**. Il verbale completo, con l'argomento, i casi di confine e quello che la decisione **non** è, sta in `../tweather/PLANNING.md` Fase 18; la regola nella sua forma normativa in `VISION.md §1.3`. Qui la parte che riguarda thabit.
+
+**La regola.** Il registro decide la lingua, non la punteggiatura che lo circonda. *Codice* sempre inglese: chiavi YAML/JSON, nomi file, comandi `$`, output terminale, hash, check line e verdetti (`✓ pass`, `~ unstable`, `✗ fail`), livelli `ERROR:`/`WARN:`, marcatori di una parola (`# amended`), intestazioni dei file (`# habits.test`). *Dati* localizzati; i nomi dei test restano dati dell'utente. *Prosa* localizzata ovunque si trovi, **comprese le righe di commento che sono frasi**. Due test in quest'ordine: tradurlo romperebbe un lookup, un nome file, un copia-incolla o l'allineamento con una chiave stampata altrove? lo tradurrebbe `git`? Una riga può contenere due registri: si tengono i token e si traduce intorno. Il canale dei commenti continua a vestire la sintassi del file ospite (VISION §1.1): cambia la lingua, non il `#`.
+
+Il precedente è lo strumento stesso della metafora: `git status` sotto `LANG=it_IT` scrive "Sul branch main" e tiene `branch`, `commit`, `HEAD`. Lo split è esattamente questo, e finora thabit era più inglese di git.
+
+**Qui pesa più che negli altri due**, ed è il motivo per cui l'implementazione parte da questo repo: i commenti di thabit sono quasi tutti frasi rivolte al lettore, non note tecniche — `# tap the command to confirm`, `# how often?`, `# empty to turn it off`, `# still editable until 23:59`, `# nothing due today`, `# a reminder is a nudge — it can arrive a few minutes late`. In un file `.test` il canale `#` è l'unico posto in cui l'app può parlare, e finora ci parlava in inglese.
+
+**Quello che questa fase non risolve, e va scritto perché è la tentazione ovvia.** Non salda il debito della §3.3.7. Un commento tradotto è cortesia, non glossa: `# 4/6 passati` non spiega `~ build unstable` meglio di quanto lo spiegasse in inglese. La lingua piana resta quella delle tre superfici (tab `README.md`, notifiche, contentDescription) e deve continuare a reggere da sola tutto il significato. Se una fase futura userà questa per alleggerire quelle, avrà usato l'argomento sbagliato.
+
+**Cosa tocca, quando si implementerà.** ~59 letterali di commento (36 `#`, 23 `//`). Non si toccano: le check line, i verdetti Jenkins, gli assert (`assert pages >= 20`), `# amended`, `# habits.test`, i comandi `$ thabit …`, le chiavi di `settings.config`. Da riguardare a 360dp riga per riga: l'italiano è più lungo del 15-20%, e i commenti *in colonna* (`# $date · 3 pending`, `# ${row.name}  — ${row.reason}`) restano in inglese o si accorciano, non si allargano.
+
+- [x] `VISION.md §1.3` riscritta sui tre registri, con la clausola che protegge la §3.3.7; `CLAUDE.md`, Note trasversali e intestazioni di `values/` + `values-it/strings.xml` allineate
+- [x] Annotata la Fase 13, che aveva scartato la glossa nei commenti anche perché "i commenti restano inglesi": quella ragione è decaduta, la decisione no
+
+### L'implementazione, e la forma che ha preso
+
+**Il problema di architettura, che non era la traduzione.** I documenti di questa app (`SuiteDocument`, `LogDocument`, `SettingsDocument`, `StatsDocument`) sono **valori puri**: niente Android dentro, così le parole del file si asseriscono carattere per carattere in test JVM. Passare loro un `Resources` per tradurre due frasi avrebbe buttato via esattamente quella proprietà, e con lei la ragione per cui esistono.
+
+La via d'uscita era già scritta nel repo: la `RowDetail` di `SuiteDocument` viaggia accanto al commento e **il renderer la trasforma in una frase** nella lingua di chi legge. Stessa cosa qui, un registro più in là: **il documento decide *quale* riga, il renderer decide *in che lingua***. Le frasi diventano `@StringRes Int` (`DAY_ENDS_NOTE`, `emptyHints()`, `BRANCH_LINE`), lo schermo le risolve con `stringResource`. I documenti restano puri, le schermate restano l'unico posto in cui si legge un locale, e i test di documento continuano ad asserire la *forma* (quali righe, in che ordine) mentre quelli di schermata asseriscono le *parole*, in due lingue.
+
+Ricaduta di nomenclatura, che vale la pena tenere: in `SettingsDocument` **`*_HINT` significa marcatore inglese** (`// active`, la lista delle opacità) e **`*_NOTE` significa frase**. La regola dei registri è leggibile dai nomi, e la prossima riga nuova si scrive dalla parte giusta senza dover rileggere niente.
+
+**Il `// ` non è mai dentro la risorsa.** C'è una funzione `note()` che lo antepone. Il marcatore è la sintassi, e la sintassi non si traduce: tenerli separati in un punto solo è ciò che impedisce alla prossima nota di rinascere come un'unica stringa inglese.
+
+**Cosa si è spostato**, oltre a quello che la fase aveva già elencato: le note di `stats.md` (`coverage`, `flaky`, `regression` e la griglia vuota — sono proprio le righe che spiegano i termini di cui si preoccupa la §3.3.7), gli hint in chiaro accanto a ogni token del wizard (`# l'hai fatto, sì o no`), le sue etichette di unità (`ogni [2] giorni`), i suoi rifiuti, e l'**output di terminale** di `SuiteNote`/`LogNote` — che era la superficie più sbagliata di tutte, perché una riga che dice al lettore *perché il suo tocco non è stato accettato* è la definizione di una frase rivolta a lui.
+
+**Cosa è rimasto inglese, e non per dimenticanza**: i commenti di riga di `habits.test` (`# 07:12`, `# 12/30 reps`, `# skip: influenza`, `# when: mon`) perché sono letture e una riga tradotta renderebbe bilingue la colonna; i verdetti, le check line, gli assert, gli hash, `# amended`, `# habits.test`; `// active` e la lista delle opacità; `// Last modified:`; i totali dell'export (`// 6 tests · 142 checks · 30 days`, tre conteggi e tre nomi di codice); il livello `ERROR:`, che sta **fuori** da ogni risorsa e viene anteposto dal renderer.
+
+**Il caso da manuale è la riga del branch.** `# On branch main — changes not yet committed (today)` diventa `# Sul branch main — modifiche non ancora committate (oggi)`: è la frase di `git status`, tradotta come la traduce `git`, con `branch`, `main` e `commit` fermi dove sono. Se qualcuno un giorno vorrà rimettere in discussione la regola, questa riga è l'argomento.
+
+**Fuori perimetro, dichiarato.** I *valori* di `settings.config` che sono prosa (`"storage": "this device only"`, `"network": "none — no INTERNET permission"`) restano inglesi: sono valori, non commenti, e localizzarli è una domanda diversa (la regola dice che i dati si localizzano, ma questi descrivono l'app a sé stessa). Meglio dichiararlo che farlo a metà.
+
+- [x] 46 risorse nuove EN/IT, parità verificata (245 stringhe per lingua, zero mancanti da entrambe le parti)
+- [x] Tutte le superfici: `habits.test`, `habits_history.diff`, `stats.md`, `settings.config`, il wizard, le notifiche, il widget
+- [x] Riscritti i tre test che congelavano la **vecchia** regola (`the hints are source, so they are English and marked as comments`, `terminal output keeps its English…`, `the spoken half is the reader's language, the transcript stays English`): erano la regola sbagliata messa a guardia, e ora sono la nuova
+- [x] 12 test nuovi con `@Config(qualifiers = "it")`, uno per superficie, ognuno che asserisce **entrambe** le metà — la frase in italiano *e* il token inglese accanto. Suite a 674 (era 657), lint pulito, release minificata compilata
+### Il giro sul device (28 ago 2026), e le tre code che ha trovato
+
+**1. Il blocco delle regole in fondo a `stats.md` era tradotto a metà** — la riga `calcolate su questo dispositivo` in italiano e le tre sotto in inglese. Segnalato dal committente, ed è esattamente il modo di fallire che la fase si era scritta contro: una regola smarcata all'80% non sembra una scelta, sembra una traduzione lasciata a metà.
+
+Le avevo classificate come formule. Non lo sono: `pass rate over the last 30 days below 60%` è una **regola descritta a parole**, e il test dei registri (tradurlo romperebbe un lookup? lo tradurrebbe `git`?) la manda dritta nella prosa. La mia svista è stata guardare il *nome* della costante (`FORMULA`, `RULE`) invece del contenuto.
+
+Ma non si potevano semplicemente tradurre, perché **le stesse tre stringhe finiscono nell'export**, e un archivio il cui senso cambia con la lingua del telefono non è un archivio (`CLAUDE.md`, note di dominio). Quindi: `Health.FORMULA`, `FlakyTests.RULE` e `Regressions.RULE` restano canoniche e inglesi e vanno nell'export come prima; lo **schermo** stampa la stessa regola come frase localizzata, e i numeri li prende dalle stesse costanti di dominio, passati e non ricopiati. È il rapporto che tweather ha fra `SkyJob.id` e `SkyJobNames`.
+
+Il guardiano contro la deriva è un test: in inglese la stringa risolta dev'essere **identica carattere per carattere** alla costante di dominio. Se qualcuno tocca una delle due e dimentica l'altra, la suite diventa rossa.
+
+**2. Il wizard aveva sei hint ancora inglesi**, e sono proprio quelli che la §3.3.7 tiene più stretti: `# how much counts as done`, `# optional`, `# optional — a nudge at a time you pick`, `# approximate — a nudge, not an alarm`, più le etichette `times a week` / `every` / `days` attorno ai numeri che il wizard cicla. Localizzati. **E con loro i `measureText`**: quel campo dichiara la larghezza che la riga occuperà, e misurarla sulle parole inglesi mentre se ne disegnano di italiane è esattamente il modo in cui una riga viene schiacciata e troncata. Ora le parole si leggono una volta sola e servono entrambi gli usi.
+
+**3. `# holds — asserts at commit` l'avevo lasciato inglese, e sbagliando.** Il ragionamento era "i commenti di riga sono letture, e una riga tradotta rende bilingue la colonna". Vero per `07:12`, `12/30 reps`, `skip: influenza`, `when: mon` — che sono numeri, nomi di stato e schedule. Ma quella riga non è una lettura: è **la glossa di `[·]`**, il glifo che nessuno ha mai visto altrove, e una glossa che il lettore non sa leggere non glossa niente. Tradurla non rompe nessuna colonna, perché è l'ultima cosa sulla riga.
+
+`TestRow` ha ora due campi al posto di uno: `comment` (la lettura, letterale e inglese) e `commentNote` (la frase, un id). **Ne è impostato esattamente uno**, e il tipo dice in quale registro sta il commento di quella riga — la stessa cosa che `*_HINT` e `*_NOTE` fanno in `SettingsDocument`.
+
+- [x] Le tre regole di `stats.md` come frasi, con l'export invariato e il test che tiene insieme le due formulazioni
+
+### Le due guardie, arrivate dopo (backport da tsteps, ago 2026)
+
+thabit ha implementato la regola per primo, prima che esistesse una guardia qualsiasi: le due che poi hanno trovato errori veri negli altri due repo sono nate dopo, dal giro su device di tweather. Finita la Fase 20 di tsteps, l'ultima della serie, questo era **l'unico dei tre in cui non guardava niente**, ed è esattamente la condizione in cui una regola che «vale al 100% o non vale» torna a valere in parte senza che nessuno se ne accorga.
+
+- `RegisterRuleTest` legge le risorse: nessuna stringa porta il proprio marcatore o il proprio livello, e tutte dicono qualcosa di diverso in italiano. Qui è **spazzato tutto `R.string`**, non un prefisso: la prosa di thabit non ne ha uno (sta su `suite_`, `log_`, `cfg_`, `stats_`, `note_`, `readme_`, `wiz_` e i 124 `cd_`), e una guardia che ne guardasse uno solo sarebbe la regola tenuta a metà contro cui la fase è stata scritta. La lista si prende dal **file XML** e non solo da `R.string`, perché `translatable="false"` è dove sta già scritto «questo è un marchio, non una frase» e a runtime non lo vede nessuno.
+- `CommentChannelSweepTest` legge i **sorgenti**: qualunque letterale che porti un marcatore e legga come frase fallisce. Trova solo `// thabit editor canvas`, che è il campione di un `@Preview`, ed è in allowlist con la sua ragione.
+
+**Esito: thabit era pulito.** 231 stringhe traducibili, 7 identiche EN/IT e tutte e sette per una ragione — le tre etichette della nav bar (`Stats` non è mai diventato `Statistiche`, sono le tab dell'app e la barra ha quattro slot a 360dp), un formato senza parole dentro, due nomi che l'italiano ha preso interi (`emoji`, `record`) e una virgola. Un solo difetto vero, di quelli che solo una guardia trova: **`widget_label` non era marcata `translatable="false"`** come nei gemelli, quindi risultava una stringa da tradurre a cui mancava la traduzione. È un marchio: ora è marcata.
+
+- [x] Le due guardie portate qui e verificate: ognuna messa in rosso a mano prima di dirla funzionante (una traduzione rimessa in inglese, un letterale rimesso nel sorgente). Suite a 693, lint pulito
+- [x] Sei hint del wizard + i `measureText` che ne dichiarano la larghezza
+- [x] `commentNote` per la glossa di `[·]`, con i due test (EN e IT) e quello che pretende che gli altri commenti di riga restino letture
+- [ ] Secondo giro sul device, e questa fase lo chiede più di altre: l'italiano è più lungo del 15-20% e le righe da riguardare a 360dp sono la nota `reminders` di `settings.config`, gli hint del wizard accanto ai token, e il commento in coda al widget (`# 2026-08-21 · 1 pending — tocca per passare`, che è la più lunga di tutte e si affida al fatto che la data viene per prima e l'ellissi mangia la coda)
+- [ ] Poi tsteps, e infine tweather
+
+
+## Fase 16 — La mappa dice anche i giorni che non sa (feedback su device, 28 ago 2026)
+
+Segnalazione del committente sullo stesso giro: nella heatmap di `stats.md` **mancano i puntini che tsteps ha**, ed è così da sempre — non è una regressione della 15.
+
+**Non era una svista di stile: la griglia faceva arrivare tre fatti diversi alla stessa cella vuota.** Un giorno fuori dalla vita della suite (non *poteva* girare), un giorno `no run` (è passato e non c'era nessuno) e un giorno in cui la schedule non chiedeva niente. Il primo è davvero fuori dalla conoscenza del grafico; gli altri due sono successi, dentro una suite che esisteva.
+
+Il KDoc difendeva quella scelta con la §3.3.8 — "un giorno che l'app non ha visto non è un giorno storto, è un giorno ignoto" — e quell'argomento **regge ancora**: dice di non colorarlo di rosso. Non dice di non disegnarlo affatto. E c'era una contraddizione interna a due sezioni di distanza: `## coverage` dichiara `4 of 5 days ran · 1 days no run`, cioè il file **conta** i giorni senza traccia mentre la griglia sopra non fa vedere **quali**. In un'app il cui primo comandamento è che il file non mente, una griglia che tace su un fatto che la sezione dopo conta è un buco.
+
+**La correzione**: `HeatmapCell.silent` separa "fuori dalla vita della suite o nel futuro" da "dentro, e senza niente da colorare", e il secondo disegna un `·` fioco — lo stesso segno che tsteps usa per un giorno che è successo e non ha prodotto niente.
+
+**Non è un quarto livello di intensità, ed è la distinzione che conta**: `·` dice *qui non c'è un livello*, `□` dice *il giorno è girato e non è passato niente*, che è un fatto diverso e molto peggiore. La rampa resta di tre segni, come la VISION §4.3 la disegna; il punto sta prima della rampa, non dentro. Il colore lo dice anche a occhio: il `·` è più fioco del segno più fioco della scala, perché è l'assenza di un livello e non il suo fondo.
+
+**Un giorno prima che esistesse il primo test resta vuoto.** Disegnare un puntino lì inventerebbe una giornata in cui il lettore avrebbe dovuto presentarsi.
+
+E siccome un glifo che l'orecchio non riceve è un glifo che non c'è (§3.3.7), la riga parlata ora dice anche quanti giorni senza traccia contiene, nella stessa frase in cui dice quelli con qualcosa di fatto.
+
+- [x] `HeatmapCell.silent` + `NO_RECORD`, `HeatmapGrid.silentDays`
+- [x] Il `·` reso in `StatsScreen` con un colore suo, e la riga parlata che lo conta
+- [x] Riscritto il test che congelava il vecchio comportamento (`days that have not happened are blank, and so are days nobody was there`), più uno nuovo per i giorni precedenti alla nascita della suite
+- [x] Verifica su device: **fatta, e la 16 era mezza risposta** — vedi 16a
+
+## Fase 16a — La mappa è carta a quadretti, non una serie di verdetti (device, 28 ago 2026)
+
+Screenshot del committente accanto a quello di tsteps, con una richiesta secca: **la mappa di thabit dev'essere uguale a quella di tsteps.** E aveva ragione due volte, perché nella 16 avevo risolto metà problema e introdotto una regola sbagliata.
+
+### 1. Le etichette erano inglesi per un `Locale.ENGLISH` scritto a mano
+
+`heatmapLines` apriva con `val locale = Locale.ENGLISH`, e `Heatmap.build` aveva `locale: Locale = Locale.ENGLISH` come default che nessun chiamante sovrascriveva. Da qui `Mon/Wed/Fri/Sun` e `jun jul aug` su un telefono italiano, mentre tsteps accanto scrive `lun/mer/ven/dom` e `giu lug ago`.
+
+**Non è una differenza di stile: è questa griglia che si era chiamata fuori da una regola che l'app segue dalla Fase 6.** I nomi dei giorni e dei mesi sono *dati*, e i dati si localizzano — sta scritto in `VISION §1.3` da prima che esistesse la regola dei registri. Nessuno gliel'aveva mai chiesto perché nessuno aveva mai guardato quella griglia in italiano.
+
+Sistemato dove va sistemato: `MonthLabel` porta il `Month`, non il suo nome. Nominarlo è lavoro del renderer, come per ogni altro dato dell'app, e così la griglia non va ricostruita quando il lettore cambia lingua. Le etichette dei giorni passano da `SHORT` a `SHORT` minuscolo di tre lettere, come le disegna la griglia di tsteps e come le disegna il grafico da cui la metafora è presa.
+
+### 2. I puntini c'erano ma quasi ovunque mancavano, e la colpa era di una mia regola
+
+Nella 16 avevo scritto: *«Un giorno prima che esistesse il primo test resta vuoto. Disegnare un puntino lì inventerebbe una giornata in cui il lettore avrebbe dovuto presentarsi.»* Sembrava rigoroso. Sul telefono, con una suite di quattro giorni dentro una finestra di dodici settimane, il risultato era **una griglia vuota con tre quadratini che galleggiavano nel nulla** — esattamente lo screenshot che mi è arrivato.
+
+**L'errore era trattare il puntino come un'affermazione su quel giorno.** Non lo è, una volta che *ogni* cella passata ne porta uno: è la **carta a quadretti**. Un segno che tutte le celle hanno non può essere letto come un'accusa, e infatti il grafico da cui questa griglia è copiata disegna da sempre l'intera finestra, compresi i giorni precedenti all'iscrizione. Quello che sarebbe un'accusa è `□` — *il giorno è girato e non è passato niente* — e resta un glifo diverso.
+
+Quindi `silent` diventa semplicemente «il giorno è alle spalle del lettore e non c'è un livello da disegnare». Il futuro resta bianco: non è ancora successo, non c'è carta.
+
+E cade con lei la riga parlata che avevo aggiunto nella 16 (`N giorni senza traccia` per riga). Con la carta stesa dappertutto quella frase direbbe `11 giorni senza traccia` su quasi ogni riga: è rumore, non informazione. La riga parlata torna a dire i giorni con qualcosa di fatto, e **quanto manca continua a dirlo `## coverage` due sezioni sotto**, che è dove quel numero è sempre vissuto.
+
+### Cosa resta diverso da tsteps, e apposta
+
+La rampa. tsteps usa `■` a quattro alfa crescenti; thabit usa `□ ▪ ■`, che la `VISION §4.3` fissa e che le servono perché ha uno stato che tsteps non ha: `□` è *il giorno è girato e non è passato niente*, un fatto che in un contatore di passi non esiste. Quello che rendeva la mappa illeggibile era la carta mancante e le etichette inglesi, non i segni.
+
+- [x] `Locale` dalla configurazione in `heatmapLines`; `MonthLabel` porta il `Month` e il nome lo fa il renderer
+- [x] Etichette dei giorni minuscole a tre lettere, come tsteps
+- [x] `silent` = ogni giorno passato senza livello; rimossi `silentDays` e la frase parlata dei buchi, con la sua stringa
+- [x] Riscritto il test che congelava «i giorni prima della suite restano vuoti» (era la regola sbagliata messa a guardia), più uno che pretende che nessuna cella passata resti senza segno e che il futuro resti bianco
+- [x] Due test di schermata: le etichette nella lingua del lettore (IT ed EN) e una riga che porta tutte e dodici le settimane anche con una suite di tre giorni
+
+## Fase 16b — Il FAB era un flake, ed era anche un problema di TalkBack
+
+Rilevato girando la suite: `ThabitAppTest` falliva **circa una volta su tre**, con un test diverso ogni volta e sempre verde se la classe girava da sola. Verificato che fosse precedente a questo lavoro mettendo da parte le modifiche e girando la suite tre volte sul commit prima: falliva anche lì.
+
+L'errore diceva la cosa giusta: *«the unmerged tree contains 1 node that matches»*. `GlowFab` dichiara il suo `contentDescription` con `Modifier.semantics { }` **senza `mergeDescendants`**, e un `clickable` nudo non fa da confine di merge per conto suo. Risultato: la descrizione non è un nodo dell'albero merged, viene assorbita da qualunque antenato che fonde i discendenti si trovi sopra al FAB in quel momento — e quale antenato ci sia dipende da cosa altro è composto, il che è esattamente la definizione di un test che va a fortuna.
+
+**E non era solo un problema di test.** Un FAB che non è confine di merge viene annunciato da TalkBack come parte di un blocco più lungo invece che come un pulsante con la sua frase. `Modifier.semantics(mergeDescendants = true)` è quello che fa il `Button` di Material, ed è quello che un pulsante *è*: una cosa sola, che dice una frase sola.
+
+- [x] `mergeDescendants = true` su `GlowFab`
+- [x] Cinque giri completi della suite di fila, tutti verdi (prima: rossa circa una volta su tre)
+
+
+
 ## Note trasversali
 
 - **Vincoli di design non negoziabili** (vedi `CLAUDE.md` e VISION §1.2): solo JetBrains Mono (eccetto widget), griglia 4px, indent 20px, niente ombre (bordi 1px + glow del FAB), raggio 4px ovunque, controlli renderizzati come testo, emoji come icone nel testo.
-- **Regola l10n**: il "codice" resta inglese (chiavi YAML/JSON, filenames, commenti, output terminale, hash, check line); chrome e valori-dato localizzati IT/EN; i nomi dei test sono dati dell'utente. `README.md` (la tab) è prosa: localizzata per intero.
+- **Regola l10n, tre registri** (VISION §1.3, Fase 15): decide il *registro*, non il canale. *Codice* sempre inglese (chiavi YAML/JSON, filenames, output terminale, hash, check line e verdetti, livelli `ERROR:`/`WARN:`, marcatori come `# amended`, intestazioni dei file); *dati* localizzati IT/EN e i nomi dei test restano dati dell'utente; *prosa* localizzata ovunque si trovi — `README.md` (la tab), `HELP.md`, `$ thabit init`, notifiche, accessibilità **e le righe di commento che sono frasi**. Una riga con due registri tiene i token e traduce intorno; il `#` non diventa `//`. **Implementata nella Fase 15**: le frasi che un documento decide viaggiano come `@StringRes` e il renderer le pronuncia, così i documenti restano valori puri. Due guardie la tengono (backport da tsteps): `RegisterRuleTest` su tutto `R.string` e `CommentChannelSweepTest` sui sorgenti.
 - **Niente rete**: se una feature futura chiede la permission INTERNET, non è una feature di thabit.
 - **Verdetti mai persistiti**: build result, streak, health e record si calcolano in lettura dai check. Il worker di mezzanotte notifica e ridisegna, non scrive.
 - **L'unica altra scrittura è la presenza**: la riga `day` della prima interazione deliberata della giornata. Non è un verdetto ma una prova, ed è ciò che rende dicibile `no run` — un giorno che l'app non ha visto è ignoto, non fallito: niente commit, cella vuota, fuori da ogni denominatore, health neutra, streak interrotta.
-- **La metafora non è un pedaggio** (VISION §3.3.7): nessun termine CI è l'unico posto in cui un fatto esiste — i verdetti viaggiano con la loro aritmetica, e la lingua piana vive nelle tre superfici localizzate della serie (tab README, notifiche, contentDescription). I commenti dei file finti restano inglesi: è per questo che quelle tre superfici devono essere complete.
+- **La metafora non è un pedaggio** (VISION §3.3.7): nessun termine CI è l'unico posto in cui un fatto esiste — i verdetti viaggiano con la loro aritmetica, e la lingua piana vive nelle tre superfici localizzate (tab README, notifiche, contentDescription), che devono essere complete da sole. Dalla Fase 15 anche i commenti che sono frasi parlano la lingua del lettore, e **questo non cambia la riga sopra**: un commento tradotto è cortesia, non glossa.
 - **Il file principale è `habits.test`**, non `.yaml`: la sintassi è YAML-flavored, il nome non promette una grammatica che `- [x] nome` non rispetta.
 - **Ordine**: Fasi 1–2 sono il fondamento (la 2 in parallelo alla 1). La 3 dipende da 1–2; la 5 rende l'app usabile e sblocca il valore di 6–10; il widget (10) dopo che dominio e settings sono stabili.
 - **Import dalla serie**: i componenti si copiano adattando il package, mai linkando i repo; ogni divergenza che emerge (bug fixati qui, migliorie) va valutata per il backport a tweather/tsteps.

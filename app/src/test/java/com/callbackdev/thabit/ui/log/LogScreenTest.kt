@@ -79,7 +79,8 @@ class LogScreenTest {
     fun `the file names itself and puts today on top as uncommitted changes`() {
         show()
         compose.onNodeWithText("habits_history.diff").assertIsDisplayed()
-        compose.onNodeWithText("# ${LogDocument.BRANCH_LINE}").assertIsDisplayed()
+        compose.onNodeWithText("# On branch main — changes not yet committed (today)")
+            .assertIsDisplayed()
         compose.onNodeWithText("#   1/1 passed").assertIsDisplayed()
     }
 
@@ -178,6 +179,21 @@ class LogScreenTest {
         compose.onNodeWithContentDescription("The newest commit").assertIsDisplayed()
     }
 
+    /**
+     * The rule with its own worked example (Fase 15). `git status` under
+     * `LANG=it_IT` prints `Sul branch main` and keeps `branch`, `main` and
+     * `commit` — so this line is the reader\'s, and its nouns are not. The
+     * summary under it is a readout and does not move.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the branch line reads like git does in Italian`() {
+        show()
+        compose.onNodeWithText("# Sul branch main — modifiche non ancora committate (oggi)")
+            .assertIsDisplayed()
+        compose.onNodeWithText("#   1/1 passed").assertIsDisplayed()
+    }
+
     @Test
     @Config(qualifiers = "it")
     fun `and it speaks them in the reader's language`() {
@@ -188,17 +204,27 @@ class LogScreenTest {
             .assertIsDisplayed()
     }
 
+    /**
+     * Terminal output under the register rule (Fase 15). It replaces the test
+     * that asserted this line stayed English, which was the belief the rule
+     * corrected: a refusal is the app talking to the reader, so it is prose.
+     *
+     * Three things are being held apart here. `ERROR:` is the channel's level and
+     * never moves. `amend` is a git flag, so it survives inside the sentence. And
+     * the spoken half is still its **own** sentence, not a copy of this one: it
+     * says *la finestra per correggerlo*, because a screen reader is where the
+     * flag gets explained rather than printed (§3.3.7).
+     */
     @Test
     @Config(qualifiers = "it")
-    fun `terminal output keeps its English and is spoken in Italian`() {
+    fun `terminal output keeps its level and speaks Italian on both channels`() {
         show(
             interaction = LogInteraction(
                 transient = LogMessage(LogNote.ReadOnly, date = before)
             )
         )
-        // The file is a file: its comments stay English (§1.3). The ear gets the
-        // reader's own words, which is the whole job of the spoken surface.
-        compose.onNodeWithText("# " + LogNote.ReadOnly.text).assertIsDisplayed()
+        compose.onNodeWithText("# ERROR: quel giorno è storia — la finestra di amend si è chiusa")
+            .assertIsDisplayed()
         compose.onNodeWithContentDescription(
             "Quel giorno è storia: la finestra per correggerlo è chiusa."
         ).assertIsDisplayed()

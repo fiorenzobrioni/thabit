@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.settings
 
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.data.NotificationSettings
 import com.callbackdev.thabit.ui.theme.ThemeProfile
 import org.junit.Assert.assertEquals
@@ -89,17 +90,19 @@ class SettingsDocumentTest {
         // that needed them: a flag whose answer is always yes is dead code, and
         // the constant it guarded now describes an empty database instead of a
         // missing feature.
-        assertEquals("// nothing to export yet", SettingsDocument.EXPORT_PENDING)
+        assertEquals(R.string.cfg_export_pending, SettingsDocument.EXPORT_PENDING_NOTE)
     }
 
     @Test
-    fun `the notifications block states the reminders it does not own`() {
+    fun `the notifications block knows about the reminders it does not own`() {
         // Per-test reminders live on the test, so the block would otherwise
-        // imply that two `false`s mean silence.
-        assertTrue(doc().remindersComment.contains("no test carries a reminder"))
-        assertTrue(doc(reminderCount = 1).remindersComment.contains("1 test carries a reminder"))
-        assertTrue(doc(reminderCount = 3).remindersComment.contains("3 tests carry a reminder"))
-        assertTrue(doc(reminderCount = 3).remindersComment.contains("habits.test"))
+        // imply that two `false`s mean silence. The count is what this document
+        // owns; the sentence it turns into is asserted, in both languages, in
+        // SettingsScreenTest.
+        val silent = NotificationSettings(dailyCommit = false, pendingDigest = false)
+        assertEquals(0, doc(notifications = silent).reminderCount)
+        assertFalse(doc(notifications = silent).anyNotification)
+        assertTrue(doc(notifications = silent, reminderCount = 1).anyNotification)
     }
 
     @Test
@@ -142,25 +145,36 @@ class SettingsDocumentTest {
         assertTrue(SettingsDocument.WIDGET_OPACITY_HINT.startsWith("// 100 | 85"))
     }
 
+    /**
+     * The register rule as a test (Fase 15). It replaces the one that asserted
+     * every hint was an English literal starting with `//`, which is exactly the
+     * belief the rule corrected: the marker is not the register.
+     */
     @Test
-    fun `the reset says out loud what it will not touch`() {
-        assertTrue(SettingsDocument.RESTORE_HINT.contains("suite"))
-        assertTrue(SettingsDocument.RESTORE_HINT.contains("history"))
+    fun `the notes are resources, and every key carries a different one`() {
+        val notes = listOf(
+            SettingsDocument.DAY_ENDS_NOTE,
+            SettingsDocument.WEEK_STARTS_NOTE,
+            SettingsDocument.DAILY_COMMIT_NOTE,
+            SettingsDocument.PENDING_DIGEST_NOTE,
+            SettingsDocument.DIGEST_HOUR_NOTE,
+            SettingsDocument.REMINDERS_NOTE,
+            SettingsDocument.EXPORT_PENDING_NOTE,
+            SettingsDocument.CONFIRM_NOTE,
+            SettingsDocument.RESTORE_NOTE
+        )
+        notes.forEach { assertTrue("a note with no resource behind it", it != 0) }
+        assertEquals("two keys share a note", notes.size, notes.toSet().size)
     }
 
+    /**
+     * What is *not* prose stays a literal, and stays English: a one-word marker
+     * and the list of values a tap walks through. Both carry the `//` here,
+     * because for these two the marker and the words really are one thing.
+     */
     @Test
-    fun `the hints are source, so they are English and marked as comments`() {
-        listOf(
-            SettingsDocument.DAY_ENDS_HINT,
-            SettingsDocument.WEEK_STARTS_HINT,
-            SettingsDocument.ACTIVE_HINT,
-            SettingsDocument.DAILY_COMMIT_HINT,
-            SettingsDocument.PENDING_DIGEST_HINT,
-            SettingsDocument.DIGEST_HOUR_HINT,
-            SettingsDocument.REMINDERS_HINT,
-            SettingsDocument.WIDGET_OPACITY_HINT,
-            SettingsDocument.EXPORT_PENDING,
-            SettingsDocument.RESTORE_HINT
-        ).forEach { assertTrue("'$it' is not a comment", it.startsWith("//")) }
+    fun `the hints that are markers are still English literals`() {
+        assertEquals("// active", SettingsDocument.ACTIVE_HINT)
+        assertTrue(SettingsDocument.WIDGET_OPACITY_HINT.startsWith("// 100 | 85"))
     }
 }

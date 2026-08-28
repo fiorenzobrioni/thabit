@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -19,6 +20,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.callbackdev.thabit.R
+import com.callbackdev.thabit.domain.HeatmapCell
 import com.callbackdev.thabit.domain.HeatmapGrid
 import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.domain.model.Check
@@ -105,7 +107,7 @@ private fun statsLines(
     lines += heatmapLines(document.heatmap, syntax)
 
     if (document.isEmpty) {
-        markdown("", comment(StatsDocument.EMPTY_HINT))
+        markdown("", comment(stringResource(StatsDocument.EMPTY_HINT)))
         return lines
     }
 
@@ -120,7 +122,7 @@ private fun statsLines(
             document.coverage.noRunDays
         )
     )
-    markdown(comment(StatsDocument.COVERAGE_HINT))
+    markdown(comment(stringResource(StatsDocument.COVERAGE_HINT)))
 
     // ---- suite health ------------------------------------------------------
     if (document.healthTable.isNotEmpty()) {
@@ -158,7 +160,7 @@ private fun statsLines(
             },
             syntax = syntax
         )
-        markdown(comment(StatsDocument.FLAKY_HINT))
+        markdown(comment(stringResource(StatsDocument.FLAKY_HINT)))
     }
 
     // ---- regressions -------------------------------------------------------
@@ -172,7 +174,7 @@ private fun statsLines(
             },
             syntax = syntax
         )
-        markdown(comment(StatsDocument.REGRESSION_HINT))
+        markdown(comment(stringResource(StatsDocument.REGRESSION_HINT)))
     }
 
     // ---- tags --------------------------------------------------------------
@@ -183,31 +185,44 @@ private fun statsLines(
 
     // ---- the rules, printed ------------------------------------------------
     markdown("")
-    StatsDocument.rules().forEach { markdown(comment(it)) }
+    markdown(comment(stringResource(StatsDocument.WINDOW_RULE, StatsDocument.WINDOW_DAYS.toInt())))
+    StatsDocument.rules().forEach { rule ->
+        // The key stays a key; the sentence after it is the reader's.
+        markdown(comment("${rule.key}: " + stringResource(rule.id, *rule.args.toTypedArray())))
+    }
     return lines
 }
 
 /**
  * The graph: one row per day of the week, one mark per week.
  *
- * Each mark is coloured by its own level, which is why this is not markdown —
- * and the blanks are left blank on purpose: a day the app never saw looks
- * exactly like a day that has not happened yet, because that is what it is
- * (VISION §3.3.8).
+ * Each mark is coloured by its own level, which is why this is not markdown.
+ * Every day behind the reader carries at least a dot, so the twelve weeks have a
+ * shape to hang the marks on; only the future is blank.
+ *
+ * The labels are **data**, so they are the reader's: lowercase short day names
+ * and month names in the reader's own language, taken from the configuration
+ * rather than from a hardcoded `Locale.ENGLISH` (VISION §1.3 — day names were
+ * already on the localized side of that rule, and this grid had simply never
+ * been asked).
  */
 @Composable
 private fun heatmapLines(grid: HeatmapGrid, syntax: SyntaxColors): List<CanvasLine> {
-    val locale = Locale.ENGLISH
+    val locale = LocalConfiguration.current.locales[0]
     val lines = grid.rows.mapIndexed { index, row ->
         // Labels on every other row, like the graph this borrows from: seven
         // labels in a 13sp column would be noise, and none at all would leave
         // the reader counting rows.
         val label = if (index % 2 == 0) row.day.short(locale) else "   "
+        // The dot is the paper, not a mark, so the spoken row counts what was
+        // actually done and leaves the grid to the eye — the size of what is
+        // missing is `## coverage`'s sentence, two sections below.
+        val done = row.cells.count { it.level != null && it.level > 0 }
         CodeLine(
             text = buildAnnotatedString {
                 withStyle(SpanStyle(color = syntax.comment)) { append(label.padEnd(5)) }
                 row.cells.forEach { cell ->
-                    withStyle(SpanStyle(color = cell.level.color(syntax))) {
+                    withStyle(SpanStyle(color = cell.color(syntax))) {
                         append(cell.glyph)
                     }
                     append(" ")
@@ -215,22 +230,25 @@ private fun heatmapLines(grid: HeatmapGrid, syntax: SyntaxColors): List<CanvasLi
             },
             contentDescription = pluralStringResource(
                 R.plurals.cd_stats_heatmap_row,
-                row.cells.count { it.level != null && it.level > 0 },
+                done,
                 row.day.getDisplayName(TextStyle.FULL, locale),
-                row.cells.count { it.level != null && it.level > 0 }
+                done
             )
         )
     }
-    return lines + monthLine(grid, syntax)
+    return lines + monthLine(grid, locale, syntax)
 }
 
-/** `         jun         jul         aug` — one label per month, under its week. */
-private fun monthLine(grid: HeatmapGrid, syntax: SyntaxColors): CodeLine {
+/** `         giu         lug         ago` — one label per month, under its week. */
+@Composable
+private fun monthLine(grid: HeatmapGrid, locale: Locale, syntax: SyntaxColors): CodeLine {
     val text = StringBuilder(" ".repeat(5))
     grid.months.forEach { month ->
         val target = 5 + month.column * 2
         while (text.length < target) text.append(' ')
-        text.append(month.label)
+        text.append(
+            month.month.getDisplayName(TextStyle.SHORT, locale).lowercase(locale).take(3)
+        )
     }
     return CodeLine(AnnotatedString(text.toString(), SpanStyle(color = syntax.comment)))
 }
@@ -289,6 +307,16 @@ private fun tagLines(
 /** Markdown's own comment channel — `#` here would be a heading (VISION §1.1). */
 private fun comment(text: String): String = "<!-- $text -->"
 
+/**
+ * The dot is dimmer than the faintest mark on the ramp, on purpose: it is the
+ * absence of a level, not the bottom of it.
+ */
+private fun HeatmapCell.color(syntax: SyntaxColors) = when {
+    level != null -> level.color(syntax)
+    silent -> syntax.comment.copy(alpha = 0.45f)
+    else -> syntax.border
+}
+
 private fun Int?.color(syntax: SyntaxColors) = when (this) {
     null -> syntax.border
     0 -> syntax.comment
@@ -296,8 +324,13 @@ private fun Int?.color(syntax: SyntaxColors) = when (this) {
     else -> syntax.diffAdd
 }
 
+/**
+ * `lun`, `mer`, `ven`, `dom` — lowercase and three letters, like the row of a
+ * contribution graph and like tsteps' grid next door. Lowercase because the
+ * labels are chrome around the data, not headings for it.
+ */
 private fun DayOfWeek.short(locale: Locale): String =
-    getDisplayName(TextStyle.SHORT, locale)
+    getDisplayName(TextStyle.SHORT, locale).lowercase(locale).take(3)
 
 @Preview(showBackground = true, backgroundColor = 0xFF10141A, heightDp = 720)
 @Composable

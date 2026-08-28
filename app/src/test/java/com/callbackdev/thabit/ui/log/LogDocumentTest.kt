@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.log
 
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.CommitHash
 import com.callbackdev.thabit.domain.Fixture
 import com.callbackdev.thabit.domain.IsoWeek
@@ -58,12 +59,15 @@ class LogDocumentTest {
         val document = document(SuiteHistory.Empty)
         assertTrue(document.isEmpty)
         assertNull(document.head)
+        // The words are resources since Fase 15 and are read in both languages in
+        // LogScreenTest; what the document decides is which line, and that the
+        // second one changes with the suite.
         assertEquals(
-            listOf("no commits yet", "", "a day commits when it ends — the suite is still empty"),
+            listOf(R.string.log_empty_none, LogDocument.BLANK_LINE, R.string.log_empty_no_suite),
             LogDocument.emptyHints(hasSuite = false)
         )
         assertEquals(
-            listOf("no commits yet", "", "today's run commits when the day ends"),
+            listOf(R.string.log_empty_none, LogDocument.BLANK_LINE, R.string.log_empty_suite),
             LogDocument.emptyHints(hasSuite = true)
         )
     }

@@ -101,7 +101,13 @@ object ThabitNotifications {
         expanded = buildString {
             appendLine("$ thabit --status")
             pending.forEach { appendLine(testLine(it)) }
-            append("# ${pending.size} pending — the day ends at ${CodeFormat.time(dayEnds)}")
+            // `pending` is a state name and stays; the sentence around it is
+            // the reader's (Fase 15), like the rest of a notification.
+            append(
+                "# " + resources.getString(
+                    R.string.notif_digest_footer, pending.size, CodeFormat.time(dayEnds)
+                )
+            )
         }
     )
 
@@ -136,7 +142,7 @@ object ThabitNotifications {
                 appendLine(testLine(outcome))
                 appendLine("  when: ${habit.schedule.format()}")
                 appendLine("  remind: \"${CodeFormat.time(remindAt)}\"")
-                append("# a reminder is a nudge — it can arrive a few minutes late")
+                append("# " + resources.getString(R.string.notif_reminder_footer))
             }
         )
     }

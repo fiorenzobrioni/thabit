@@ -1,5 +1,9 @@
 package com.callbackdev.thabit.ui.stats
 
+import android.content.Context
+
+import androidx.compose.ui.semantics.SemanticsProperties
+import com.callbackdev.thabit.domain.Heatmap
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.SemanticsMatcher
@@ -12,14 +16,20 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.callbackdev.thabit.domain.Regressions
+import com.callbackdev.thabit.domain.FlakyTests
+import com.callbackdev.thabit.domain.Health
 import com.callbackdev.thabit.domain.Fixture
 import com.callbackdev.thabit.domain.SuiteHistory
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.time.LocalDate
 
 /**
@@ -143,5 +153,130 @@ class StatsScreenTest {
         // Only the data rows get a sentence: a separator row read as a habit
         // would be the screen inventing a test that does not exist.
         compose.onNodeWithContentDescription("| test", substring = true).assertDoesNotExist()
+    }
+
+    // ---- the register rule (Fase 15) --------------------------------------
+
+    /**
+     * `coverage`, `flaky` and `regression` are the terms §3.3.7 worries about,
+     * and these lines are what explains them where the numbers are. A gloss in a
+     * language the reader does not have glosses nothing, so the sentences move —
+     * while the heading above them and the formula below stay exactly as they
+     * are, because one is a key and the other is the arithmetic itself.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the hints explain themselves in Italian, the headings and formulas do not`() {
+        show(greenDays(20))
+        compose.onNodeWithText("## coverage").assertIsDisplayed()
+        compose.onNodeWithText(
+            "<!-- un giorno senza run non è una build fallita — è una build che non è mai partita -->"
+        ).assertIsDisplayed()
+        scrollTo(hasText("flaky:", substring = true))
+        compose.onNodeWithText("flaky:", substring = true).assertIsDisplayed()
+    }
+
+    /**
+     * The guard that keeps the two statements of a rule from drifting apart.
+     *
+     * The **export** carries the canonical English ([Health.FORMULA] and friends),
+     * because an archive whose meaning moves with the phone's language is not an
+     * archive. The **screen** carries the same rule as a sentence the reader can
+     * read. In English the two must be the same string, character for character:
+     * if anybody ever edits one and forgets the other, this fails.
+     */
+    @Test
+    fun `the printed rule and the exported rule are the same sentence`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val printed = StatsDocument.rules().associate { rule ->
+            rule.key to context.getString(rule.id, *rule.args.toTypedArray())
+        }
+        assertEquals(Health.FORMULA, printed.getValue("health"))
+        assertEquals(FlakyTests.RULE, printed.getValue("flaky"))
+        assertEquals(Regressions.RULE, printed.getValue("regression"))
+    }
+
+    /**
+     * And in Italian the rule is a sentence the reader can act on, with the same
+     * numbers in it — the arithmetic is the half that never translates.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the rules are stated in Italian, with the numbers they are about`() {
+        show(greenDays(20))
+        scrollTo(hasText("flaky:", substring = true))
+        // `pass rate` survives the translation: it is the name of the metric, the
+        // same one the table above prints. What moves is the sentence around it.
+        compose.onNodeWithText("flaky: pass rate negli ultimi 30 giorni", substring = true)
+            .assertIsDisplayed()
+    }
+
+    // ---- the grid reads like a grid (Fase 16a) ----------------------------
+
+    /**
+     * The labels are data, so they are the reader's: lowercase three-letter day
+     * names and month names in the reader's language, the way tsteps' grid next
+     * door has always drawn them. They used to be a hardcoded `Locale.ENGLISH`,
+     * which was this grid quietly opting out of a rule the rest of the app has
+     * followed since Fase 6.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the grid labels its rows and months in the reader's language`() {
+        show(greenDays(20))
+        compose.onNodeWithText("lun", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("mer", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("dom", substring = true).assertIsDisplayed()
+        // The month row is one line: whichever three months the window spans,
+        // they are the Italian abbreviations and not jun/jul/aug.
+        compose.onNodeWithText("ago", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `and in English they are the English ones, lowercase like the graph`() {
+        show(greenDays(20))
+        compose.onNodeWithText("mon", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("aug", substring = true).assertIsDisplayed()
+    }
+
+    /**
+     * The paper: a row of the grid is dotted across the window, not a couple of
+     * marks floating in a void. Without this the twelve weeks had no shape to
+     * place a mark against, which is what the grid was actually for.
+     */
+    /** The text of the grid row whose label is [label], cells and all. */
+    private fun gridRow(label: String): String =
+        compose.onAllNodes(hasText(label, substring = true))
+            .fetchSemanticsNodes()
+            .map { node -> node.config[SemanticsProperties.Text].joinToString("") { it.text } }
+            .first { it.startsWith(label) }
+
+    /**
+     * The paper: a row is dotted across the whole window, not a couple of marks
+     * floating in a void. Twelve weeks of cells, whatever happened in them.
+     */
+    @Test
+    fun `every week of the window is drawn, not just the days that ran`() {
+        show(greenDays(20))
+        val marks = gridRow("mon").count { it in "·□▪■" }
+        assertEquals(Heatmap.WEEKS, marks)
+    }
+
+    /** And a suite three days old still draws all twelve, mostly as paper. */
+    @Test
+    fun `a young suite still draws the whole window`() {
+        show(greenDays(3))
+        val row = gridRow("mon")
+        assertEquals(Heatmap.WEEKS, row.count { it in "·□▪■" })
+        assertTrue(row.count { it == '·' } >= Heatmap.WEEKS - 1)
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the empty grid says why it is empty in Italian`() {
+        show(SuiteHistory.Empty)
+        compose.onNodeWithText(
+            "<!-- ancora niente da riportare — la griglia si riempie man mano che i giorni si chiudono -->"
+        ).assertIsDisplayed()
     }
 }

@@ -1,5 +1,7 @@
 package com.callbackdev.thabit.ui.wizard
 
+import androidx.annotation.StringRes
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.model.AssertSpec
 import com.callbackdev.thabit.domain.model.Habit
 import com.callbackdev.thabit.domain.model.HabitType
@@ -117,16 +119,19 @@ data class WizardDraft(
     // ---- what comes out --------------------------------------------------
 
     /**
-     * Why the test cannot be added yet, in the terminal's own words, or null.
+     * Why the test cannot be added yet, or null.
      *
-     * English: this is compiler output, and the file's channel is source
-     * (VISION §1.3). The reader's language arrives through the row's spoken
-     * description, like everywhere else.
+     * A string id, not the words (Fase 15): `ERROR:` is a level and the renderer
+     * keeps it, but what follows is a sentence telling the reader what to fix,
+     * and a sentence is prose. This value stays pure — it names the message, the
+     * screen speaks it — which is the same split the row comments use for their
+     * spoken half.
      */
-    fun validationError(): String? = when {
-        name.isBlank() -> "ERROR: a test needs a name"
-        type == HabitType.COUNTER && target <= 0 -> "ERROR: a counter needs a target above zero"
-        type == HabitType.COUNTER && unit.isBlank() -> "ERROR: a counter needs a unit to count"
+    @StringRes
+    fun validationError(): Int? = when {
+        name.isBlank() -> R.string.wiz_err_name
+        type == HabitType.COUNTER && target <= 0 -> R.string.wiz_err_target
+        type == HabitType.COUNTER && unit.isBlank() -> R.string.wiz_err_unit
         else -> null
     }
 

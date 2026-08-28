@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.wizard
 
+import com.callbackdev.thabit.R
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.MutableState
@@ -226,7 +227,8 @@ class WizardScreenTest {
                 discardConfirm = true
             )
         )
-        compose.onNodeWithText("# " + DISCARD_CONFIRM).assertIsDisplayed()
+        compose.onNodeWithText("# nothing is written yet — tap [esc] again to discard")
+            .assertIsDisplayed()
         compose.onNodeWithContentDescription("Confirm: leave and discard this test")
             .assertIsDisplayed()
     }
@@ -234,7 +236,8 @@ class WizardScreenTest {
     @Test
     fun `with nothing to lose esc says only what it is`() {
         show()
-        compose.onNodeWithText("# " + DISCARD_CONFIRM).assertDoesNotExist()
+        compose.onNodeWithText("# nothing is written yet — tap [esc] again to discard")
+            .assertDoesNotExist()
         compose.onNodeWithContentDescription("Close").assertIsDisplayed()
     }
 
@@ -325,8 +328,16 @@ class WizardScreenTest {
 
     @Test
     fun `a refusal reads like compiler output`() {
-        show(WizardUiState(error = "ERROR: a test needs a name"))
+        show(WizardUiState(error = R.string.wiz_err_name))
         compose.onNodeWithText("# ERROR: a test needs a name").assertIsDisplayed()
+    }
+
+    /** The level is a level in every language; the fix to make is a sentence. */
+    @Test
+    @Config(qualifiers = "it")
+    fun `a refusal keeps its level and says what to fix in Italian`() {
+        show(WizardUiState(error = R.string.wiz_err_name))
+        compose.onNodeWithText("# ERROR: un test ha bisogno di un nome").assertIsDisplayed()
     }
 
     @Test
@@ -375,6 +386,37 @@ class WizardScreenTest {
         compose.onNodeWithContentDescription("Scegli: qualcosa da cui stare alla larga")
             .assertIsDisplayed()
         compose.onNodeWithContentDescription("ogni 2 giorni, scelto").assertIsDisplayed()
+    }
+
+    /**
+     * The wizard is the app\'s first sixty seconds, so §3.3.7 was always held
+     * hardest here — and since Fase 15 the prompts are also in the reader\'s
+     * language. What they ask *for* does not move: `name:`, `type:` and `when:`
+     * are the keys the file will carry, and `boolean` is the value it will hold.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the prompts ask in Italian, the keys they fill do not`() {
+        show(WizardUiState(draft = WizardDraft(name = "x", expanded = true), focus = null))
+        // The prompt shares its line with the key it is asking for, which is the
+        // seam itself: `> type:` is what the file will hold, the question is not.
+        compose.onNodeWithText("> type:  # che tipo di test è?").assertIsDisplayed()
+        compose.onNodeWithText("> when:  # ogni quanto?").assertIsDisplayed()
+        compose.onNodeWithText("boolean", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the discard warning is a sentence, and esc is still esc`() {
+        show(
+            WizardUiState(
+                draft = WizardDraft(name = "meditate"),
+                focus = null,
+                discardConfirm = true
+            )
+        )
+        compose.onNodeWithText("# non hai ancora scritto niente — tocca di nuovo [esc] per annullare")
+            .assertIsDisplayed()
     }
 
     // ---- the transcript follows the reader (Fase 12) -----------------------

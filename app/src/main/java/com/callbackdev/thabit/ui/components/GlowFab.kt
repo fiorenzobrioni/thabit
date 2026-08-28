@@ -57,7 +57,16 @@ fun GlowFab(
             .clip(MaterialTheme.shapes.small)
             .background(containerColor)
             .clickable(role = Role.Button) { onClick() }
-            .semantics {
+            // `mergeDescendants` makes this Box a **merge boundary**, which is
+            // what a button is: one focusable thing that says one sentence.
+            // Without it the description is not a node of its own in the merged
+            // tree — it is absorbed by whatever merging ancestor happens to be
+            // above the FAB at that moment, which is a screen reader announcing
+            // the button as part of a longer blob, and a test that finds it or
+            // not depending on what else is on screen (the intermittent failure
+            // in ThabitAppTest, Fase 16a). A bare `clickable` does not merge on
+            // its own; Material's Button does exactly this.
+            .semantics(mergeDescendants = true) {
                 // The icon inside is decorative; this names the button for TalkBack.
                 if (contentDescription != null) {
                     this.contentDescription = contentDescription

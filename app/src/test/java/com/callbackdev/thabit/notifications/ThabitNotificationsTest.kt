@@ -120,7 +120,8 @@ class ThabitNotificationsTest {
             italian
         )
         assertEquals("~ 1 test su 2 passati", content.title)
-        // A commit is source, and source is English everywhere in this series.
+        // A commit is source: the verdict word, the check lines and the command
+        // are code, and code reads the same everywhere (Fase 15).
         assertTrue(content.expanded.contains("build unstable"))
         assertTrue(content.expanded.contains("$ thabit log"))
     }
@@ -217,5 +218,50 @@ class ThabitNotificationsTest {
         val outcome = TestOutcome(read.copy(emoji = "📖"), TestState.PENDING)
         val content = ThabitNotifications.reminder(outcome, LocalTime.of(7, 0), resources)
         assertEquals("📖 read 20 pages", content.title)
+    }
+
+    // ---- the register rule inside the transcript (Fase 15) ----------------
+
+    /**
+     * The `#` footer of a notification is the one line in it that is not a copy
+     * of the file: it is the app talking to whoever is looking at the lock
+     * screen. So the sentence is the reader's, while the transcript above it —
+     * the command, the checkbox rows, the counter's fraction — is the file's own
+     * line, verbatim, and does not move. `pending` stays too: it is the name of
+     * a state, printed the same way `habits.test` prints it.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the digest footer speaks Italian above an unchanged transcript`() {
+        val history = Fixture.history(habits = listOf(meditate, read), present = setOf(today))
+        val pending = Verdicts.outcomesOn(history, today, today)
+            .filter { it.state == TestState.PENDING }
+        val italian = ApplicationProvider.getApplicationContext<android.content.Context>().resources
+        val content = ThabitNotifications.pendingDigest(pending, LocalTime.MIDNIGHT, italian)
+
+        assertEquals(
+            listOf(
+                "$ thabit --status",
+                "- [ ] meditate 10 min",
+                "- [ ] read 20 pages  # 0/20 pages",
+                "# 2 pending — la giornata finisce alle 00:00"
+            ),
+            content.expanded.lines()
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the reminder footer says in Italian what a reminder is`() {
+        val outcome = TestOutcome(read, TestState.PENDING)
+        val italian = ApplicationProvider.getApplicationContext<android.content.Context>().resources
+        val content = ThabitNotifications.reminder(outcome, LocalTime.of(7, 0), italian)
+        assertTrue(
+            content.expanded.endsWith(
+                "# un promemoria è una spinta — può arrivare con qualche minuto di ritardo"
+            )
+        )
+        // The line above it is the file's: a key and a value.
+        assertTrue(content.expanded.contains("  when: daily"))
     }
 }

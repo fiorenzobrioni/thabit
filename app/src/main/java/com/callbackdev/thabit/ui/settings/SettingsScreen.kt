@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -314,6 +316,20 @@ data class SettingsActions(
     )
 }
 
+/**
+ * `// ` plus a sentence in the reader's language.
+ *
+ * The marker is the file's syntax and never translates; the sentence after it is
+ * prose and always does (VISION §1.3, Fase 15). Keeping the two apart in one
+ * place is what stops the next note from being written back as one English
+ * string — and it is why the notes travel through the document as ids: the
+ * document still decides which line goes where, the renderer decides in which
+ * language it is read.
+ */
+@Composable
+private fun note(@StringRes id: Int, vararg args: Any): String =
+    "// " + stringResource(id, *args)
+
 @Composable
 private fun settingsLines(
     document: SettingsDocument,
@@ -343,7 +359,7 @@ private fun settingsLines(
         value = document.dayEndsValue,
         comma = true,
         syntax = syntax,
-        hint = SettingsDocument.DAY_ENDS_HINT,
+        hint = note(SettingsDocument.DAY_ENDS_NOTE),
         contentDescription = stringResource(
             R.string.cd_setting_day_ends,
             document.dayEnds.spoken()
@@ -356,7 +372,7 @@ private fun settingsLines(
         value = document.weekStartsValue,
         comma = false,
         syntax = syntax,
-        hint = SettingsDocument.WEEK_STARTS_HINT,
+        hint = note(SettingsDocument.WEEK_STARTS_NOTE),
         contentDescription = stringResource(
             R.string.cd_setting_week_starts,
             document.weekStartsOn.spoken()
@@ -430,7 +446,7 @@ private fun settingsLines(
         value = document.notifications.dailyCommit.toString(),
         comma = true,
         syntax = syntax,
-        hint = SettingsDocument.DAILY_COMMIT_HINT,
+        hint = note(SettingsDocument.DAILY_COMMIT_NOTE),
         contentDescription = stringResource(
             R.string.cd_setting_daily_commit,
             document.notifications.dailyCommit.spoken()
@@ -443,7 +459,7 @@ private fun settingsLines(
         value = document.notifications.pendingDigest.toString(),
         comma = true,
         syntax = syntax,
-        hint = SettingsDocument.PENDING_DIGEST_HINT,
+        hint = note(SettingsDocument.PENDING_DIGEST_NOTE),
         contentDescription = stringResource(
             R.string.cd_setting_pending_digest,
             document.notifications.pendingDigest.spoken()
@@ -456,7 +472,7 @@ private fun settingsLines(
         value = document.digestHourValue,
         comma = false,
         syntax = syntax,
-        hint = SettingsDocument.DIGEST_HOUR_HINT,
+        hint = note(SettingsDocument.DIGEST_HOUR_NOTE),
         contentDescription = stringResource(
             R.string.cd_setting_digest_hour,
             document.notifications.digestHour.spoken()
@@ -466,8 +482,20 @@ private fun settingsLines(
     )
     // Per-test reminders are not settings and are not edited here — but leaving
     // them unmentioned would let this block imply that two `false`s mean silence.
-    lines += commentLine(document.remindersComment, syntax, indent = 2)
-    lines += commentLine(SettingsDocument.REMINDERS_HINT, syntax, indent = 2)
+    lines += commentLine(
+        text = if (document.reminderCount == 0) {
+            note(R.string.cfg_reminders_none)
+        } else {
+            "// " + pluralStringResource(
+                R.plurals.cfg_reminders_count,
+                document.reminderCount,
+                document.reminderCount
+            )
+        },
+        syntax = syntax,
+        indent = 2
+    )
+    lines += commentLine(note(SettingsDocument.REMINDERS_NOTE), syntax, indent = 2)
     lines += notifStatusLine(
         state = notifState,
         syntax = syntax,
@@ -533,10 +561,11 @@ private fun settingsLines(
         )
         // The way out stays on its own line, always on screen — the lesson the
         // suite's archive confirm learned the hard way (Fase 3).
-        lines += WidgetLine(measureText = "${SettingsDocument.RESTORE_CONFIRM}  [esc]   ") {
+        val confirm = note(SettingsDocument.CONFIRM_NOTE)
+        lines += WidgetLine(measureText = "$confirm  [esc]   ") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = SettingsDocument.RESTORE_CONFIRM,
+                    text = confirm,
                     style = MaterialTheme.typography.bodySmall,
                     color = syntax.comment,
                     // The command above and the `[esc]` beside it already say
@@ -558,7 +587,7 @@ private fun settingsLines(
             description = stringResource(R.string.cd_action_restore),
             onClick = actions.onRestore
         )
-        lines += commentLine(SettingsDocument.RESTORE_HINT, syntax)
+        lines += commentLine(note(SettingsDocument.RESTORE_NOTE), syntax)
     }
 
     return lines
@@ -576,14 +605,14 @@ private fun settingsLines(
 @Composable
 private fun exportLines(state: ExportState, syntax: SyntaxColors): List<CanvasLine> = when (state) {
     ExportState.Idle -> emptyList()
-    ExportState.Running -> listOf(commentLine("// writing…", syntax))
+    ExportState.Running -> listOf(commentLine(note(R.string.cfg_export_writing), syntax))
     is ExportState.Done -> when (val result = state.result) {
         is ExportResult.Written -> buildList {
             result.files.forEach { name ->
                 add(
                     CodeLine(
                         text = AnnotatedString(
-                            "// wrote Downloads/$name",
+                            note(R.string.cfg_export_wrote, name),
                             SpanStyle(color = syntax.diffAdd)
                         ),
                         contentDescription = stringResource(R.string.cd_export_wrote, name)
@@ -599,7 +628,7 @@ private fun exportLines(state: ExportState, syntax: SyntaxColors): List<CanvasLi
             )
         }
         ExportResult.Empty -> listOf(
-            commentLine(SettingsDocument.EXPORT_PENDING, syntax)
+            commentLine(note(SettingsDocument.EXPORT_PENDING_NOTE), syntax)
         )
         is ExportResult.Failed -> listOf(
             CodeLine(
@@ -630,9 +659,11 @@ private fun commandLine(
  *
  * The two error states are **tappable**, and that is the whole point of the line:
  * a config that reports a missing permission without offering the way to grant
- * it has told the reader about a wall. English like every other comment; the
+ * it has told the reader about a wall. The `ERROR:` level stays English because it
+ * is a level; what follows it is a sentence, so it is the reader's (Fase 15). The
  * spoken half travels on the line's own click label.
  */
+@Composable
 private fun notifStatusLine(
     state: NotifLineState,
     syntax: SyntaxColors,
@@ -641,14 +672,15 @@ private fun notifStatusLine(
 ): CodeLine {
     val (text, color) = when (state) {
         NotifLineState.Disabled ->
-            "// nothing will post — everything here is off" to syntax.comment.copy(alpha = 0.6f)
+            note(R.string.cfg_notif_disabled) to syntax.comment.copy(alpha = 0.6f)
         NotifLineState.Armed ->
-            "// armed — posts at the boundary and at the times you set" to
-                syntax.comment.copy(alpha = 0.6f)
+            note(R.string.cfg_notif_armed) to syntax.comment.copy(alpha = 0.6f)
+        // `ERROR:` is a level, not a word: it stays outside the resource, exactly
+        // as a `net::ERR_*` code would. The sentence after it is the reader's.
         NotifLineState.MissingPermission ->
-            "// ERROR: notifications permission missing — tap to grant" to syntax.diffDel
+            "// ERROR: " + stringResource(R.string.cfg_notif_missing) to syntax.diffDel
         NotifLineState.DeniedPermanently ->
-            "// ERROR: notifications blocked — tap to open the system settings" to syntax.diffDel
+            "// ERROR: " + stringResource(R.string.cfg_notif_blocked) to syntax.diffDel
     }
     val clickable = state == NotifLineState.MissingPermission ||
         state == NotifLineState.DeniedPermanently

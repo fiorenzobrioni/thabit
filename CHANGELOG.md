@@ -30,6 +30,52 @@ The phase-by-phase record, with every decision and the reason behind it, lives i
 Both new surfaces are localized, like the `README.md` tab: they are the ones
 addressed to somebody who cannot read the app yet.
 
+### Changed
+
+- **The comment channel now speaks the reader's language** when what it is
+  saying is a sentence. The rule that used to read "comments stay English"
+  mistook the punctuation for the register: under a `#` sat both `# 07:12`, which
+  is a readout, and `# tap the command to confirm`, which exists only to be
+  understood. Now the register decides. Code is still English everywhere — keys,
+  file names, `$` commands, check lines and verdicts, asserts, hashes, log
+  levels, `# amended`, `// active` — and so are the row comments of
+  `habits.test`, because they are live detail and one translated row would leave
+  the column bilingual. What moved is the prose: the empty suite, the not-due
+  summary, the two-tap confirms, every note in `settings.config`, the wizard's
+  prompts and the plain meaning beside each token it offers, the hints in
+  `stats.md` that explain `coverage`, `flaky` and `regression`, the notification
+  footers, the widget's affordance, and the terminal output that says why a tap
+  was refused. The marker never moves and neither does the level: an error reads
+  `// ERROR: manca il permesso per le notifiche — tocca per concederlo`.
+- **`habits_history.diff` opens the way `git` does in Italian** — `# Sul branch
+  main — modifiche non ancora committate (oggi)`, with `branch`, `main` and
+  `commit` exactly where they were. That is not a loosening of the metaphor: it
+  is what the tool the metaphor is borrowed from actually prints under
+  `LANG=it_IT`.
+
+None of this discharges the plain-language promise: a translated comment is
+politeness, not a gloss. The `README.md` tab, the notifications and the
+accessibility text still carry the whole meaning on their own.
+
+- **The heatmap draws the whole window.** Every day behind the reader now carries
+  at least a dim `·`; before, anything the app had nothing to say about was blank,
+  so a young suite was three squares floating in a void with no grid to place them
+  against. The dot is the graph paper, not a verdict about that day: a mark every
+  past cell carries cannot read as an accusation, and it is not a fourth intensity
+  either — `·` means there is no level here, `□` still means the day ran and passed
+  none of it. Only the future is blank.
+- **The grid speaks the reader's language.** Its row and month labels were a
+  hardcoded English, so an Italian phone read `Mon`/`jun` while every other date in
+  the app was already localized. They are now lowercase three-letter names in the
+  reader's own language, like the graph this borrows from.
+
+### Fixed
+
+- **The `+` button is one thing to a screen reader.** It declared its own
+  description without making itself a merge boundary, so TalkBack announced it as
+  part of whatever larger block happened to sit above it, and a test looking for
+  it passed or failed depending on what else was on screen.
+
 ## [1.0.0] - 2026-08-24
 
 The first release. thabit is an offline Android habit tracker whose interface is

@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.settings
 
+import android.content.Context
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
@@ -10,6 +11,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.data.NotificationSettings
 import com.callbackdev.thabit.export.ExportFormat
 import com.callbackdev.thabit.export.ExportResult
@@ -34,6 +37,10 @@ class SettingsScreenTest {
 
     @get:Rule
     val compose = createComposeRule()
+
+    /** The words behind a note id, in whatever locale the test is configured for. */
+    private fun string(id: Int, vararg args: Any): String =
+        ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
     private fun show(
         actions: SettingsActions = SettingsActions(),
@@ -139,7 +146,7 @@ class SettingsScreenTest {
         show(notifications = NotificationSettings(dailyCommit = true, pendingDigest = false))
         // The tab strip costs the file 48dp at the top (Fase 7), so this section
         // needs a scroll to reach.
-        scrollTo("\"daily_commit\": true,  ${SettingsDocument.DAILY_COMMIT_HINT}")
+        scrollTo("\"daily_commit\": true,  // " + string(R.string.cfg_daily_commit))
         compose.onNodeWithText("\"notifications\": {").assertIsDisplayed()
         compose.onNodeWithText("\"daily_commit\": true,", substring = true)
             .assertIsDisplayed()
@@ -212,16 +219,18 @@ class SettingsScreenTest {
         show()
         scrollTo("$ git restore settings.config")
         compose.onNodeWithText("$ git restore settings.config").assertIsDisplayed()
-        scrollTo(SettingsDocument.RESTORE_HINT)
-        compose.onNodeWithText(SettingsDocument.RESTORE_HINT).assertIsDisplayed()
-        assertTrue(SettingsDocument.RESTORE_HINT.contains("untouched"))
+        val note = "// " + string(R.string.cfg_restore_hint)
+        scrollTo(note)
+        compose.onNodeWithText(note).assertIsDisplayed()
+        assertTrue(note.contains("untouched"))
     }
 
     @Test
     fun `the reset asks for a second tap, with the way out on its own line`() {
         show(interaction = SettingsInteraction(restoreConfirm = true))
-        scrollTo(SettingsDocument.RESTORE_CONFIRM)
-        compose.onNodeWithText(SettingsDocument.RESTORE_CONFIRM).assertIsDisplayed()
+        val confirm = "// " + string(R.string.confirm_command)
+        scrollTo(confirm)
+        compose.onNodeWithText(confirm).assertIsDisplayed()
         // Regression guard, same lesson as the suite's archive confirm: the way
         // out of a destructive action never hides past the right edge.
         compose.onNodeWithText("[esc]").assertIsDisplayed().assert(hasClickAction())
@@ -248,7 +257,7 @@ class SettingsScreenTest {
     @Test
     fun `an empty database is stated as a fact, not as a problem`() {
         show(export = ExportState.Done(ExportResult.Empty))
-        scrollTo(SettingsDocument.EXPORT_PENDING)
+        scrollTo("// " + string(R.string.cfg_export_pending))
         compose.onNodeWithText("// nothing to export yet").assertIsDisplayed()
     }
 
@@ -292,5 +301,68 @@ class SettingsScreenTest {
         compose.onNodeWithContentDescription("Numeri di riga, disattivati").assertIsDisplayed()
         compose.onNodeWithContentDescription("La settimana comincia di lunedì").assertIsDisplayed()
         compose.onNodeWithContentDescription("Tema dracula, in uso").assertIsDisplayed()
+    }
+
+    // ---- the register rule (Fase 15) --------------------------------------
+
+    /**
+     * One file, both registers, line by line. The keys, the values, `// active`
+     * and the `$` command are the file and never move; the notes beside them
+     * exist only to be understood, so they are the reader\'s.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `the notes speak Italian while the file stays the file`() {
+        show(notifications = NotificationSettings(dailyCommit = true, pendingDigest = false))
+        val note = "// " + string(R.string.cfg_daily_commit)
+        assertEquals("// il risultato della build del giorno, in silenzio, al commit", note)
+        scrollTo("\"daily_commit\": true,  $note")
+        compose.onNodeWithText("\"daily_commit\": true,", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("\"notifications\": {").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the reset speaks, the command it guards does not`() {
+        show()
+        scrollTo("$ git restore settings.config")
+        compose.onNodeWithText("$ git restore settings.config").assertIsDisplayed()
+        val note = "// azzera solo questo file — la suite e la sua storia restano intatte"
+        scrollTo(note)
+        compose.onNodeWithText(note).assertIsDisplayed()
+    }
+
+    /**
+     * `ERROR:` is a level, so it stays outside the sentence exactly as a
+     * `net::ERR_*` code would — the line is red, and it says why in words the
+     * reader can act on.
+     */
+    @Test
+    @Config(qualifiers = "it")
+    fun `an error keeps its level and explains itself in Italian`() {
+        show(notifState = NotifLineState.MissingPermission)
+        val line = "// ERROR: manca il permesso per le notifiche — tocca per concederlo"
+        scrollTo(line)
+        compose.onNodeWithText(line).assertIsDisplayed().assert(hasClickAction())
+    }
+
+    @Test
+    @Config(qualifiers = "it")
+    fun `the export says what it wrote in Italian and where in the store's own name`() {
+        show(
+            export = ExportState.Done(
+                ExportResult.Written(
+                    files = listOf("thabit-export-2026-08-21.json"),
+                    tests = 6,
+                    checks = 142,
+                    days = 30
+                )
+            )
+        )
+        val line = "// scritto in Downloads/thabit-export-2026-08-21.json"
+        scrollTo(line)
+        compose.onNodeWithText(line).assertIsDisplayed()
+        // The tally is a readout: three counts and three code nouns.
+        compose.onNodeWithText("// 6 tests · 142 checks · 30 days").assertIsDisplayed()
     }
 }

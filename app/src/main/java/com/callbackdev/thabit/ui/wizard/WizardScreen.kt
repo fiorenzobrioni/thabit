@@ -1,5 +1,6 @@
 package com.callbackdev.thabit.ui.wizard
 
+import androidx.annotation.StringRes
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -325,7 +326,7 @@ private fun transcript(
     answering(WizardField.Name)
     lines += nameLine(state, actions, syntax)
     if (!draft.expanded) {
-        lines += commentLine("# what do you want to call it?", syntax, indent = 1)
+        lines += commentLine("# " + stringResource(R.string.wiz_name), syntax, indent = 1)
     }
 
     if (draft.expanded) {
@@ -342,13 +343,15 @@ private fun transcript(
         lines += emojiLine(state, actions, syntax)
     }
 
-    state.error?.let { lines += errorLine(it, syntax) }
+    state.error?.let { lines += errorLine(stringResource(it), syntax) }
 
     lines += commentLine("", syntax)
     // The confirm sits above the row and not inside it: the row is where every
     // way out of the confirm already is, because touching any other control
     // disarms it (Fase 4's lesson, and Fase 3's before that).
-    if (state.discardConfirm) lines += commentLine("# $DISCARD_CONFIRM", syntax)
+    if (state.discardConfirm) {
+        lines += commentLine("# " + stringResource(DISCARD_CONFIRM), syntax)
+    }
     lines += controlsLine(state, actions, syntax)
     return Transcript(lines.toList(), openPrompt)
 }
@@ -356,11 +359,13 @@ private fun transcript(
 /**
  * What the second `[esc]` will do, said before it does it.
  *
- * English, like every other comment: this is the file's own channel. The spoken
- * half travels on the `[esc]` token itself, which changes what it says when it
- * is armed.
+ * A sentence, so it is the reader's (Fase 15) — and this is the one screen where
+ * that matters most, because the wizard is the app's first sixty seconds. The
+ * `[esc]` inside it is a control and stays a control. The spoken half travels on
+ * the `[esc]` token itself, which changes what it says when it is armed.
  */
-const val DISCARD_CONFIRM: String = "nothing is written yet — tap [esc] again to discard"
+@StringRes
+val DISCARD_CONFIRM: Int = R.string.wiz_discard
 
 // ---- the rows ------------------------------------------------------------
 
@@ -404,24 +409,24 @@ private fun typeLines(
     syntax: SyntaxColors
 ): List<CanvasLine> = choiceLines(
     key = "type",
-    prompt = "# what kind of test is this?",
+    prompt = "# " + stringResource(R.string.wiz_type),
     options = listOf(
         Choice(
             token = "boolean",
             spoken = stringResource(R.string.cd_type_boolean),
-            hint = "did you do it, yes or no",
+            hint = stringResource(R.string.wiz_hint_boolean),
             active = draft.type == HabitType.BOOLEAN
         ) { actions.onType(HabitType.BOOLEAN) },
         Choice(
             token = "counter",
             spoken = stringResource(R.string.cd_type_counter),
-            hint = "count up to a number",
+            hint = stringResource(R.string.wiz_hint_counter),
             active = draft.type == HabitType.COUNTER
         ) { actions.onType(HabitType.COUNTER) },
         Choice(
             token = "avoid",
             spoken = stringResource(R.string.cd_type_avoid),
-            hint = "something to stay away from",
+            hint = stringResource(R.string.wiz_hint_avoid),
             active = draft.type == HabitType.AVOID
         ) { actions.onType(HabitType.AVOID) }
     ),
@@ -441,14 +446,14 @@ private fun whenLines(
         ScheduleScheme.Interval to pluralStringResource(R.plurals.cd_when_interval, draft.intervalDays, draft.intervalDays)
     )
     val hints = mapOf(
-        ScheduleScheme.Daily to "every day",
-        ScheduleScheme.Weekdays to "certain days of the week",
-        ScheduleScheme.Quota to "a number of times each week",
-        ScheduleScheme.Interval to "with days in between"
+        ScheduleScheme.Daily to stringResource(R.string.wiz_hint_daily),
+        ScheduleScheme.Weekdays to stringResource(R.string.wiz_hint_weekdays),
+        ScheduleScheme.Quota to stringResource(R.string.wiz_hint_quota),
+        ScheduleScheme.Interval to stringResource(R.string.wiz_hint_interval)
     )
     return choiceLines(
         key = "when",
-        prompt = "# how often?",
+        prompt = "# " + stringResource(R.string.wiz_when),
         options = ScheduleScheme.entries.map { scheme ->
             Choice(
                 token = draft.scheduleToken(scheme),
@@ -497,53 +502,67 @@ private fun schemeDetailLines(
         )
     )
 
-    ScheduleScheme.Quota -> listOf(
-        WidgetLine(indent = 3, measureText = "[3] times a week     ") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextControl(
-                    label = "[${draft.quota}]",
-                    color = syntax.number,
-                    description = pluralStringResource(R.plurals.cd_when_quota, draft.quota, draft.quota),
-                    actionLabel = stringResource(R.string.cd_action_change),
-                    onClick = actions.onCycleQuota
-                )
-                Text(
-                    text = "times a week",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment,
-                    // The `[3]` beside it already says *three times a week* in
-                    // the listener's own language.
-                    modifier = Modifier.decorative()
-                )
+    ScheduleScheme.Quota -> {
+        // The words are read once and used twice: the row draws them, and
+        // `measureText` reserves the width they will actually need. A longer
+        // translation measured against the English words gets squeezed.
+        val unit = stringResource(R.string.wiz_quota_unit)
+        listOf(
+            WidgetLine(indent = 3, measureText = "[3] $unit     ") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextControl(
+                        label = "[${draft.quota}]",
+                        color = syntax.number,
+                        description = pluralStringResource(
+                            R.plurals.cd_when_quota, draft.quota, draft.quota
+                        ),
+                        actionLabel = stringResource(R.string.cd_action_change),
+                        onClick = actions.onCycleQuota
+                    )
+                    Text(
+                        text = unit,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = syntax.comment,
+                        // The `[3]` beside it already says *three times a week*
+                        // in the listener's own language.
+                        modifier = Modifier.decorative()
+                    )
+                }
             }
-        }
-    )
+        )
+    }
 
-    ScheduleScheme.Interval -> listOf(
-        WidgetLine(indent = 3, measureText = "every [2] days     ") {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "every",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment,
-                    modifier = Modifier.decorative()
-                )
-                TextControl(
-                    label = "[${draft.intervalDays}]",
-                    color = syntax.number,
-                    description = pluralStringResource(R.plurals.cd_when_interval, draft.intervalDays, draft.intervalDays),
-                    actionLabel = stringResource(R.string.cd_action_change),
-                    onClick = actions.onCycleInterval
-                )
-                Text(
-                    text = "days",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = syntax.comment,
-                    modifier = Modifier.decorative()
-                )
+    ScheduleScheme.Interval -> {
+        val every = stringResource(R.string.wiz_interval_every)
+        val days = stringResource(R.string.wiz_interval_days)
+        listOf(
+            WidgetLine(indent = 3, measureText = "$every [2] $days     ") {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = every,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = syntax.comment,
+                        modifier = Modifier.decorative()
+                    )
+                    TextControl(
+                        label = "[${draft.intervalDays}]",
+                        color = syntax.number,
+                        description = pluralStringResource(
+                            R.plurals.cd_when_interval, draft.intervalDays, draft.intervalDays
+                        ),
+                        actionLabel = stringResource(R.string.cd_action_change),
+                        onClick = actions.onCycleInterval
+                    )
+                    Text(
+                        text = days,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = syntax.comment,
+                        modifier = Modifier.decorative()
+                    )
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 @Composable
@@ -600,7 +619,8 @@ private fun assertLine(
     }
     // `pages >= 20` reads without knowing the word `assert` (VISION §4.5), and
     // both halves are their own control.
-    return WidgetLine(indent = 1, measureText = "> assert: [pages] >= [20]  # how much counts as done   ") {
+    val hint = stringResource(R.string.wiz_hint_assert)
+    return WidgetLine(indent = 1, measureText = "> assert: [pages] >= [20]  # $hint   ") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "> assert:",
@@ -630,7 +650,7 @@ private fun assertLine(
                 onClick = { actions.onOpenPrompt(WizardField.Target) }
             )
             Text(
-                text = "  # how much counts as done",
+                text = "  # $hint",
                 style = MaterialTheme.typography.bodySmall,
                 color = syntax.comment.copy(alpha = 0.6f),
                 modifier = Modifier.decorative()
@@ -675,13 +695,18 @@ private fun remindLines(
                     keyboardActions = KeyboardActions(onDone = { actions.onPromptSubmit() })
                 )
             },
-            commentLine("# empty to turn it off", syntax, indent = 2)
+            commentLine("# " + stringResource(R.string.wiz_remind_off), syntax, indent = 2)
         )
     }
 
     val remindAt = state.draft.remindAt
+    // Read once, drawn once and measured once: `measureText` has to reserve the
+    // width of the words that will really be there, not of their English length.
+    val remindHint = stringResource(
+        if (remindAt != null) R.string.wiz_hint_remind_on else R.string.wiz_hint_remind_off
+    )
     val lines = mutableListOf<CanvasLine>(
-        WidgetLine(indent = 1, measureText = "> remind: [07:00] [off]  # approximate   ") {
+        WidgetLine(indent = 1, measureText = "> remind: [07:00] [off]  # $remindHint   ") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "> remind:",
@@ -706,11 +731,7 @@ private fun remindLines(
                     )
                 }
                 Text(
-                    text = if (remindAt != null) {
-                        "  # approximate — a nudge, not an alarm"
-                    } else {
-                        "  # optional — a nudge at a time you pick"
-                    },
+                    text = "  # $remindHint",
                     style = MaterialTheme.typography.bodySmall,
                     color = syntax.comment.copy(alpha = 0.6f),
                     modifier = Modifier.decorative()
@@ -729,7 +750,7 @@ private fun remindLines(
     if (remindAt != null && !armed) {
         lines += CodeLine(
             text = AnnotatedString(
-                "# not armed: notifications are off",
+                "# " + stringResource(R.string.wiz_remind_not_armed),
                 SpanStyle(color = syntax.diffDel)
             ),
             indent = 2
@@ -765,7 +786,8 @@ private fun emojiLine(
         }
     }
     val emoji = state.draft.emoji
-    return WidgetLine(indent = 1, measureText = "> emoji: [none]  # optional  [skip]   ") {
+    val optional = stringResource(R.string.wiz_hint_optional)
+    return WidgetLine(indent = 1, measureText = "> emoji: [none]  # $optional  [skip]   ") {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "> emoji:",
@@ -791,7 +813,7 @@ private fun emojiLine(
                 )
             }
             Text(
-                text = "  # optional",
+                text = "  # $optional",
                 style = MaterialTheme.typography.bodySmall,
                 color = syntax.comment.copy(alpha = 0.6f),
                 modifier = Modifier.decorative()
@@ -860,7 +882,11 @@ private fun controlsLine(
 private data class Choice(
     val token: String,
     val spoken: String,
-    /** The plain meaning, in the file's own comment channel. */
+    /**
+     * The plain meaning, in the file's own comment channel — and in the reader's
+     * language since Fase 15, because a gloss nobody can read is not a gloss.
+     * The [token] beside it is what the file will hold and never moves.
+     */
     val hint: String,
     val active: Boolean,
     val onClick: () -> Unit
@@ -915,8 +941,10 @@ private fun choiceLines(
                     text = "  # ${option.hint}",
                     style = MaterialTheme.typography.bodySmall,
                     color = syntax.comment.copy(alpha = 0.6f),
-                    // The token carries the same hint, translated, in its own
-                    // spoken name: *Scegli: conta fino a un numero*.
+                    // Decorative because the token already carries this same
+                    // sentence in its spoken name: *Scegli: conta fino a un
+                    // numero*. Since Fase 15 the two are the same words, which
+                    // is the point — the eye and the ear get one gloss, not two.
                     modifier = Modifier.decorative()
                 )
             }
@@ -941,8 +969,9 @@ private fun promptValueLine(
     contentDescription = description
 )
 
+/** `# ERROR: ` is the level and stays; [message] is the sentence after it. */
 private fun errorLine(message: String, syntax: SyntaxColors): CodeLine = CodeLine(
-    text = AnnotatedString("# $message", SpanStyle(color = syntax.diffDel)),
+    text = AnnotatedString("# ERROR: $message", SpanStyle(color = syntax.diffDel)),
     contentDescription = message.removePrefix("ERROR: ")
 )
 

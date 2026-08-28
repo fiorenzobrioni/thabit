@@ -1,5 +1,7 @@
 package com.callbackdev.thabit.ui.editor
 
+import androidx.annotation.StringRes
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.Health
 import com.callbackdev.thabit.domain.Quotas
 import com.callbackdev.thabit.domain.StreakUnit
@@ -25,10 +27,15 @@ import java.time.LocalTime
  * character by character in plain JVM tests instead of hunted for in a rendered
  * tree — and it is the same split the domain uses, one layer down.
  *
- * The **comment channel stays English** (VISION §1.3): comments are source, not
- * chrome, so they are built here as literal strings. The localized half — what a
- * screen reader says — travels beside them as a structured [RowDetail] the
- * renderer turns into a sentence in the reader's language.
+ * The comment channel is split by **register**, not by the marker around it
+ * (VISION §1.3, Fase 15). The **row** comments are live detail — a time, a
+ * fraction, a state name, a schedule — so they are readouts, they are built here
+ * as literal strings, and they stay English: one translated row would leave the
+ * column bilingual for nothing. The lines that are **sentences** — the empty
+ * suite, the not-due summary — are prose, so this document names them with a
+ * string id and the renderer speaks them. Either way the document decides what
+ * the file says; only the language moves. The localized half of a row — what a
+ * screen reader says — still travels beside it as a structured [RowDetail].
  */
 data class SuiteDocument(
     /** The day the suite is running: the logical one, not necessarily the wall one. */
@@ -94,12 +101,16 @@ data class SuiteDocument(
     fun knows(habitId: Long): Boolean =
         rowFor(habitId) != null || notDue.any { it.habitId == habitId }
 
-    /** `2 tests not due today — [show]` / `[hide]`. */
-    fun notDueComment(expanded: Boolean): String? {
-        if (notDue.isEmpty()) return null
-        val noun = if (notDue.size == 1) "test" else "tests"
-        return "${notDue.size} $noun not due today — ${if (expanded) "[hide]" else "[show]"}"
-    }
+    /**
+     * The `[show]` / `[hide]` control of the `2 tests not due today` summary, or
+     * null when there is nothing to summarise.
+     *
+     * The sentence beside it is a plural the renderer resolves in the reader's
+     * language; the control is a control, so it is a token like `[rm]` and
+     * `[edit]` and reads the same everywhere.
+     */
+    fun notDueControl(expanded: Boolean): String? =
+        if (notDue.isEmpty()) null else if (expanded) "[hide]" else "[show]"
 
     companion object {
 
@@ -125,12 +136,20 @@ data class SuiteDocument(
          * checklist on it yet to carry the meaning — so the empty file points at
          * the FAB and at the tab that speaks plainly (VISION §3.3.7, §4.1).
          */
-        fun emptyHints(readmeTab: Boolean = README_TAB_SHIPPED): List<String> = buildList {
-            add("no tests in the suite yet")
-            add("")
-            add("tap + to add your first test")
-            if (readmeTab) add("the README tab says what a test is here")
+        fun emptyHints(readmeTab: Boolean = README_TAB_SHIPPED): List<Int> = buildList {
+            add(R.string.suite_empty_none)
+            add(BLANK_LINE)
+            add(R.string.suite_empty_add)
+            if (readmeTab) add(R.string.suite_empty_readme)
         }
+
+        /**
+         * The blank line between the fact and what to do about it.
+         *
+         * Zero rather than a resource: an empty string in `values-it/` would be a
+         * translation of nothing, and one day somebody would fill it in.
+         */
+        const val BLANK_LINE: Int = 0
 
         /**
          * A `[+N]` control is offered only when it is genuinely a shortcut: at
@@ -193,6 +212,7 @@ data class SuiteDocument(
                 type = habit.type,
                 state = outcome.state,
                 comment = comment(detail),
+                commentNote = commentNote(detail),
                 detail = detail,
                 // The test's own unit, not today's: a skipped counter still
                 // counts pages, and its prompt has to know that.
@@ -202,7 +222,12 @@ data class SuiteDocument(
             )
         }
 
-        /** The live detail the comment channel carries, in English, as source. */
+        /**
+         * The live detail the comment channel carries: readouts, so English.
+         *
+         * Null for [RowDetail.Holding], whose comment is a sentence and lives in
+         * [TestRow.commentNote] instead — see the field.
+         */
         private fun comment(detail: RowDetail): String? = when (detail) {
             is RowDetail.Passed -> detail.at?.let { CodeFormat.time(it) }
             is RowDetail.Counter ->
@@ -213,7 +238,7 @@ data class SuiteDocument(
                 detail.note?.takeIf { it.isNotBlank() }?.let { append(": ").append(it) }
                 detail.until?.let { append(" until ").append(CodeFormat.date(it)) }
             }
-            RowDetail.Holding -> "holds — asserts at commit"
+            RowDetail.Holding -> null
             is RowDetail.Failed -> buildString {
                 append("failed")
                 detail.at?.let { append(" ").append(CodeFormat.time(it)) }
@@ -222,6 +247,11 @@ data class SuiteDocument(
             is RowDetail.Quota -> "${detail.done}/${detail.target} this week"
             RowDetail.Pending -> null
         }
+
+        /** The one comment that is a gloss rather than a number (Fase 15). */
+        @StringRes
+        private fun commentNote(detail: RowDetail): Int? =
+            if (detail == RowDetail.Holding) R.string.suite_holds else null
 
         /**
          * A test the schedule does not ask for today is rendered as a
@@ -278,8 +308,27 @@ data class TestRow(
     val name: String,
     val type: HabitType,
     val state: TestState,
-    /** English, dimmed, trailing: `07:12`, `12/30 reps`, `skip: rest day`. */
+    /**
+     * The live detail, dimmed and trailing: `07:12`, `12/30 reps`, `skip: rest
+     * day`.
+     *
+     * **A readout, so it is English and it is a literal.** A time, a fraction and
+     * its unit, a state name, a schedule — nothing here is written to be
+     * understood, it is the day's numbers put where a comment goes, and one
+     * translated row would leave the column speaking two languages for nothing.
+     */
     val comment: String?,
+    /**
+     * The one row whose comment is a **sentence** instead: `[·]` holding.
+     *
+     * `[·]` is the glyph nobody has met anywhere else, so its comment is not a
+     * readout but its gloss — and a gloss the reader cannot read glosses nothing
+     * (VISION §3.3.7). It travels as a string id and the renderer speaks it,
+     * which is also why it is a separate field: the type says which of the two
+     * registers the row's comment is in, the way `*_HINT` and `*_NOTE` do in
+     * `SettingsDocument`. Exactly one of the two is ever set.
+     */
+    @StringRes val commentNote: Int?,
     /** The same fact, structured, so a screen reader can be told it in its language. */
     val detail: RowDetail,
     /**

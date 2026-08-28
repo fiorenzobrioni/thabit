@@ -1,5 +1,7 @@
 package com.callbackdev.thabit.ui.log
 
+import androidx.annotation.StringRes
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.BuildResult
 import com.callbackdev.thabit.domain.CommitHash
 import com.callbackdev.thabit.domain.DayRun
@@ -61,7 +63,16 @@ data class LogDocument(
         /** The file's own name, shown as its first line until the tabs arrive (Fase 7). */
         const val FILE_NAME: String = "habits_history.diff"
 
-        const val BRANCH_LINE: String = "On branch main — changes not yet committed (today)"
+        /**
+         * `On branch main — changes not yet committed (today)`.
+         *
+         * git's own sentence, and git translates it: under `LANG=it_IT` the real
+         * thing prints `Sul branch main` and keeps `branch`, `main` and `commit`
+         * exactly where they are. That is the register rule with the metaphor's
+         * own tool as the worked example (VISION §1.3, Fase 15), so this line is
+         * a resource and its nouns are not.
+         */
+        @StringRes val BRANCH_LINE: Int = R.string.log_branch
 
         /** The shortest run the `longest-streak` tag is willing to call a record. */
         const val MIN_TAGGED_STREAK: Int = 2
@@ -73,15 +84,18 @@ data class LogDocument(
          * day: the honest thing is not "nothing here" but *why*, and the fact
          * that a commit is a day ending rather than something they must do.
          */
-        fun emptyHints(hasSuite: Boolean): List<String> = buildList {
-            add("no commits yet")
-            add("")
+        fun emptyHints(hasSuite: Boolean): List<Int> = buildList {
+            add(R.string.log_empty_none)
+            add(BLANK_LINE)
             if (hasSuite) {
-                add("today's run commits when the day ends")
+                add(R.string.log_empty_suite)
             } else {
-                add("a day commits when it ends — the suite is still empty")
+                add(R.string.log_empty_no_suite)
             }
         }
+
+        /** The blank line between the two, spelled the same way as the suite's. */
+        const val BLANK_LINE: Int = 0
 
         fun of(
             history: SuiteHistory,

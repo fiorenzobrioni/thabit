@@ -2,25 +2,45 @@ package com.callbackdev.thabit.domain
 
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.format.TextStyle
-import java.util.Locale
+import java.time.Month
 
 /**
  * One day of the contribution graph.
  *
- * [fraction] is **how much of the day's due suite passed**, or null when the app
- * has nothing to say about that day: it has not happened yet, nobody was there
- * (`no run`), or nothing was due. All three draw the same blank cell, and that
- * is the point — a day the app never saw is not a bad day, it is an unknown one
- * (VISION §3.3.8). The size of that unknown is stated once, in `## coverage`.
+ * [fraction] is **how much of the day's due suite passed**, or null when there is
+ * nothing to colour. A day the app never saw is not a bad day, it is an unknown
+ * one (VISION §3.3.8) — but it is not *nothing*, and until Fase 16 the grid drew
+ * it as nothing.
+ *
+ * Every day already behind the reader draws a dim `·` when there is no level to
+ * put there — `no run`, nothing due, or a day before the suite existed. That dot
+ * is the **graph paper**, not a verdict about that day, which is the correction
+ * Fase 16a made to 16: a mark every past cell carries cannot be read as an
+ * accusation, and without it the grid had no shape at all — a handful of squares
+ * floating in a void with nothing to place them against. It is the same paper
+ * tsteps draws, and the same one a contribution graph has always had.
+ *
+ * The future stays blank: it has not happened, so there is no paper for it yet.
+ *
+ * The dot is deliberately **not** a fourth intensity. `·` says *there is no level
+ * here*; `□` says *the day ran and passed none of it*, which is a different and
+ * much worse fact, and it stays a different glyph. §3.3.8 forbids colouring an
+ * unknown day like a failure — it never asked the graph to hide it.
  */
 data class HeatmapCell(
     val date: LocalDate,
     val fraction: Double?,
     /** 0..[Heatmap.LEVELS] once the day is known, null when it is not. */
-    val level: Int?
+    val level: Int?,
+    /** True when the day is behind the reader and there is no level to draw. */
+    val silent: Boolean = false
 ) {
-    val glyph: String get() = GLYPHS.getOrNull(level ?: -1) ?: " "
+    val glyph: String
+        get() = when {
+            level != null -> GLYPHS.getOrNull(level) ?: " "
+            silent -> NO_RECORD
+            else -> " "
+        }
 
     companion object {
         /**
@@ -32,14 +52,24 @@ data class HeatmapCell(
          * distinguish. That is why the buckets below are tertiles.
          */
         val GLYPHS: List<String> = listOf("□", "▪", "■")
+
+        /** The paper: a day already behind the reader with no level to draw. */
+        const val NO_RECORD: String = "·"
     }
 }
 
 /** One row of the grid: a day of the week, one cell per column. */
 data class HeatmapRow(val day: DayOfWeek, val cells: List<HeatmapCell>)
 
-/** Where a month label goes: under the column its first week starts. */
-data class MonthLabel(val column: Int, val label: String)
+/**
+ * Where a month label goes: under the column its first week starts.
+ *
+ * The [month] and not its name: a month name is **data**, so it localizes, and
+ * localizing is the renderer's job everywhere else in this app (VISION §1.3).
+ * Keeping the value here is also what stops the grid from having to be rebuilt
+ * when the reader changes language.
+ */
+data class MonthLabel(val column: Int, val month: Month)
 
 /**
  * The grid, drawn like a contribution graph: **seven rows** (days of the week)
@@ -75,8 +105,7 @@ object Heatmap {
         history: SuiteHistory,
         today: LocalDate,
         weekStartsOn: DayOfWeek = DayOfWeek.MONDAY,
-        weeks: Int = WEEKS,
-        locale: Locale = Locale.ENGLISH
+        weeks: Int = WEEKS
     ): HeatmapGrid {
         val lastStart = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(weekStartsOn))
         val firstStart = lastStart.minusWeeks(weeks - 1L)
@@ -99,7 +128,12 @@ object Heatmap {
                 cells = (0 until weeks).map { column ->
                     val cellDate = firstStart.plusWeeks(column.toLong()).plusDays(offset)
                     val fraction = fractions[cellDate]
-                    HeatmapCell(cellDate, fraction, fraction?.let { level(it, t1, t2) })
+                    HeatmapCell(
+                        date = cellDate,
+                        fraction = fraction,
+                        level = fraction?.let { level(it, t1, t2) },
+                        silent = fraction == null && !cellDate.isAfter(today)
+                    )
                 }
             )
         }
@@ -111,10 +145,7 @@ object Heatmap {
                 null
             } else {
                 previousMonth = start.monthValue
-                MonthLabel(
-                    column = column,
-                    label = start.month.getDisplayName(TextStyle.SHORT, locale).lowercase(locale)
-                )
+                MonthLabel(column = column, month = start.month)
             }
         }
         return HeatmapGrid(rows, months)

@@ -1,5 +1,7 @@
 package com.callbackdev.thabit.ui.settings
 
+import androidx.annotation.StringRes
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.data.NotificationSettings
 import com.callbackdev.thabit.data.WidgetOpacities
 import com.callbackdev.thabit.ui.format.CodeFormat
@@ -16,10 +18,13 @@ import java.util.Locale
  * so they can be asserted character by character, and the screen does nothing but
  * draw them and hand taps back.
  *
- * Everything here is the **code channel** and therefore English: keys, values and
- * hints are source. The one localized thing in the file is the timestamp behind
- * `// Last modified:`, which is a data value and gets formatted by the renderer
- * in the reader's language (series rule, VISION §1.3).
+ * The register rule (VISION §1.3) splits the file in two, and the split runs
+ * *inside* the comment channel rather than around it. The **file** is code and
+ * stays English: keys, values, `// active`, the opacity list, `// Last modified:`
+ * and the `$` commands. The **notes** are sentences that exist only to be
+ * understood, so they are string ids here and words in the reader's language at
+ * render time. The timestamp behind `// Last modified:` was already localized
+ * for the same reason one layer down: it is a data value.
  */
 data class SettingsDocument(
     val dayEnds: LocalTime,
@@ -52,15 +57,6 @@ data class SettingsDocument(
 
     /** The next value a tap on `bg_opacity_pct` moves to. */
     fun cycledWidgetOpacity(): Int = nextWidgetOpacity(widgetOpacityPct)
-
-    /** `// 2 tests carry a reminder — set on the test, in habits.test`. */
-    val remindersComment: String
-        get() = if (reminderCount == 0) {
-            "// no test carries a reminder yet — set one from a test's [edit]"
-        } else {
-            val noun = if (reminderCount == 1) "test carries" else "tests carry"
-            "// $reminderCount $noun a reminder — set on the test, in habits.test"
-        }
 
     /** True when something in this app could actually post. */
     val anyNotification: Boolean
@@ -129,16 +125,43 @@ data class SettingsDocument(
             LocalTime.of(22, 0)
         )
 
-        // Hints are source, so they stay English (VISION §1.3).
-        const val DAY_ENDS_HINT: String = "// the nightly build; \"03:00\" if your day ends late"
-        const val WEEK_STARTS_HINT: String = "// where the heatmap and the week table start"
+        /**
+         * **Hints are the file's own annotations and stay English** — a marker
+         * and a list of the values a tap walks through. Nothing here is a
+         * sentence: `// active` is the same word `cities.json` uses next door in
+         * tweather, and the opacity list is the values themselves.
+         */
         const val ACTIVE_HINT: String = "// active"
-        const val DAILY_COMMIT_HINT: String = "// the day's build result, silent, at commit"
-        const val PENDING_DIGEST_HINT: String = "// one evening summary — never one nag per test"
-        const val DIGEST_HOUR_HINT: String = "// when that summary goes out"
-        const val REMINDERS_HINT: String =
-            "// reminders are approximate — a nudge, not an alarm clock"
         val WIDGET_OPACITY_HINT: String = "// ${WidgetOpacities.joinToString(" | ")}"
+
+        /**
+         * **Notes are sentences addressed to the reader, so they are resources**
+         * (Fase 15). Each one explains what a setting *means*, which is the one
+         * job a comment can have that the reader has to understand to do
+         * anything with the line above it.
+         *
+         * The document still decides which note each key carries — that is the
+         * whole point of building the file as a value — but it now says so with
+         * a string id instead of the words, and the renderer speaks them in the
+         * reader's language. It is the same split the row comments already use
+         * for the spoken half: **the document carries the structure, the
+         * renderer carries the language.**
+         *
+         * The `// ` marker is not part of the resource. The syntax is the
+         * fiction and does not translate; only the sentence after it does.
+         */
+        @StringRes val DAY_ENDS_NOTE: Int = R.string.cfg_day_ends
+
+        @StringRes val WEEK_STARTS_NOTE: Int = R.string.cfg_week_starts
+
+        @StringRes val DAILY_COMMIT_NOTE: Int = R.string.cfg_daily_commit
+
+        @StringRes val PENDING_DIGEST_NOTE: Int = R.string.cfg_pending_digest
+
+        @StringRes val DIGEST_HOUR_NOTE: Int = R.string.cfg_digest_hour
+
+        @StringRes val REMINDERS_NOTE: Int = R.string.cfg_reminders
+
         /**
          * The answer to an export with an empty database.
          *
@@ -146,15 +169,17 @@ data class SettingsDocument(
          * other honest thing — there is nothing in there. An export that wrote
          * an empty file would be worse than one that says so.
          */
-        const val EXPORT_PENDING: String = "// nothing to export yet"
-        const val RESTORE_CONFIRM: String = "// tap the command to confirm"
+        @StringRes val EXPORT_PENDING_NOTE: Int = R.string.cfg_export_pending
+
+        /** Shared with `habits.test`: one sentence, so one string. */
+        @StringRes val CONFIRM_NOTE: Int = R.string.confirm_command
 
         /**
          * `$ git restore settings.config` puts the config back and touches
          * nothing else — stated in the file, next to the command, because a
          * destructive-looking verb should say what it will not destroy.
          */
-        const val RESTORE_HINT: String = "// resets this file only — the suite and its history are untouched"
+        @StringRes val RESTORE_NOTE: Int = R.string.cfg_restore_hint
 
         /**
          * A value not in the cycle keeps its place: the next tap moves on to the

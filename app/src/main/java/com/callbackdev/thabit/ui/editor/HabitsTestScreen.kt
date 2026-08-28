@@ -300,8 +300,14 @@ private fun suiteLines(
     val inlineId = message?.habitId?.takeIf { id -> document.due.any { it.habitId == id } }
 
     if (document.isEmpty) {
-        SuiteDocument.emptyHints().forEach { hint ->
-            lines += commentLine(if (hint.isEmpty()) "#" else "# $hint", syntax)
+        // The marker is the file's syntax and stays; the sentence after it is
+        // the one the reader has to understand, so it arrives as a resource
+        // (VISION §1.3, Fase 15).
+        SuiteDocument.emptyHints().forEach { id ->
+            lines += commentLine(
+                if (id == SuiteDocument.BLANK_LINE) "#" else "# " + stringResource(id),
+                syntax
+            )
         }
     } else {
         lines += commentLine("# ${document.suiteComment}", syntax)
@@ -312,7 +318,7 @@ private fun suiteLines(
             lines += testLines(row, document, interaction, actions, syntax)
             if (row.habitId == inlineId && message != null) {
                 lines += commentLine(
-                    text = "# ${message.note.text}",
+                    text = "# " + message.note.printed(),
                     syntax = syntax,
                     indent = 1,
                     contentDescription = message.note.spoken()
@@ -320,10 +326,15 @@ private fun suiteLines(
             }
         }
 
-        document.notDueComment(interaction.notDueExpanded)?.let { comment ->
+        document.notDueControl(interaction.notDueExpanded)?.let { control ->
+            val summary = pluralStringResource(
+                R.plurals.suite_not_due,
+                document.notDue.size,
+                document.notDue.size
+            )
             lines += commentLine("#", syntax)
             lines += commentLine(
-                text = "# $comment",
+                text = "# $summary — $control",
                 syntax = syntax,
                 onClick = actions.onToggleNotDue,
                 onClickLabel = stringResource(
@@ -342,7 +353,7 @@ private fun suiteLines(
     if (message != null && inlineId == null) {
         lines += commentLine("#", syntax)
         lines += commentLine(
-            text = "# ${message.note.text}",
+            text = "# " + message.note.printed(),
             syntax = syntax,
             contentDescription = message.note.spoken()
         )
@@ -383,11 +394,14 @@ private fun testLines(
         stringResource(R.string.cd_action_increment, CodeFormat.number(row.incrementStep ?: 1.0))
     }
     val noteDescription = stringResource(R.string.cd_action_note)
+    // Exactly one of the two is set: the readout as the document spelled it, or
+    // the one comment that is a sentence, spoken here (Fase 15).
+    val comment = row.comment ?: row.commentNote?.let { stringResource(it) }
 
     lines += WidgetLine(
         measureText = buildString {
             append("- ").append(checkbox.glyph).append(' ').append(row.name)
-            row.comment?.let { append("  # ").append(it) }
+            comment?.let { append("  # ").append(it) }
             increment?.let { append("  ").append(it) }
             append("    ")
         }
@@ -395,7 +409,7 @@ private fun testLines(
         TestLine(
             checkbox = checkbox,
             name = row.name,
-            comment = row.comment,
+            comment = comment,
             syntax = syntax,
             spokenRow = spoken,
             checkboxActionLabel = checkboxLabel,
@@ -530,7 +544,7 @@ private fun specLines(
         value = "${CodeFormat.bar(spec.health)} ${CodeFormat.percent(spec.health)}",
         syntax = syntax,
         indent = 1,
-        comment = if (spec.health == null) "not enough runs yet" else null,
+        comment = if (spec.health == null) stringResource(R.string.suite_health_unknown) else null,
         // The bar IS the fact on this row, and a bar cannot be heard: without
         // this the only health a screen reader ever gets is `--%` read as
         // punctuation. The percentage is the same number the bar draws.
@@ -555,10 +569,11 @@ private fun specLines(
                 onClick = { actions.onArchive(habitId) }
             )
         }
-        lines += WidgetLine(indent = 1, measureText = "# tap the command to confirm  [esc]  ") {
+        val confirm = stringResource(R.string.confirm_command)
+        lines += WidgetLine(indent = 1, measureText = "# $confirm  [esc]  ") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "# tap the command to confirm",
+                    text = "# $confirm",
                     style = MaterialTheme.typography.bodySmall,
                     color = syntax.comment,
                     // The command and the `[esc]` beside it already say this in
@@ -749,6 +764,24 @@ private fun TestRow.detailSentence(): String? = when (val detail = detail) {
  * until somebody writes the words that will be spoken for it. That is the whole
  * reason the notes stopped being String constants in Fase 12.
  */
+/**
+ * What the file prints after its `# `, in the reader's language (Fase 15).
+ *
+ * The twin of [spoken], and deliberately built the same way: the note says what
+ * happened, the screen says it in words. The `ERROR:` level is a token of the
+ * comment channel, so it is added here and never translated — the same shape the
+ * wizard's refusals and `settings.config`'s permission line have.
+ */
+@Composable
+private fun SuiteNote.printed(): String {
+    val sentence = when (this) {
+        SuiteNote.ReadOnly -> stringResource(R.string.note_read_only_suite)
+        SuiteNote.UnknownTest -> stringResource(R.string.note_unknown_test_suite)
+        is SuiteNote.RolledOver -> stringResource(R.string.note_rolled_over, printedDate)
+    }
+    return if (isError) "ERROR: $sentence" else sentence
+}
+
 @Composable
 private fun SuiteNote.spoken(): String = when (this) {
     SuiteNote.ReadOnly -> stringResource(R.string.cd_note_suite_read_only)

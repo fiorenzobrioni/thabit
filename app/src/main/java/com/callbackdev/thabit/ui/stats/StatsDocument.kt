@@ -1,5 +1,7 @@
 package com.callbackdev.thabit.ui.stats
 
+import androidx.annotation.StringRes
+import com.callbackdev.thabit.R
 import com.callbackdev.thabit.domain.Coverage
 import com.callbackdev.thabit.domain.CoverageReport
 import com.callbackdev.thabit.domain.FlakyTest
@@ -92,17 +94,22 @@ data class StatsDocument(
         /** The window every windowed rate on this screen is computed over. */
         const val WINDOW_DAYS: Long = 30
 
-        // The hints: one line each, factual, and the same words every time.
-        const val COVERAGE_HINT: String =
-            "a day with no run is not a failed build — it is a build that never started"
-        const val FLAKY_HINT: String =
-            "a flaky test wants a smaller assert or a different schedule"
-        const val REGRESSION_HINT: String =
-            "a regression is a habit that used to hold; it is reported once, without advice"
+        /**
+         * The hints: one line each, factual, and the same words every time.
+         *
+         * Sentences, so string ids and not literals (Fase 15) — these are the
+         * lines that say what `coverage`, `flaky` and `regression` mean, and a
+         * gloss the reader cannot read glosses nothing. The formulas printed
+         * beside them are formulas and do not move.
+         */
+        @StringRes val COVERAGE_HINT: Int = R.string.stats_hint_coverage
+
+        @StringRes val FLAKY_HINT: Int = R.string.stats_hint_flaky
+
+        @StringRes val REGRESSION_HINT: Int = R.string.stats_hint_regression
 
         /** The empty file, which still draws its grid — the shape of what is coming. */
-        const val EMPTY_HINT: String =
-            "nothing to report yet — the grid fills in as days close"
+        @StringRes val EMPTY_HINT: Int = R.string.stats_hint_empty
 
         /**
          * The rules, printed in the file.
@@ -111,13 +118,53 @@ data class StatsDocument(
          * it from their own export. That promise is worth nothing if the
          * constants live only in the source, so the file states them where the
          * numbers are.
+         *
+         * They are **sentences**, not formulas — "pass rate over the last 30 days
+         * below 60%" is a rule described in words — so since Fase 15 the screen
+         * says them in the reader's language, while the canonical English
+         * ([Health.FORMULA], [FlakyTests.RULE], [Regressions.RULE]) is what goes
+         * into the export: a statement whose meaning moved with the phone's
+         * language would not be an archive. The numbers come from the same
+         * constants on both sides, so the two statements cannot drift — there is
+         * a test that holds them together.
          */
-        fun rules(): List<String> = listOf(
-            "worked out on this device · window: last $WINDOW_DAYS days",
-            "health: ${Health.FORMULA}",
-            "flaky: ${FlakyTests.RULE}",
-            "regression: ${Regressions.RULE}"
+        fun rules(): List<Rule> = listOf(
+            Rule("health", R.string.stats_rule_health, listOf(Health.HALF_LIFE_UNITS)),
+            Rule(
+                "flaky",
+                R.string.stats_rule_flaky,
+                listOf(
+                    FlakyTests.WINDOW_DAYS.toInt(),
+                    (FlakyTests.THRESHOLD * 100).toInt(),
+                    FlakyTests.MIN_SAMPLES
+                )
+            ),
+            Rule(
+                "regression",
+                R.string.stats_rule_regression,
+                listOf(
+                    Regressions.MIN_RECENT_FAILS,
+                    Regressions.RECENT_UNITS,
+                    Regressions.MIN_GREEN_RUN
+                )
+            )
         )
+
+        /**
+         * The line above them, which is the only one of the four that is a
+         * sentence rather than a formula: where the numbers were worked out, and
+         * over how long. `window:` stays a key.
+         */
+        @StringRes val WINDOW_RULE: Int = R.string.stats_rule_window
+
+        /**
+         * One printed rule: the key the file shows it under, the sentence that
+         * states it, and the numbers that sentence is about.
+         *
+         * The key is code and never moves; the numbers are the domain's own
+         * constants, handed over rather than re-typed on the way to the screen.
+         */
+        data class Rule(val key: String, @StringRes val id: Int, val args: List<Any>)
 
         fun of(
             history: SuiteHistory,
