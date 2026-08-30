@@ -64,9 +64,9 @@ Everything is `Locale.ROOT` and canonical: ISO dates, 24-hour clocks, a full sto
 
 ## Install
 
-The v1.0.0 tag has not been cut yet. When it is, a signed APK is published as a GitHub Release together with its R8 mapping file, built by CI from the tag. Until then you can build one yourself: `./gradlew :app:assembleDebug` puts a debug APK in `app/build/outputs/apk/debug/`.
+Download the APK from the [latest release](https://github.com/fiorenzobrioni/thabit/releases/latest) and open it on the phone (Android 13 or newer). Android warns before installing anything from outside a store: expected, since this comes from GitHub. Every release is signed with the project's release key, so each version installs over the previous one without losing your habits or history. The signed APK and its R8 mapping file are built by CI from the tag.
 
-Debug builds install side by side with the release app: they carry their own application id and the launcher label `thabit (dev)`, so testing a build never touches the habits you actually keep.
+You can also build one yourself: `./gradlew :app:assembleDebug` puts a debug APK in `app/build/outputs/apk/debug/`. Debug builds install side by side with the release app: they carry their own application id and the launcher label `thabit (dev)`, so testing a build never touches the habits you actually keep.
 
 ## Changelog
 
