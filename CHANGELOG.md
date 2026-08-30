@@ -7,9 +7,57 @@ All notable changes to thabit are recorded here. The format follows
 The phase-by-phase record, with every decision and the reason behind it, lives in
 `PLANNING.md`; this file is the short version.
 
-## [Unreleased]
+## [1.0.0] - 2026-08-30
+
+The first release. thabit is an offline Android habit tracker whose interface is
+a code editor and whose vocabulary is a CI system: habits are tests in
+`habits.test`, a day is a build, the history is a git log, and the stats are a
+coverage report.
+
+Everything below is new to anyone installing it. The `Changed` and `Fixed`
+sections are kept because they are the honest record of what the last rounds on a
+real device moved between the first draft of this file and the tag: the full
+account, with the reasoning, is in `PLANNING.md`.
 
 ### Added
+
+- **`habits.test`** — today's suite as a YAML-flavored file. One line per test
+  due today, checked off with a tap on its box; a tap on the name expands the
+  test's spec (`when:`, `assert:`, `remind:`, `streak:`, `health:`) with
+  `[~ skip]`, `[edit]` and `[rm]`. Counters answer a terminal prompt in place and
+  offer `[+N]` when that is genuinely a shortcut; avoid tests assert absence and
+  pass at commit. A test not due today is a commented line, not a hidden one, and
+  it opens like every other.
+- **`habits_history.diff`** — one commit per day, with the day's build result
+  (`✓ build passed`, `~ build unstable (4/6)`, `✗ build failed`) and its
+  arithmetic beside it. Week separators carry the quota verdicts. Yesterday, and
+  only yesterday, can be amended; the commit says `# amended` when it was.
+- **`stats.md`** — a contribution heatmap, a coverage report, a suite-health
+  table, flaky tests, regressions, and records as tag rows that jump to the
+  commit that earned them. Every rule that produces a number is printed in the
+  file itself.
+- **`settings.config`** — the settings as a JSON file whose values are the
+  controls: the day boundary (`day_ends`), week start, editor options, theme
+  profiles (Obsidian, Dracula, Monokai), notification switches and the export.
+- **`README.md` tab** — the same day in plain prose, fully localized, including a
+  glossary of every CI word the app uses.
+- **`$ thabit add` / `edit`** — the wizard as a terminal session rather than a
+  form: one answer is enough, everything else has a default.
+- **Notifications** — a per-test reminder answerable from the shade, the day's
+  build result at the boundary, and an opt-in evening summary. Reminders are
+  inexact by design (`setWindow`, no exact-alarm permission).
+- **Home widget `thabit --status`** — today's suite on the home screen, with a
+  yes-or-no habit ticked off straight from its row. It states the date it is
+  rendering, so a widget that has not repainted since midnight says so.
+- **`$ thabit export --json | --csv`** — the suite, every check, and every day of
+  presence, written to Downloads through MediaStore with no storage permission.
+  The JSON header carries the rules the app computes with, so the archive cannot
+  drift from the screens.
+- **Italian and English**, per-app language, split by register rather than by
+  punctuation: code stays English (keys, filenames, terminal output, commit lines,
+  check lines and verdicts), while data values, chrome, notifications, everything a
+  screen reader says and every comment line that is a sentence follow the reader.
+  See `Changed` below for what that rule replaced.
 
 - **`$ thabit init`** — the first run as a terminal session rather than a
   carousel: one screen, two answers (write the first habit, which opens the
@@ -75,51 +123,6 @@ accessibility text still carry the whole meaning on their own.
   description without making itself a merge boundary, so TalkBack announced it as
   part of whatever larger block happened to sit above it, and a test looking for
   it passed or failed depending on what else was on screen.
-
-## [1.0.0] - 2026-08-24
-
-The first release. thabit is an offline Android habit tracker whose interface is
-a code editor and whose vocabulary is a CI system: habits are tests in
-`habits.test`, a day is a build, the history is a git log, and the stats are a
-coverage report.
-
-### Added
-
-- **`habits.test`** — today's suite as a YAML-flavored file. One line per test
-  due today, checked off with a tap on its box; a tap on the name expands the
-  test's spec (`when:`, `assert:`, `remind:`, `streak:`, `health:`) with
-  `[~ skip]`, `[edit]` and `[rm]`. Counters answer a terminal prompt in place and
-  offer `[+N]` when that is genuinely a shortcut; avoid tests assert absence and
-  pass at commit. A test not due today is a commented line, not a hidden one, and
-  it opens like every other.
-- **`habits_history.diff`** — one commit per day, with the day's build result
-  (`✓ build passed`, `~ build unstable (4/6)`, `✗ build failed`) and its
-  arithmetic beside it. Week separators carry the quota verdicts. Yesterday, and
-  only yesterday, can be amended; the commit says `# amended` when it was.
-- **`stats.md`** — a contribution heatmap, a coverage report, a suite-health
-  table, flaky tests, regressions, and records as tag rows that jump to the
-  commit that earned them. Every rule that produces a number is printed in the
-  file itself.
-- **`settings.config`** — the settings as a JSON file whose values are the
-  controls: the day boundary (`day_ends`), week start, editor options, theme
-  profiles (Obsidian, Dracula, Monokai), notification switches and the export.
-- **`README.md` tab** — the same day in plain prose, fully localized, including a
-  glossary of every CI word the app uses.
-- **`$ thabit add` / `edit`** — the wizard as a terminal session rather than a
-  form: one answer is enough, everything else has a default.
-- **Notifications** — a per-test reminder answerable from the shade, the day's
-  build result at the boundary, and an opt-in evening summary. Reminders are
-  inexact by design (`setWindow`, no exact-alarm permission).
-- **Home widget `thabit --status`** — today's suite on the home screen, with a
-  yes-or-no habit ticked off straight from its row. It states the date it is
-  rendering, so a widget that has not repainted since midnight says so.
-- **`$ thabit export --json | --csv`** — the suite, every check, and every day of
-  presence, written to Downloads through MediaStore with no storage permission.
-  The JSON header carries the rules the app computes with, so the archive cannot
-  drift from the screens.
-- **Italian and English**, per-app language. Code stays English (keys, filenames,
-  comments, terminal output, commit lines); chrome, data values, notifications
-  and everything a screen reader says are localized.
 
 ### Design rules held throughout
 
