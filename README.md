@@ -20,6 +20,16 @@ Third app of the **t-series**, after [tweather](https://github.com/fiorenzobrion
 
 The extension is `.test` and not `.yaml` on purpose: `- [x] meditate 10 min` is not valid YAML, and a file that declares a grammar it does not keep would be the app breaking its own first rule.
 
+## Screenshots
+
+| `habits.test` (Editor) | `README.md` (Editor) | `habits_history.diff` (Log) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/Screenshot_20260829_184228_thabit.jpg" width="260" alt="Editor - habits.test" /> | <img src="docs/screenshots/Screenshot_20260829_184242_thabit.jpg" width="260" alt="Editor - README.md" /> | <img src="docs/screenshots/Screenshot_20260829_184250_thabit.jpg" width="260" alt="Log - habits_history.diff" /> |
+
+| `stats.md` (Stats) | `settings.config` (Settings) | `HELP.md` (Settings) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/Screenshot_20260829_184301_thabit.jpg" width="260" alt="Stats - stats.md" /> | <img src="docs/screenshots/Screenshot_20260829_184308_thabit.jpg" width="260" alt="Settings - settings.config" /> | <img src="docs/screenshots/Screenshot_20260829_184315_thabit.jpg" width="260" alt="Settings - HELP.md" /> |
+
 ## Status
 
 The app is complete and runs on a phone. `$ thabit add` builds your suite as a terminal conversation (one answer is enough, the rest have defaults), `habits.test` runs it a tap at a time, `habits_history.diff` is the git log of your days, `stats.md` draws the heatmap and the suite health, the `README.md` tab says the same things in plain prose, and `settings.config` is a JSON file whose values are the controls, theme included. A fresh install opens on `$ thabit init`, one screen and two answers, and `HELP.md` (the second file behind the Settings tab) explains the app to somebody who does not read `git` for a living. Notifications, the home widget and the export have landed: a reminder per habit answerable from the shade, the day's build result at the boundary, an opt-in evening summary, `thabit --status` on the home screen with a habit ticked off straight from a row, and `$ thabit export` handing the whole history back as JSON or CSV. The domain underneath computes every verdict on read: schedules, the configurable day boundary, streaks, health, coverage, regressions, records. Every row speaks its state out loud to a screen reader, in English or Italian, terminal output and the metrics included. 670+ JVM tests. The spec is in `VISION.md` and the phased plan, with every decision and why it was taken, is in `PLANNING.md`. What is left before the v1.0.0 tag is a pass of edge cases on a real phone.
