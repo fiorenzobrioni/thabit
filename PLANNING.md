@@ -595,6 +595,7 @@ Il giro sul device del committente (29 ago 2026) ha chiuso le tre caselle rimast
 - [x] `CHANGELOG.md`: `[Unreleased]` e `[1.0.0] - 2026-08-24` fuse in `[1.0.0] - 2026-08-30`
 - [x] Le tre caselle di verifica su device chiuse (Fasi 13, 15) e la riga d'ordine della 15 (`Poi tsteps, e infine tweather`): entrambe fatte, la regola dei tre registri vale ora al 100% sulle tre app della serie
 - [x] Suite e lint rieseguiti prima del tag: **693 test verdi**, lint **0 errori** (45 warning, la baseline), release minificata R8 ricompilata
+- [x] **`release.yml` prende il corpo della release dal `CHANGELOG.md`.** Il workflow si affidava al solo `generate_release_notes`, che elenca commit e PR dal tag precedente: un verbale di *chi ha spinto cosa*, non di cosa è cambiato per chi installa. Ora un passo estrae la sezione del tag e la passa come `body_path`, e le note generate da GitHub restano sotto. La sezione si cerca per **prefisso letterale** e non per regex — i punti di `2.0.0` in una regex matcherebbero qualunque carattere — e si chiude sul primo `## [` successivo **o** sul blocco dei link in fondo, che altrimenti finirebbe nel corpo dell'ultima sezione del file. Un tag senza sezione non fa fallire la release: scrive un `::warning::` e lascia le note generate da sole, perché fra la prosa e l'APK firmato è la prosa a poter aspettare. Vale da qui in avanti, non solo per questa release
 
 ## Note trasversali
 
