@@ -1,14 +1,21 @@
 package com.callbackdev.thabit.ui.settings
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.width
+import com.callbackdev.thabit.ui.components.EditorOptions
+import com.callbackdev.thabit.ui.components.LocalEditorOptions
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,10 +39,14 @@ class HelpScreenTest {
 
     private var selected = -1
 
-    private fun show() {
+    private fun show(wordWrap: Boolean = false) {
         compose.setContent {
             ThabitTheme {
-                HelpScreen(onSelectFile = { selected = it })
+                CompositionLocalProvider(
+                    LocalEditorOptions provides EditorOptions(wordWrap = wordWrap)
+                ) {
+                    HelpScreen(onSelectFile = { selected = it })
+                }
             }
         }
     }
@@ -49,11 +60,39 @@ class HelpScreenTest {
         show()
 
         compose.onNodeWithText("# thabit").assertExists()
+        scrollTo("## The four tabs")
         compose.onNodeWithText("## The four tabs").assertExists()
         scrollTo("## The borrowed words")
         compose.onNodeWithText("## The borrowed words").assertExists()
         scrollTo("## Where the numbers come from")
         compose.onNodeWithText("## Where the numbers come from").assertExists()
+    }
+
+    /**
+     * Fase 18: the one file that wraps whatever `settings.config` says. Its
+     * paragraphs run past 400 characters, and panning sideways through a sentence
+     * is not reading — this is the surface addressed to somebody who cannot read
+     * the app yet, so it is the one that cannot ask them to work for the words.
+     */
+    @Test
+    fun `the document wraps even with word_wrap off`() {
+        show(wordWrap = false)
+
+        val paragraph = compose.onNodeWithText("A habit tracker that", substring = true)
+            .getUnclippedBoundsInRoot()
+        val screen = compose.onRoot().getUnclippedBoundsInRoot()
+        assertTrue(
+            "the paragraph is ${paragraph.width}, the screen ${screen.width}",
+            paragraph.width <= screen.width
+        )
+    }
+
+    @Test
+    fun `the status bar declares the modes the file has of its own`() {
+        show(wordWrap = false)
+
+        compose.onNodeWithText("ro").assertExists()
+        compose.onNodeWithText("wrap").assertExists()
     }
 
     @Test
@@ -95,6 +134,7 @@ class HelpScreenTest {
     fun `it is prose, so it is localized headings included`() {
         show()
 
+        scrollTo("## Le quattro schede")
         compose.onNodeWithText("## Le quattro schede").assertExists()
         scrollTo("## Le parole prese in prestito")
         compose.onNodeWithText("## Le parole prese in prestito").assertExists()

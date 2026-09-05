@@ -597,6 +597,49 @@ Il giro sul device del committente (29 ago 2026) ha chiuso le tre caselle rimast
 - [x] Suite e lint rieseguiti prima del tag: **693 test verdi**, lint **0 errori** (45 warning, la baseline), release minificata R8 ricompilata
 - [x] **`release.yml` prende il corpo della release dal `CHANGELOG.md`.** Il workflow si affidava al solo `generate_release_notes`, che elenca commit e PR dal tag precedente: un verbale di *chi ha spinto cosa*, non di cosa è cambiato per chi installa. Ora un passo estrae la sezione del tag e la passa come `body_path`, e le note generate da GitHub restano sotto. La sezione si cerca per **prefisso letterale** e non per regex — i punti di `2.0.0` in una regex matcherebbero qualunque carattere — e si chiude sul primo `## [` successivo **o** sul blocco dei link in fondo, che altrimenti finirebbe nel corpo dell'ultima sezione del file. Un tag senza sezione non fa fallire la release: scrive un `::warning::` e lascia le note generate da sole, perché fra la prosa e l'APK firmato è la prosa a poter aspettare. Vale da qui in avanti, non solo per questa release
 
+## Fase 18 — `HELP.md` va sempre a capo (chiesta dal committente, 5 set 2026)
+
+`word_wrap` è `false` di default, e `HELP.md` ha paragrafi da 400 caratteri: il test
+scritto **prima** della modifica, e visto fallire, misura una riga larga molte volte lo
+schermo. È l'unico documento rivolto a chi l'app non la sa ancora leggere, ed era
+quello che gli chiedeva più lavoro: per leggere una frase bisognava trascinare di lato.
+
+**Non è un'eccezione alla finzione dell'editor: è la cosa più da editor dell'app.** Un
+editor vero va a capo *per linguaggio*, e `"[markdown]": { "editor.wordWrap": "on" }` è
+l'override che ha in configurazione mezza categoria di chi usa VS Code. Il file passa
+`options = LocalEditorOptions.current.copy(wordWrap = true)` a `CodeCanvas`, che quel
+parametro lo aveva già.
+
+**Dove passa il confine, e perché non è «i file markdown».** È `HELP.md` e basta,
+perché è l'unico file dell'app che sia *solo* prosa. La tab `README.md` continua a
+seguire l'impostazione: la mappa dei contributi e la tabella di salute della suite sono
+griglie allineate, e mandarle a capo le smonterebbe. Vale anche per `habits.test`, dove
+le caselle stanno incolonnate.
+
+**Si muove solo il wrap, non `line_numbers`**: quella è una preferenza su come al
+lettore piace guardare un file, e questo resta un file.
+
+**E il file lo dice.** La status bar guadagna `wrap` accanto a `ro`: è lo stesso tipo
+di fatto — un modo che questo file ha e `settings.config` accanto no (che infatti dice
+`rw`) — ed è dove un editor vero le mette. Senza, un lettore con `word_wrap: false` che
+vede questa schermata andare a capo può solo concludere che l'interruttore è rotto.
+Marcatori di una parola, quindi restano inglesi entrambi (Fase 15).
+
+**Un effetto da mettere a verbale**: andando a capo il documento diventa più alto, e i
+titoli dopo il primo paragrafo partono fuori schermo. I due test che asserivano
+`## The four tabs` sul posto ora ci scorrono sopra come già facevano per i titoli più
+in basso — il file era «più lungo di un telefono» da prima, adesso lo è di più.
+
+**Non tocca §3.3.7**: `HELP.md` resta uno dei tre strati in lingua piana, e andare a
+capo non è una glossa, è smettere di far lavorare il lettore per leggerlo.
+
+**Verifiche**: suite verde, lint 0 errori. Decisione di serie: la stessa modifica sta
+in tweather (Fase 22) e tsteps (Fase 22b), con lo stesso confine e la stessa `wrap` in
+status bar.
+
+- [ ] Da verificare su device: `HELP.md` con `word_wrap: false` in `settings.config`,
+      e che la status bar `⎇ main | ro | wrap` stia su uno schermo da 360dp
+
 ## Note trasversali
 
 - **Vincoli di design non negoziabili** (vedi `CLAUDE.md` e VISION §1.2): solo JetBrains Mono (eccetto widget), griglia 4px, indent 20px, niente ombre (bordi 1px + glow del FAB), raggio 4px ovunque, controlli renderizzati come testo, emoji come icone nel testo.

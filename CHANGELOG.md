@@ -7,6 +7,18 @@ All notable changes to thabit are recorded here. The format follows
 The phase-by-phase record, with every decision and the reason behind it, lives in
 `PLANNING.md`; this file is the short version.
 
+## [Unreleased]
+
+### Changed
+
+- `HELP.md` now always wraps its lines, whatever `word_wrap` says in
+  `settings.config`, and its status bar says `wrap` so you can see that it does. Its
+  paragraphs run past 400 characters and the setting is off by default: reading the
+  file meant dragging sideways through every sentence. This is what a real editor
+  does too, wrapping by language rather than globally. The `README.md` tab and
+  `habits.test` still follow the setting: the heatmap, the suite-health table and the
+  checkboxes are aligned grids, and wrapping them would take them apart.
+
 ## [1.0.0] - 2026-08-30
 
 The first release. thabit is an offline Android habit tracker whose interface is

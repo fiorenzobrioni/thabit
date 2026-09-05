@@ -13,7 +13,9 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.tooling.preview.Preview
 import com.callbackdev.thabit.R
 import com.callbackdev.thabit.ui.components.CodeCanvas
+import com.callbackdev.thabit.ui.components.EditorOptions
 import com.callbackdev.thabit.ui.components.EditorTabs
+import com.callbackdev.thabit.ui.components.LocalEditorOptions
 import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
 import com.callbackdev.thabit.ui.components.TerminalStatusBar
@@ -47,6 +49,17 @@ import com.callbackdev.thabit.ui.theme.ThabitTheme
  *
  * Prose, so fully localized, headings included — the same rule the `README.md`
  * tab follows. The words in `code spans` are the app's own file and key names.
+ *
+ * **Always wrapped, whatever `settings.config` says** (Fase 18, series-wide). Not
+ * an exception to the editor fiction but the most editor-like thing in the app: a
+ * real one wraps by language, and `"[markdown]": { "editor.wordWrap": "on" }` is
+ * the override half of VS Code carries. The line falls where it does because this
+ * file is the only one that is *only* prose — the `README.md` tab keeps following
+ * the setting, because its tables are padded to their column widths and wrapping
+ * them would take the alignment apart. Here there is nothing to align and
+ * paragraphs run past 400 characters: panning sideways through a sentence is not
+ * reading, and this is the one document addressed to somebody who cannot read the
+ * app yet.
  */
 @Composable
 fun HelpScreen(
@@ -74,15 +87,22 @@ fun HelpScreen(
             CodeCanvas(
                 lines = lines,
                 state = listState,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                // Only the wrap is overridden: `line_numbers` is a preference about
+                // how the reader likes to look at a file, and this is still one.
+                options = LocalEditorOptions.current.copy(wordWrap = true)
             )
         }
         TerminalStatusBar {
             StatusBarStart { StatusBarText("⎇ main") }
-            // The one file in the app nobody can write to, the reader included:
+            // Two modes this file has of its own, and its neighbour does not. `ro`:
+            // the one file in the app nobody can write to, the reader included —
             // `settings.config` next door says `rw`, and the difference is the
-            // point.
+            // point. `wrap`: it ignores the setting, and saying so is what keeps a
+            // reader with `word_wrap: false` from thinking the toggle is broken.
+            // One-word markers, so both stay English.
             StatusBarText("ro")
+            StatusBarText("wrap")
         }
     }
 }
