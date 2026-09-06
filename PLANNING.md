@@ -640,6 +640,79 @@ status bar.
 - [ ] Da verificare su device: `HELP.md` con `word_wrap: false` in `settings.config`,
       e che la status bar `⎇ main | ro | wrap` stia su uno schermo da 360dp
 
+## Fase 19 — Il primo avvio si scrive da solo (chiesta dal committente, 6 set 2026)
+
+Decisione di serie: stessa modifica in tweather (Fase 27, dove sta il verbale completo) e
+tsteps (Fase 23). `$ thabit init` era già una sessione di terminale, era solo la
+**fotografia** di una — e il `█`, il glifo che dice «la macchina è *qui*, adesso», non
+aveva un posto dove stare.
+
+**Due velocità, perché un transcript ha due autori.** La riga del comando si *digita*
+(`PromptMsPerChar = 20`, una mano su una tastiera); tutto quello che sta sotto si *stampa*
+(`PrintMsPerChar = 2`, cinquecento caratteri al secondo, otto per frame): non una macchina
+da scrivere, un programma che scrive su una tty. Due respiri, 160 ms dopo il comando e
+60 ms fra una risposta e la successiva. Un test tiene la corsa **sotto i due secondi in
+entrambe le lingue**, ed è il test con cui litigare il giorno in cui l'introduzione vorrà
+diventare un carosello per accumulo.
+
+**Niente barre di avanzamento finte**: il file non mente, e uno spinner che conta fino a
+un numero che l'app ha già sarebbe un'animazione che inventa lavoro — la stessa classe di
+bugia dello zero finto e della build rossa per un giorno in cui non c'era nessuno. È
+animato l'*arrivo* di un testo che sarebbe stato lì comunque. Il tempo lo dà
+`withFrameNanos`, non un `delay(2)` per carattere: quella è una promessa che lo scheduler
+non mantiene, e la deriva si vede.
+
+**Tre vie d'uscita.** Un **tocco** la chiude — un `Box` in overlay, colpito prima della
+canvas, così il tocco che ferma la stampa non può anche buttare il lettore dentro il
+wizard; esce dalla composizione appena ha fatto il suo unico lavoro. **«Rimuovi
+animazioni»** (`ANIMATOR_DURATION_SCALE == 0`) non la fa nemmeno partire: `finished` nasce
+`true`, quindi la schermata è completa al **primo frame** e non un frame dopo. E
+**TalkBack la salta** per un motivo suo, che è §3.3.7 applicata al tempo: un testo che
+cresce di un carattere alla volta è un albero di semantica che cambia sessanta volte al
+secondo, e le righe che parlano parole invece di glifi non servono a niente se vengono
+lette a pezzi.
+
+**Il latch è un `rememberSaveable`**: `> add your first habit` scambia l'intera shell con
+il wizard, e una rotazione andando là — o un back da lì — che rifacesse partire
+l'introduzione trasformerebbe un bel primo secondo in un ostacolo.
+
+**Questa canvas va sempre a capo**, qualunque cosa dica `word_wrap`: lo stesso override di
+`HELP.md` (Fase 18), per una ragione più netta — un cursore che esce dal bordo destro è un
+cursore che non si vede. Si muove solo il wrap, non `line_numbers`. **La status bar non
+dice `wrap`**: quel marcatore esiste perché un file non sembri ignorare un interruttore
+che il lettore ha impostato, e al primo avvio nessuno ha impostato niente. Questa non è la
+scheda di un file, è una sessione, e infatti non ha nemmeno `ro`/`rw`.
+
+**Il testo è cresciuto, e questa è metà della modifica.** Erano due righe `#`; ora sono
+quattro: cosa fa l'app, che aspetto ha, cosa non esce dal telefono, cosa le serve per
+partire. La riga nuova dice «*come* una build», non «una build»: è lo stesso scambio che
+la Fase 14 aveva già fatto fra la scelta e la sua nota — la parola piana prima, quella
+dell'app presentata accanto (§3.3.7) — e una similitudine è una presentazione, un
+sostantivo nudo sarebbe un pedaggio. Un test la sorveglia. Una sessione che impiega un
+secondo e mezzo a stamparsi se le può permettere; una schermata ferma no.
+
+**`Typist` è una timeline pura** — dato un millisecondo, quali righe sono a video e quanta
+parte dell'ultima — così l'animazione si asserisce invece di guardarla: nove test,
+compresi il cursore parcheggiato durante la pausa e il frame in ritardo. Una riga a metà
+perde il suo `onClick`: superfluo (l'overlay intercetta tutto), ma è una verità che va nel
+modello.
+
+**Il dispositivo di default di Robolectric non è un telefono**: il transcript tiene
+l'ultima riga in vista, quindi su un 320×470dp che nessuno vende la testa della sessione è
+onestamente scorsa via. `InitScreenTest` ha ora `@Config(qualifiers = "w360dp-h740dp")`;
+`ThabitAppTest` invece **non** l'ha preso — con quel qualifier il FAB smette di comparire
+come nodo proprio nell'albero unito e `the FAB opens the wizard` cade, che è un problema
+diverso e non di questa fase — e identifica la sessione dalla **tab** (`thabit.sh`), che è
+poi il fatto di cui quel test parla.
+
+**Verifiche**: suite verde (`InitScreenTest` 11 test, `TypistTest` 9), lint 0 errori.
+
+- [ ] Da verificare su device: la velocità (fluida, non una macchina da scrivere), il
+      tap-to-skip a metà stampa, «Rimuovi animazioni» in Accessibilità, TalkBack, e che le
+      quattro righe più le risposte ci stiano su uno schermo da 360×640
+- [ ] Da guardare, separatamente: perché `GlowFab` sparisce dall'albero unito a
+      `w360dp-h740dp` (il commento in `GlowFab.kt` parla già di un flake simile, Fase 16b)
+
 ## Note trasversali
 
 - **Vincoli di design non negoziabili** (vedi `CLAUDE.md` e VISION §1.2): solo JetBrains Mono (eccetto widget), griglia 4px, indent 20px, niente ombre (bordi 1px + glow del FAB), raggio 4px ovunque, controlli renderizzati come testo, emoji come icone nel testo.

@@ -1,7 +1,6 @@
 package com.callbackdev.thabit.ui.init
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -13,10 +12,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.callbackdev.thabit.R
-import com.callbackdev.thabit.ui.components.CanvasLine
-import com.callbackdev.thabit.ui.components.CodeCanvas
 import com.callbackdev.thabit.ui.components.CodeLine
 import com.callbackdev.thabit.ui.components.EditorTabs
 import com.callbackdev.thabit.ui.components.StatusBarDivider
@@ -47,6 +43,14 @@ import com.callbackdev.thabit.ui.theme.ThabitTheme
  * product, and the one-shot hint at the head of `habits.test` already offers it
  * at the moment the file is in front of them.
  *
+ * Since Fase 19 the transcript **prints itself** rather than being already
+ * there: see [TypedTranscript] for the two speeds, the tap that ends it and the
+ * two accessibility switches that never start it. The four `#` lines above the
+ * choices grew with it — a session that takes a second and a half to print can
+ * afford to say what the app *is* before saying what it needs, and a still
+ * screen could not. They say it in plain words, and the app's own words arrive
+ * with a "like a…" in front of them (VISION §3.3.7).
+ *
  * **Localized**, unlike the terminal output everywhere else in the app: the same
  * exception the `README.md` tab already makes (VISION §1.3). The fiction is
  * carried by the shape — the prompt, the `>` choices, the `#` notes — not by the
@@ -61,10 +65,12 @@ fun InitScreen(
     modifier: Modifier = Modifier
 ) {
     val syntax = ThabitTheme.syntax
-    val lines = buildInitLines(
+    val script = buildInitScript(
         syntax = syntax,
         intro = stringResource(R.string.init_intro),
+        files = stringResource(R.string.init_files),
         privacy = stringResource(R.string.init_privacy),
+        ask = stringResource(R.string.init_ask),
         add = stringResource(R.string.init_option_add),
         addNote = stringResource(R.string.init_option_add_note),
         skip = stringResource(R.string.init_option_skip),
@@ -75,16 +81,7 @@ fun InitScreen(
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             EditorTabs(fileNames = listOf(SETUP_FILE), activeIndex = 0, onSelect = {})
-            CodeCanvas(
-                lines = lines,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 8.dp),
-                // A transcript has no nesting: the `#` note under each choice is
-                // indented one level to belong to it, and a guide rail drawn down
-                // the middle of a two-line answer would be reading structure into
-                // a conversation.
-                showIndentGuides = false
-            )
+            TypedTranscript(script = script, modifier = Modifier.weight(1f))
             TerminalStatusBar {
                 StatusBarStart { StatusBarText("⎇ setup") }
                 StatusBarDivider()
@@ -101,41 +98,54 @@ fun InitScreen(
 internal const val SETUP_FILE: String = "thabit.sh"
 
 /**
- * The transcript as a pure value, so its shape can be asserted without a screen.
+ * The transcript as a pure value, so its shape — and now its timing — can be
+ * asserted without a screen.
  *
  * Every `#` note here *is* one of the localized strings, which is the one place
  * in the app where the comment channel is the whole message. That is the same
  * trade the `README.md` tab makes: prose addressed to the reader wins over the
  * fiction of a file written in English.
+ *
+ * The command is the only line typed at a hand's speed; everything else is the
+ * program answering. The beats are where a real session breathes — after the
+ * command, and between one offered answer and the next.
  */
-internal fun buildInitLines(
+internal fun buildInitScript(
     syntax: SyntaxColors,
     intro: String,
+    files: String,
     privacy: String,
+    ask: String,
     add: String,
     addNote: String,
     skip: String,
     skipNote: String,
     onAddFirstTest: () -> Unit,
     onSkip: () -> Unit
-): List<CanvasLine> = buildList {
+): List<TypedLine> = buildList {
     add(
-        CodeLine(
-            buildAnnotatedString {
-                withStyle(SpanStyle(color = syntax.comment)) { append("$ ") }
-                withStyle(SpanStyle(color = syntax.string)) { append("thabit init") }
-            }
+        TypedLine(
+            CodeLine(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = syntax.comment)) { append("$ ") }
+                    withStyle(SpanStyle(color = syntax.string)) { append("thabit init") }
+                }
+            ),
+            msPerChar = PromptMsPerChar,
+            pauseAfterMs = PromptPauseMs
         )
     )
     add(blank())
-    add(comment(intro, syntax))
-    add(comment(privacy, syntax))
+    add(printed(comment(intro, syntax)))
+    add(printed(comment(files, syntax)))
+    add(printed(comment(privacy, syntax)))
+    add(printed(comment(ask, syntax), pauseAfterMs = StanzaPauseMs))
     option(add, addNote, syntax, onAddFirstTest)
     option(skip, skipNote, syntax, onSkip)
 }
 
 /** `> choice` plus its `#` note: one tap target, and the note says what it costs. */
-private fun MutableList<CanvasLine>.option(
+private fun MutableList<TypedLine>.option(
     label: String,
     note: String,
     syntax: SyntaxColors,
@@ -143,24 +153,29 @@ private fun MutableList<CanvasLine>.option(
 ) {
     add(blank())
     add(
-        CodeLine(
-            buildAnnotatedString {
-                withStyle(SpanStyle(color = syntax.comment)) { append("> ") }
-                withStyle(SpanStyle(color = syntax.key)) { append(label) }
-            },
-            onClick = onClick,
-            onClickLabel = label,
-            // The `>` is a prompt, not a word: a screen reader gets the answer.
-            contentDescription = label
+        printed(
+            CodeLine(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = syntax.comment)) { append("> ") }
+                    withStyle(SpanStyle(color = syntax.key)) { append(label) }
+                },
+                onClick = onClick,
+                onClickLabel = label,
+                // The `>` is a prompt, not a word: a screen reader gets the answer.
+                contentDescription = label
+            )
         )
     )
-    add(comment(note, syntax, indent = 1))
+    add(printed(comment(note, syntax, indent = 1), pauseAfterMs = StanzaPauseMs))
 }
+
+private fun printed(line: CodeLine, pauseAfterMs: Int = 0): TypedLine =
+    TypedLine(line, msPerChar = PrintMsPerChar, pauseAfterMs = pauseAfterMs)
 
 private fun comment(text: String, syntax: SyntaxColors, indent: Int = 0): CodeLine =
     CodeLine(AnnotatedString("# $text", SpanStyle(color = syntax.comment)), indent)
 
-private fun blank(): CodeLine = CodeLine(AnnotatedString(""))
+private fun blank(): TypedLine = TypedLine(CodeLine(AnnotatedString("")))
 
 @Preview(showBackground = true, backgroundColor = 0xFF10141A, heightDp = 480)
 @Composable

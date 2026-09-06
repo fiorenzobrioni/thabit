@@ -486,9 +486,14 @@
          The command and the file names are code and stay as they are. The word
          "test" is deliberately in the NOTE and not in the choice: the plain word
          goes first and the app's own word is introduced beside it (VISION
-         3.3.7). -->
+         3.3.7), and the same trade is what makes init_files say "like a build"
+         rather than "a build". The four lines above the choices say what the app
+         IS before what it needs: a session that takes a second and a half to
+         print can afford them (Fase 19), a still screen could not. -->
     <string name="init_intro">thabit keeps your habits as a checklist you tick off, one day at a time.</string>
+    <string name="init_files">It looks like a code editor: the list is a file, and every day gets a result, like a build.</string>
     <string name="init_privacy">No network, no account, no sensors: nothing ever leaves the phone.</string>
+    <string name="init_ask">It needs a first habit before it can do anything.</string>
     <string name="init_option_add">add your first habit</string>
     <string name="init_option_add_note">the app calls it a test, and lists them in habits.test</string>
     <string name="init_option_skip">skip</string>

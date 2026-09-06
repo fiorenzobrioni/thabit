@@ -488,9 +488,12 @@
     <string name="widget_nothing_due">niente in programma oggi</string>
     <string name="widget_tap_to_pass">tocca per passare</string>
 
-    <!-- `$ thabit init` (Fase 14): prosa per chi vede l\'app per la prima volta -->
+    <!-- `$ thabit init` (Fase 14): prosa per chi vede l\'app per la prima volta.
+         Dalla Fase 19 il transcript si scrive da solo. -->
     <string name="init_intro">thabit tiene le tue abitudini come una lista da spuntare, un giorno alla volta.</string>
+    <string name="init_files">Sembra un editor di codice: la lista è un file, e ogni giornata ha un esito, come una build.</string>
     <string name="init_privacy">Niente rete, niente account, niente sensori: dal telefono non esce niente.</string>
+    <string name="init_ask">Prima di poter fare qualcosa gli serve una prima abitudine.</string>
     <string name="init_option_add">aggiungi la prima abitudine</string>
     <string name="init_option_add_note">l\'app la chiama test, e le elenca in habits.test</string>
     <string name="init_option_skip">salta</string>
