@@ -767,6 +767,27 @@ sessione aspetta.
 
 - [ ] Da verificare su device: il ritmo spezzato, e se sei secondi sono troppi
 
+## Fase 19d — La barra del setup si allinea alle gemelle (chiesta dal committente, 6 set 2026)
+
+Verbale del committente, screenshot alla mano: nella schermata di onboarding di thabit
+`1/1` sta contro il bordo destro, mentre in tweather e tsteps sta subito dopo `⎇ setup`,
+separato dal solo `|`.
+
+La causa era una `StatusBarStart` di troppo: quel gruppo prende `weight(1f)` e serve a
+far ellissare la voce che *può* accorciarsi (un nome file, un ramo, contenuto
+dell'utente). Su questa barra non c'è niente del genere — entrambe le voci sono fisse e
+corte — quindi l'unico effetto era spingere `1/1` a fondo riga. Le gemelle hanno la
+stessa `StatusBarStart` nel loro kit e sulla schermata di init deliberatamente non la
+usano.
+
+**La correzione**: `StatusBarText("⎇ setup")` diretto nella riga, come in tsteps e
+tweather; le due voci si impacchettano a sinistra. Nessun'altra differenza fra le tre
+barre di setup.
+
+**Verifiche**: suite verde, lint 0 errori.
+
+- [ ] Da verificare su device: la barra a fianco delle gemelle
+
 ## Note trasversali
 
 - **Vincoli di design non negoziabili** (vedi `CLAUDE.md` e VISION §1.2): solo JetBrains Mono (eccetto widget), griglia 4px, indent 20px, niente ombre (bordi 1px + glow del FAB), raggio 4px ovunque, controlli renderizzati come testo, emoji come icone nel testo.

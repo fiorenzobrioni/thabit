@@ -19,7 +19,6 @@ import com.callbackdev.thabit.R
 import com.callbackdev.thabit.ui.components.CodeLine
 import com.callbackdev.thabit.ui.components.EditorTabs
 import com.callbackdev.thabit.ui.components.StatusBarDivider
-import com.callbackdev.thabit.ui.components.StatusBarStart
 import com.callbackdev.thabit.ui.components.StatusBarText
 import com.callbackdev.thabit.ui.components.TerminalStatusBar
 import com.callbackdev.thabit.ui.theme.SyntaxColors
@@ -103,7 +102,11 @@ fun InitScreen(
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .navigationBarsPadding()
             ) {
-                StatusBarStart { StatusBarText("⎇ setup") }
+                // Packed left, not split with a `StatusBarStart`: nothing on this
+                // bar can shrink (both entries are fixed, and short), so claiming
+                // the leftover width would only push `1/1` against the right edge
+                // — which is not how the siblings' setup bar reads.
+                StatusBarText("⎇ setup")
                 StatusBarDivider()
                 StatusBarText("1/1")
             }
