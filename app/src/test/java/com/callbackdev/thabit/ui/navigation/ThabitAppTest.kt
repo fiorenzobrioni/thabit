@@ -22,6 +22,7 @@ import com.callbackdev.thabit.data.WorkspaceStore
 import com.callbackdev.thabit.data.db.ThabitDatabase
 import com.callbackdev.thabit.di.AppGraph
 import com.callbackdev.thabit.di.ServiceLocator
+import com.callbackdev.thabit.ui.init.SETUP_FILE
 import com.callbackdev.thabit.ui.theme.ThabitTheme
 import org.junit.After
 import org.junit.Before
@@ -313,12 +314,19 @@ class ThabitAppTest {
         compose.setContent { ThabitTheme { ThabitApp() } }
     }
 
+    /**
+     * The session is identified by its tab and not by the `$ thabit init` line:
+     * since Fase 19 the transcript prints itself and keeps its last line in sight,
+     * so on a screen too short for it — which Robolectric's default device is — the
+     * command has honestly scrolled off the top. The tab is the file, and the file
+     * is the fact this test is about.
+     */
     @Test
     fun `a fresh install opens on the init session, not on the empty file`() {
         showFirstRun()
-        awaitText("$ thabit init")
+        awaitText(SETUP_FILE)
 
-        compose.onNodeWithText("$ thabit init").assertIsDisplayed()
+        compose.onNodeWithText(SETUP_FILE).assertIsDisplayed()
         compose.onNodeWithText("habits.test").assertDoesNotExist()
     }
 

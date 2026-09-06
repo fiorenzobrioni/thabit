@@ -640,6 +640,133 @@ status bar.
 - [ ] Da verificare su device: `HELP.md` con `word_wrap: false` in `settings.config`,
       e che la status bar `⎇ main | ro | wrap` stia su uno schermo da 360dp
 
+## Fase 19 — Il primo avvio si scrive da solo (chiesta dal committente, 6 set 2026)
+
+Decisione di serie: stessa modifica in tweather (Fase 27, dove sta il verbale completo) e
+tsteps (Fase 23). `$ thabit init` era già una sessione di terminale, era solo la
+**fotografia** di una — e il `█`, il glifo che dice «la macchina è *qui*, adesso», non
+aveva un posto dove stare.
+
+**Due velocità, perché un transcript ha due autori.** La riga del comando si *digita*
+(`PromptMsPerChar = 20`, una mano su una tastiera); tutto quello che sta sotto si *stampa*
+(`PrintMsPerChar = 2`, cinquecento caratteri al secondo, otto per frame): non una macchina
+da scrivere, un programma che scrive su una tty. Due respiri, 160 ms dopo il comando e
+60 ms fra una risposta e la successiva. Un test tiene la corsa **sotto i due secondi in
+entrambe le lingue**, ed è il test con cui litigare il giorno in cui l'introduzione vorrà
+diventare un carosello per accumulo.
+
+**Niente barre di avanzamento finte**: il file non mente, e uno spinner che conta fino a
+un numero che l'app ha già sarebbe un'animazione che inventa lavoro — la stessa classe di
+bugia dello zero finto e della build rossa per un giorno in cui non c'era nessuno. È
+animato l'*arrivo* di un testo che sarebbe stato lì comunque. Il tempo lo dà
+`withFrameNanos`, non un `delay(2)` per carattere: quella è una promessa che lo scheduler
+non mantiene, e la deriva si vede.
+
+**Tre vie d'uscita.** Un **tocco** la chiude — un `Box` in overlay, colpito prima della
+canvas, così il tocco che ferma la stampa non può anche buttare il lettore dentro il
+wizard; esce dalla composizione appena ha fatto il suo unico lavoro. **«Rimuovi
+animazioni»** (`ANIMATOR_DURATION_SCALE == 0`) non la fa nemmeno partire: `finished` nasce
+`true`, quindi la schermata è completa al **primo frame** e non un frame dopo. E
+**TalkBack la salta** per un motivo suo, che è §3.3.7 applicata al tempo: un testo che
+cresce di un carattere alla volta è un albero di semantica che cambia sessanta volte al
+secondo, e le righe che parlano parole invece di glifi non servono a niente se vengono
+lette a pezzi.
+
+**Il latch è un `rememberSaveable`**: `> add your first habit` scambia l'intera shell con
+il wizard, e una rotazione andando là — o un back da lì — che rifacesse partire
+l'introduzione trasformerebbe un bel primo secondo in un ostacolo.
+
+**Questa canvas va sempre a capo**, qualunque cosa dica `word_wrap`: lo stesso override di
+`HELP.md` (Fase 18), per una ragione più netta — un cursore che esce dal bordo destro è un
+cursore che non si vede. Si muove solo il wrap, non `line_numbers`. **La status bar non
+dice `wrap`**: quel marcatore esiste perché un file non sembri ignorare un interruttore
+che il lettore ha impostato, e al primo avvio nessuno ha impostato niente. Questa non è la
+scheda di un file, è una sessione, e infatti non ha nemmeno `ro`/`rw`.
+
+**Il testo è cresciuto, e questa è metà della modifica.** Erano due righe `#`; ora sono
+quattro: cosa fa l'app, che aspetto ha, cosa non esce dal telefono, cosa le serve per
+partire. La riga nuova dice «*come* una build», non «una build»: è lo stesso scambio che
+la Fase 14 aveva già fatto fra la scelta e la sua nota — la parola piana prima, quella
+dell'app presentata accanto (§3.3.7) — e una similitudine è una presentazione, un
+sostantivo nudo sarebbe un pedaggio. Un test la sorveglia. Una sessione che impiega un
+secondo e mezzo a stamparsi se le può permettere; una schermata ferma no.
+
+**`Typist` è una timeline pura** — dato un millisecondo, quali righe sono a video e quanta
+parte dell'ultima — così l'animazione si asserisce invece di guardarla: nove test,
+compresi il cursore parcheggiato durante la pausa e il frame in ritardo. Una riga a metà
+perde il suo `onClick`: superfluo (l'overlay intercetta tutto), ma è una verità che va nel
+modello.
+
+**Il dispositivo di default di Robolectric non è un telefono**: il transcript tiene
+l'ultima riga in vista, quindi su un 320×470dp che nessuno vende la testa della sessione è
+onestamente scorsa via. `InitScreenTest` ha ora `@Config(qualifiers = "w360dp-h740dp")`;
+`ThabitAppTest` invece **non** l'ha preso — con quel qualifier il FAB smette di comparire
+come nodo proprio nell'albero unito e `the FAB opens the wizard` cade, che è un problema
+diverso e non di questa fase — e identifica la sessione dalla **tab** (`thabit.sh`), che è
+poi il fatto di cui quel test parla.
+
+**Verifiche**: suite verde (`InitScreenTest` 11 test, `TypistTest` 9), lint 0 errori.
+
+- [ ] Da verificare su device: la velocità (fluida, non una macchina da scrivere), il
+      tap-to-skip a metà stampa, «Rimuovi animazioni» in Accessibilità, TalkBack, e che le
+      quattro righe più le risposte ci stiano su uno schermo da 360×640
+- [ ] Da guardare, separatamente: perché `GlowFab` sparisce dall'albero unito a
+      `w360dp-h740dp` (il commento in `GlowFab.kt` parla già di un flake simile, Fase 16b)
+
+## Fase 19b — Il primo avvio, riletto sul telefono (device, 6 set 2026)
+
+Decisione di serie: stessa modifica in tweather (Fase 27b, dove sta il verbale completo)
+e tsteps (Fase 23b). Trovate provando questa app e tsteps.
+
+**Era troppo veloce.** Cinquecento caratteri al secondo, sessione finita in un secondo e
+mezzo: non si legge come una cosa che si sta scrivendo, si legge come un tremolio — il
+testo arriva più in fretta di quanto l'occhio lo insegua, e il cursore, che è l'unico
+motivo per cui l'animazione esiste, non lo si vede muovere. Metà velocità
+(`PrintMsPerChar = 4`), il comando a `PromptMsPerChar = 45` (una mano vera fa circa
+ventidue caratteri al secondo) e un respiro di 40 ms dopo ogni riga stampata. La corsa
+passa da 1,5 s a circa 3 s.
+
+**Il budget del test diventa un intervallo**, `2_000..4_000` ms: «sotto i due secondi»
+era il guardiano che aveva permesso il tremolio, e un tetto senza pavimento sorveglia una
+sola delle due cose che possono andare storte.
+
+**La schermata finiva sotto le barre di sistema**: la tab `thabit.sh` sotto l'orologio, la
+barra di stato del terminale sotto la pillola dei gesti. Non è un difetto della Fase 19 —
+`InitScreen` non ha mai applicato gli inset, e il workspace lo fa dal giorno in cui esiste.
+La Column prende lo stesso `statusBarsPadding()` del workspace, e la `TerminalStatusBar`,
+che qui è l'elemento più in basso (nel workspace non lo è mai), si prende l'inset dei
+gesti come se lo prende `EditorNavBar`.
+
+**Verifiche**: suite verde, lint 0 errori.
+
+- [ ] Da verificare su device: la nuova velocità, e che tab e barra di stato stiano dentro
+      le loro barre di sistema (navigazione a gesti e a tre bottoni)
+
+## Fase 19c — Le risposte sono prompt anche loro (device, 6 set 2026)
+
+Decisione di serie: stessa modifica in tweather (Fase 27c, dove sta il verbale
+completo) e tsteps (Fase 23c).
+
+Verbale del committente, provando tsteps: il comando ha la velocità giusta, la pausa
+dopo il comando ha la durata giusta, «poi fa tutto il testo in un colpo solo fino alla
+fine». Il difetto non era la velocità ma la **forma**: la sessione aveva due tempi ma un
+solo respiro — un turno, e poi un annuncio.
+
+**La correzione non è altra lentezza, è un ritmo.** Ogni riga che si apre con un prompt
+— il `$` del comando e ogni `>` di risposta — è **digitata** alla stessa velocità e
+seguita dallo stesso respiro; tutto il resto è **stampato**. Il glifo del prompt è la
+spia in tutte e due le direzioni: è dove una mano sta sullo schermo, ed è dove una
+sessione aspetta.
+
+**E la prosa scende ancora**, da 250 a ~165 caratteri al secondo (`PrintMsPerChar` 4 →
+6), con respiri più larghi fra le righe (`LinePauseMs` 40 → 100, `StanzaPauseMs` 100 →
+160). La corsa passa a 5,8 s in inglese e 6,3 s in italiano, e il budget del test a
+`4_000..8_000` ms.
+
+**Verifiche**: suite verde, lint 0 errori.
+
+- [ ] Da verificare su device: il ritmo spezzato, e se sei secondi sono troppi
+
 ## Note trasversali
 
 - **Vincoli di design non negoziabili** (vedi `CLAUDE.md` e VISION §1.2): solo JetBrains Mono (eccetto widget), griglia 4px, indent 20px, niente ombre (bordi 1px + glow del FAB), raggio 4px ovunque, controlli renderizzati come testo, emoji come icone nel testo.
